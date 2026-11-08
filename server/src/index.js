@@ -19,8 +19,10 @@ const WINDOW_URI = `ui://studying/window-${VERSION}.html`;
 const WINDOW_MIME = 'text/html;profile=mcp-app';
 const SESSION_RE = /^[A-Za-z0-9_-]{12,64}$/;
 const KINDS = ['files', 'subjects', 'deck', 'test', 'mindmap', 'document', 'results', 'setup_status', 'notice', 'plan'];
-const MAX_PAYLOAD = 1_500_000; // bytes of JSON per push
-const LIMIT_PER_HOUR = 1500; // requests per window session per hour
+const MAX_PAYLOAD = 900_000; // UTF-8 bytes of JSON per push (Durable Object values max out at 2 MB)
+const LIMIT_PER_HOUR = 600; // pushes and progress updates per window session per hour
+const PULL_LIMIT_PER_HOUR = 3000; // window reads per session per hour (two windows polling every 2.5 s fit)
+const PULL_BUDGET = 1_200_000; // bytes of messages returned by one pull
 
 const INSTRUCTIONS =
   'Studying is a study app with a window in the chat. You are its brain: you make study materials, tests and ' +
@@ -78,7 +80,8 @@ const TOOLS = [
     title: 'Report progress',
     description:
       'Updates the progress bar in the window while you work on a job. First call: step 0 with total = number of ' +
-      'planned steps and labels for all steps. Then one call as each step starts. Last call: done true (or error). ' +
+      'planned steps and labels for all steps. Then one call as each step starts, with step = its 0-based index ' +
+      '(the number of steps already finished). Last call: done true (or error); always send it. ' +
       'The window estimates the remaining time from these updates.',
     inputSchema: {
       type: 'object',
@@ -118,15 +121,15 @@ const TOOLS = [
 // ---------- mailbox (one Durable Object per window session) ----------
 
 export class Mailbox extends DurableObject {
-  async #touch() {
+  async #touch(key = 'rate', limit = LIMIT_PER_HOUR) {
     const now = Date.now();
     const hour = Math.floor(now / 3_600_000);
-    const rate = (await this.ctx.storage.get('rate')) ?? { hour, n: 0 };
+    const rate = (await this.ctx.storage.get(key)) ?? { hour, n: 0 };
     if (rate.hour !== hour) { rate.hour = hour; rate.n = 0; }
     rate.n += 1;
-    await this.ctx.storage.put('rate', rate);
+    await this.ctx.storage.put(key, rate);
     await this.ctx.storage.setAlarm(now + 2 * 3_600_000);
-    if (rate.n > LIMIT_PER_HOUR) throw Object.assign(new Error('Too many requests for this window; try again in an hour.'), { code: -32029 });
+    if (rate.n > limit) throw Object.assign(new Error('Too many requests for this window; try again in an hour.'), { code: -32029 });
   }
   async push(msg) {
     await this.#touch();
@@ -144,12 +147,28 @@ export class Mailbox extends DurableObject {
     await this.ctx.storage.put('progress', { ...p, ts: Date.now() });
   }
   async pull(after) {
-    await this.#touch();
+    await this.#touch('pullrate', PULL_LIMIT_PER_HOUR);
     const all = await this.ctx.storage.list({ prefix: 'm:' });
-    const messages = [...all.values()].filter((m) => m.seq > after);
-    return { messages, progress: (await this.ctx.storage.get('progress')) ?? null, seq: (await this.ctx.storage.get('seq')) ?? 0 };
+    // oldest first, within a size budget; the window asks again for the rest
+    const messages = [];
+    let size = 0;
+    for (const m of all.values()) {
+      if (m.seq <= after) continue;
+      const n = m.size ?? 0;
+      if (messages.length && size + n > PULL_BUDGET) break;
+      messages.push(m); size += n;
+    }
+    const seq = (await this.ctx.storage.get('seq')) ?? 0;
+    const more = messages.length > 0 && messages[messages.length - 1].seq < seq;
+    return { messages, more, progress: (await this.ctx.storage.get('progress')) ?? null, seq };
   }
-  async alarm() { await this.ctx.storage.deleteAll(); }
+  // after two hours of silence: drop messages and progress, keep the sequence number so an
+  // open window never mistakes new messages for ones it has already seen
+  async alarm() {
+    const seq = (await this.ctx.storage.get('seq')) ?? 0;
+    await this.ctx.storage.deleteAll();
+    if (seq) await this.ctx.storage.put('seq', seq);
+  }
 }
 
 function box(env, session) {
@@ -171,9 +190,9 @@ async function callTool(env, name, a) {
     }
     case 'study_push': {
       if (!KINDS.includes(a.kind)) throw Object.assign(new Error(`kind must be one of ${KINDS.join(', ')}`), { code: -32602 });
-      const size = JSON.stringify(a.payload ?? null).length;
+      const size = new TextEncoder().encode(JSON.stringify(a.payload ?? null)).length;
       if (size > MAX_PAYLOAD) throw Object.assign(new Error(`Payload is ${size} bytes; the limit is ${MAX_PAYLOAD}. Split it (e.g. one deck per chapter).`), { code: -32602 });
-      const seq = await box(env, a.session).push({ kind: a.kind, title: clip(a.title, 200), payload: a.payload ?? null });
+      const seq = await box(env, a.session).push({ kind: a.kind, title: clip(a.title, 200), payload: a.payload ?? null, size });
       return { delivered: true, seq, note: 'The window shows it within a few seconds if it is open. If the user closed it, call study_open with data.' };
     }
     case 'study_progress': {
@@ -217,7 +236,9 @@ async function handle(env, origin, msg) {
       let res;
       try { res = await callTool(env, params.name, params.arguments ?? {}); }
       catch (e) { return ok({ content: [{ type: 'text', text: String(e.message ?? e) }], isError: true }); }
-      const text = params.name === 'study_guide' ? res.guide : JSON.stringify(res);
+      // the window reads structuredContent; keep the text copy short for pulls
+      const text = params.name === 'study_guide' ? res.guide
+        : params.name === 'study_pull' ? `${res.messages.length} message(s), seq ${res.seq}` : JSON.stringify(res);
       return ok({ content: [{ type: 'text', text }], structuredContent: res });
     }
     case 'resources/list':

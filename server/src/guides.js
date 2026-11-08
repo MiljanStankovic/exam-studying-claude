@@ -21,8 +21,10 @@ Loop for every job:
 2. Read the rules in the user's storage before you produce anything:
    Studying/_rules/*.md (general, all subjects) and the subject's subject.md, part.md, memory.md.
    Rules in _rules/lessons-learned.md override your defaults.
-3. Report progress with study_progress: announce the planned steps first (step 0 of N),
-   then each step as it starts, then done. The window turns this into a progress bar and ETA.
+3. Report progress with study_progress: announce the planned steps first (step 0 of N, with
+   all step labels), then call again as each step starts with step = its 0-based index (= the
+   number of steps already finished), then done:true. Always finish with done or error.
+   The window turns this into a progress bar and ETA.
 4. Produce, review (guide: review), fix what the review found.
 5. Save to storage in the formats from the guide "formats", then study_push the result.
 6. Update the subject memory (guide: memory) when the job taught you something about the user.
@@ -48,7 +50,8 @@ When you get "Studying: setup ... storage=<name>":
 3. Push {kind:"setup_status", payload:{ok:true, storage, root:"Studying", subjects:[...]}}.
 4. When the user then creates a subject, ask only for what you cannot read from their
    materials: exam parts, date, how it is graded, pass threshold. Write subject.md and one
-   folder per part. Push {kind:"subjects", payload:[...]} so the home screen updates.
+   folder per part. Push {kind:"subjects", payload:[...]} so the home screen updates
+   (item shape in the guide "formats").
 
 Never ask for passwords or tokens. Connecting storage always happens in Claude's own
 connector settings, where the user signs in with the provider.`,
@@ -211,7 +214,9 @@ source the window renders; you may also write a .md twin for reading outside the
 
 Deck  <name>.deck.json
 { "kind":"deck", "title":"...", "subject":"...", "part":"...", "created":"ISO date",
-  "cards":[{ "id":"c1", "front":"...", "back":"...", "source":"file p.12", "topic":"..." }] }
+  "cards":[{ "id":"<deck-slug>-001", "front":"...", "back":"...", "source":"file p.12", "topic":"..." }] }
+Card ids must be unique across ALL decks of the subject (prefix them with a deck slug), because
+review decks mix cards from several decks and progress is stored per id.
 Back text may use short lines, "- " bullets, "1. " lists and fenced code.
 
 Test  <name>.test.json
@@ -226,10 +231,21 @@ Document  <name>.md  (summary, plan, cheat sheet, glossary). Push as
 
 Result  <date>-<test name>.result.json
 { "kind":"result", "test":"...", "date":"...", "score":11.5, "total":15, "grade":"...",
-  "items":[{ "id":"q1", "points":1, "max":1, "feedback":"..." }], "weakTopics":["..."] }
+  "items":[{ "id":"q1", "prompt":"question text", "points":1, "max":1, "feedback":"..." }],
+  "weakTopics":["..."] }
+Numbers are numbers, not strings.
 
 Progress for flashcards  <deck name>.progress.json
 { "cards":{ "c1":{ "due":"ISO date", "interval":3, "ease":2.5, "reps":2 } } }
+
+Subjects list (pushed as {kind:"subjects", payload:[...]}), one item per subject:
+{ "name":"...", "examDate":"YYYY-MM-DD or null", "parts":["Oral","Written"],
+  "readiness":0-100, "due":<cards due today> }
+
+Files list: {kind:"files", payload:{ path:"Studying/...", items:[{ name, type:"folder"|"file",
+  id, size, modified }] }}
+
+A single push must be under about 900 KB; split big decks or tests into several pushes.
 
 Payloads pushed to the window use the same objects: {kind:"deck", payload:<deck>},
 {kind:"test", payload:<test>}, {kind:"mindmap", payload:<mindmap>}.`,

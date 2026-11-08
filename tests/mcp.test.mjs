@@ -115,3 +115,24 @@ test('worker exports only handlers and classes (workerd rejects anything else)',
   const mod = await import('../server/src/index.js');
   for (const [k, v] of Object.entries(mod)) assert.ok(k === 'default' || typeof v === 'function', `export ${k} is not allowed in a Worker`);
 });
+
+test('cleanup after two hours keeps the sequence number', async () => {
+  const s = 'alarmalarmalarm1';
+  await call('study_push', { session: s, kind: 'notice', payload: { text: 'a' } });
+  await call('study_push', { session: s, kind: 'notice', payload: { text: 'b' } });
+  await env.MAILBOX.get(s).alarm();
+  const r = await call('study_push', { session: s, kind: 'notice', payload: { text: 'c' } });
+  assert.equal(r.structuredContent.seq, 3);
+  const p = (await call('study_pull', { session: s, after: 2 })).structuredContent;
+  assert.deepEqual(p.messages.map((m) => m.payload.text), ['c']);
+});
+
+test('big pushes are refused by UTF-8 size and pulls are split', async () => {
+  const s = 'bigbigbigbigbig1';
+  const r = await call('study_push', { session: s, kind: 'document', payload: { markdown: 'č'.repeat(500_000) } });
+  assert.equal(r.isError, true);
+  for (let i = 0; i < 3; i++) await call('study_push', { session: s, kind: 'document', payload: { markdown: 'x'.repeat(500_000) } });
+  const p = (await call('study_pull', { session: s, after: 0 })).structuredContent;
+  assert.equal(p.messages.length, 2);
+  assert.equal(p.more, true);
+});

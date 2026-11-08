@@ -250,7 +250,7 @@ const S = {
   deck: null, idx: 0, flipped: false, srs: {},
   test: null, answers: {}, touched: new Set(), q: 0, started: 0, submitted: false,
   results: null, mindmap: null, doc: null,
-  progress: null, stepTimes: [], waitingSince: 0, lastSeq: 0, report: null,
+  progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null, order: [],
 };
 const VIEWS = [['home', 'Home'], ['files', 'Files'], ['create', 'Create'], ['study', 'Study'], ['test', 'Test'], ['results', 'Results']];
 
@@ -258,60 +258,78 @@ const VIEWS = [['home', 'Home'], ['files', 'Files'], ['create', 'Create'], ['stu
 const app = new App({ name: 'Studying', version: '0.1.0' }, { availableDisplayModes: ['inline', 'fullscreen'] });
 function ask(text) {
   const msg = `Studying: ${text} (session: ${S.session})`;
-  S.waitingSince = Date.now();
-  startPolling();
-  app.sendMessage({ role: 'user', content: [{ type: 'text', text: msg }] }).catch(() => toast('Could not send to Claude. Type your request in the chat instead.'));
+  keepPolling(10 * 60_000);
+  const fail = () => { S.pollUntil = 0; toast('Could not send to Claude. Type your request in the chat instead.'); };
+  app.sendMessage({ role: 'user', content: [{ type: 'text', text: msg }] }).then((r) => { if (r?.isError) fail(); }, fail);
 }
-function link(url) { app.openLink({ url }).catch(() => toast('Open ' + url)); }
+function link(url) { const fail = () => toast('Open ' + url); app.openLink({ url }).then((r) => { if (r?.isError) fail(); }, fail); }
 async function callTool(name, args) {
   const r = await app.callServerTool({ name, arguments: args });
   return r?.structuredContent ?? (() => { try { return JSON.parse(r?.content?.[0]?.text ?? '{}'); } catch { return {}; } })();
 }
 
-// mailbox: poll only while Claude is working on something this window asked for
-let pollTimer = null;
+// mailbox: poll only while Claude is working on something this window asked for.
+// pollUntil is pushed forward by a request (10 min), by live progress (3 min) and by each
+// result (90 s, since one job can push several results), and pulled in when a job ends.
+let pollTimer = null, pulling = false;
+function keepPolling(ms) { S.pollUntil = Math.max(S.pollUntil, Date.now() + ms); startPolling(); }
 function startPolling() { if (!pollTimer) { pollTimer = setInterval(pull, 2500); pull(); } }
 function stopPolling() { clearInterval(pollTimer); pollTimer = null; }
 async function pull() {
-  if (document.hidden) return;
-  let d;
-  try { d = await callTool('study_pull', { session: S.session, after: S.lastSeq }); } catch { return; }
-  if (d?.progress) onProgress(d.progress);
-  for (const m of d?.messages ?? []) { S.lastSeq = Math.max(S.lastSeq, m.seq); receive(m); }
-  const busy = S.progress && !S.progress.done && !S.progress.error;
-  const waited = S.waitingSince && Date.now() - S.waitingSince;
-  if (!busy && (!S.waitingSince || waited > 10 * 60_000)) stopPolling();
-  if (!busy && S.progress?.done && S.waitingSince && (d?.messages?.length ?? 0) > 0) S.waitingSince = 0;
+  if (document.hidden || pulling) return;
+  pulling = true;
+  try {
+    for (let round = 0; round < 5; round++) {
+      let d;
+      try { d = await callTool('study_pull', { session: S.session, after: S.lastSeq }); } catch { return; }
+      if (typeof d?.seq === 'number' && d.seq < S.lastSeq) { S.lastSeq = 0; continue; } // mailbox was reset
+      if (d?.progress) onProgress(d.progress);
+      for (const m of d?.messages ?? []) {
+        if (!(m.seq > S.lastSeq)) continue;
+        S.lastSeq = m.seq;
+        keepPolling(90_000);
+        try { receive(m); } catch (e) { toast(`Could not show "${m.title ?? m.kind}". Ask Claude to send it again.`); console.error(e); }
+      }
+      if (!d?.more) break;
+    }
+  } finally {
+    pulling = false;
+    if (Date.now() > S.pollUntil) stopPolling();
+  }
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && pollTimer) pull(); });
 
+const arr = (x) => (Array.isArray(x) ? x : []);
 function receive(m) {
   const p = m.payload;
   switch (m.kind) {
-    case 'setup_status': S.setup.status = p; if (p?.ok) { S.setup.step = 3; if (p.storage) store.set('storage', p.storage); if (p.subjects) S.subjects = p.subjects; } go('setup'); break;
-    case 'subjects': S.subjects = Array.isArray(p) ? p : p?.subjects ?? []; if (S.view === 'setup' && S.setup.step >= 3) S.setup.step = 4; render(); break;
-    case 'files': S.files = p; S.path = p?.path ?? S.path; go('files'); break;
+    case 'setup_status': S.setup.status = p; if (p?.ok) { S.setup.step = 3; if (p.storage) store.set('storage', p.storage); if (p.subjects) S.subjects = arr(p.subjects); } go('setup'); break;
+    case 'subjects': S.subjects = arr(Array.isArray(p) ? p : p?.subjects); if (S.view === 'setup' && S.setup.step >= 3) S.setup.step = 4; render(); break;
+    case 'files': S.files = { ...p, items: arr(p?.items) }; S.path = p?.path ?? S.path; go('files'); break;
     case 'deck': openDeck(p); break;
     case 'test': openTest(p); break;
     case 'mindmap': S.mindmap = p; S.doc = null; S.deck = null; go('study'); break;
     case 'document': case 'plan': S.doc = { title: m.title ?? p?.title ?? 'Document', markdown: p?.markdown ?? String(p ?? '') }; S.mindmap = null; S.deck = null; go('study'); break;
-    case 'results': S.results = p; go('results'); break;
+    case 'results': S.results = { ...p, items: arr(p?.items), weakTopics: arr(p?.weakTopics) }; go('results'); break;
     case 'notice': toast(p?.text ?? String(p ?? '')); break;
   }
-  S.waitingSince = 0;
 }
 
 // progress bar + estimate from the pace of the steps so far
 function onProgress(p) {
+  if (p.ts && p.ts === S.progressTs) return; // already seen
+  S.progressTs = p.ts;
+  if ((p.done || p.error) && Date.now() - (p.ts ?? 0) > 60_000) return; // an old finished job
   const prev = S.progress;
+  if (p.done || p.error) S.pollUntil = Math.min(S.pollUntil, Date.now() + 30_000); else keepPolling(180_000);
   if (!prev || prev.job !== p.job || p.step < prev.step) S.stepTimes = [{ step: p.step, t: Date.now() }];
   else if (p.step !== prev.step) S.stepTimes.push({ step: p.step, t: Date.now() });
   S.progress = p;
-  if (p.done) {
+  if (p.done && prev && !prev.done) {
     const st = store.get('stats', {}); const dur = Date.now() - (S.stepTimes[0]?.t ?? Date.now());
     if (p.total > 0 && dur > 0) { st.perStep = Math.round(((st.perStep ?? dur / p.total) * 2 + dur / p.total) / 3); store.set('stats', st); }
-    setTimeout(() => { if (S.progress === p) { S.progress = null; drawProgress(); } }, 4000);
   }
+  if (p.done) setTimeout(() => { if (S.progress === p) { S.progress = null; drawProgress(); } }, 4000);
   drawProgress();
 }
 function eta() {
@@ -337,16 +355,16 @@ function drawProgress() {
 setInterval(() => { if (S.progress && !S.progress.done) drawProgress(); }, 5000);
 
 // what Claude sees about the window
-let lastCtx = '';
+let lastCtx = '', connected = false;
 function tellClaude() {
   const parts = [`The Studying window is open (session: ${S.session}). View: ${S.view}.`];
   if (S.subject) parts.push(`Subject: ${S.subject}${S.part ? ', part: ' + S.part : ''}.`);
   if (S.view === 'files') parts.push(`Folder: ${S.path}.`);
-  if (S.view === 'study' && S.deck) parts.push(`Flashcards "${S.deck.title}", card ${S.idx + 1}/${S.deck.cards.length}.`);
+  if (S.view === 'study' && S.deck) parts.push(`Flashcards "${S.deck.title}", card ${S.idx + 1}/${S.order.length}.`);
   if (S.view === 'test' && S.test) parts.push(`Test "${S.test.title}", question ${S.q + 1}/${S.test.questions.length}${S.submitted ? ', submitted' : ''}.`);
   const t = parts.join(' ');
-  if (t === lastCtx) return; lastCtx = t;
-  try { app.updateModelContext({ content: [{ type: 'text', text: t }] }).catch(() => {}); } catch {}
+  if (t === lastCtx || !connected) return;
+  try { app.updateModelContext({ content: [{ type: 'text', text: t }] }).then((r) => { if (!r?.isError) lastCtx = t; }, () => {}); } catch {}
 }
 
 // ---------- rendering helpers ----------
@@ -373,6 +391,7 @@ function md(src) {
 const fmtSize = (n) => !n ? '' : n < 1024 ? `${n} B` : n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`;
 const fmtDate = (d) => { const x = new Date(d); return isNaN(x) ? '' : x.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); };
 
+let lastView = '';
 function go(view) { S.view = view; render(); }
 function render() {
   $('nav').innerHTML = VIEWS.map(([v, l]) => `<button data-v="${v}" ${S.view === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
@@ -381,7 +400,19 @@ function render() {
   $('full').hidden = !S.modes.includes('fullscreen');
   document.body.classList.toggle('full', full);
   const v = { setup: viewSetup, home: viewHome, files: viewFiles, create: viewCreate, study: viewStudy, test: viewTest, results: viewResults }[S.view] ?? viewHome;
-  $('view').innerHTML = v();
+  // keep what the user typed in forms when the same view is drawn again (host resize, a push...)
+  const keep = S.view === lastView ? [...$('view').querySelectorAll('form input, form textarea, form select')].filter((el) => el.id || el.name)
+    .map((el) => ({ id: el.id, name: el.name, value: el.value, checked: el.checked, box: el.type === 'checkbox' || el.type === 'radio' })) : [];
+  const openForm = S.view === lastView && $('new-subject') && !$('new-subject').hidden;
+  try { $('view').innerHTML = v(); }
+  catch (e) { console.error(e); $('view').innerHTML = `<h1>Something here could not be shown</h1><p class="sub">Ask Claude to check the file and send it again.</p>`; }
+  for (const k of keep) {
+    const el = k.id ? document.getElementById(k.id) : $('view').querySelector(`[name="${CSS.escape(k.name)}"][value="${CSS.escape(k.value)}"]`);
+    if (!el) continue;
+    if (k.box) el.checked = k.checked; else el.value = k.value;
+  }
+  if (openForm && $('new-subject')) $('new-subject').hidden = false;
+  lastView = S.view;
   drawProgress();
   tellClaude();
 }
@@ -439,9 +470,9 @@ function viewHome() {
     const days = s.examDate ? Math.ceil((new Date(s.examDate) - new Date()) / 86400000) : null;
     const ready = Number(s.readiness ?? 0);
     return `<button class="subject" data-act="pick-subject" data-s="${esc(s.name)}"><span class="name">${esc(s.name)}</span>
-      <span class="meta">${s.parts?.length ? esc(s.parts.join(' · ')) : ''}${days !== null ? ` · ${days >= 0 ? days + ' days to exam' : 'exam passed'}` : ''}</span>
+      <span class="meta">${esc(arr(s.parts).join(' · '))}${days !== null ? ` · ${days >= 0 ? days + ' days to exam' : 'exam passed'}` : ''}</span>
       <span class="ready" title="Readiness ${ready}%"><b style="width:${Math.max(0, Math.min(100, ready))}%"></b></span>
-      ${s.due ? `<span class="meta">${s.due} cards due today</span>` : ''}</button>`;
+      ${Number(s.due) > 0 ? `<span class="meta">${Number(s.due)} cards due today</span>` : ''}</button>`;
   }).join('')}</div>` : `<div class="empty"><p>No subjects yet.</p></div>`;
   return `<div class="row between"><h1>Your subjects</h1><button class="btn" data-act="new-subject">Add subject</button></div>${list}
     ${S.subject ? `<div class="panel"><h2>${esc(S.subject)}</h2><div class="row">
@@ -511,7 +542,7 @@ function viewCreate() {
 
 // ---------- study: flashcards, mind map, documents ----------
 function openDeck(d) {
-  S.deck = d && Array.isArray(d.cards) ? d : null; S.mindmap = null; S.doc = null; S.idx = 0; S.flipped = false;
+  S.deck = d && Array.isArray(d.cards) ? { ...d, cards: d.cards.filter((c) => c && typeof c === 'object') } : null; S.order = (S.deck?.cards ?? []).map((_, i) => i); S.mindmap = null; S.doc = null; S.idx = 0; S.flipped = false;
   S.srs = store.get('srs:' + (d?.title ?? ''), {});
   go('study');
 }
@@ -520,10 +551,10 @@ function viewStudy() {
   if (S.doc) return `<div class="row between"><h1>${esc(S.doc.title)}</h1>${reportButton(S.doc.title, '')}</div><div class="panel">${md(S.doc.markdown)}</div>${reportBox()}`;
   if (!S.deck) return `<h1>Study</h1><div class="empty"><p>Open a deck, a mind map or notes from Files, or ask Claude to make some in Create.</p>
     <div class="row"><button class="btn primary" data-act="due-cards">Review due cards</button><button class="btn" data-act="goto" data-v="create">Create</button></div></div>`;
-  const cards = S.deck.cards, c = cards[S.idx];
+  const cards = S.deck.cards, c = cards[S.order[S.idx]];
   if (!c) return `<h1>${esc(S.deck.title)}</h1><div class="empty"><p>Deck finished.</p><div class="row"><button class="btn primary" data-act="save-srs">Save my progress</button><button class="btn" data-act="restart-deck">Start again</button></div></div>`;
   const s = S.srs[c.id];
-  return `<div class="row between"><h1>${esc(S.deck.title)}</h1><span class="counter">${S.idx + 1} / ${cards.length}</span></div>
+  return `<div class="row between"><h1>${esc(S.deck.title)}</h1><span class="counter">${S.idx + 1} / ${S.order.length}</span></div>
     <div class="card flash ${S.flipped ? 'back' : ''}" data-act="flip" role="button" tabindex="0" aria-label="${S.flipped ? 'Answer' : 'Question'}, press Space to flip">
       <div class="q">${esc(c.front)}</div>
       ${S.flipped ? `<div class="a">${md(c.back)}</div>${c.source ? `<div class="src">${esc(c.source)}</div>` : ''}` : `<div class="muted">Space or click to see the answer</div>`}
@@ -558,9 +589,14 @@ function viewMindmap() {
 
 // ---------- test ----------
 function openTest(t) {
-  S.test = t && Array.isArray(t.questions) ? t : null; S.answers = {}; S.touched = new Set(); S.q = 0; S.started = Date.now(); S.submitted = false;
+  S.test = t && Array.isArray(t.questions) && t.questions.length ? { ...t, questions: t.questions.filter((q) => q && typeof q === 'object').map(fixQuestion) } : null; S.answers = {}; S.touched = new Set(); S.q = 0; S.started = Date.now(); S.submitted = false;
   for (const q of S.test?.questions ?? []) if (q.type === 'ordering') S.answers[q.id] = shuffle(q.items.map((_, i) => i));
   go('test');
+}
+function fixQuestion(q, n) {
+  const x = { ...q, id: String(q.id ?? `q${n + 1}`), prompt: String(q.prompt ?? '') };
+  for (const k of ['options', 'items', 'left', 'right']) if (k in x || ['single', 'multiple', 'ordering', 'matching'].includes(x.type)) x[k] = Array.isArray(x[k]) ? x[k] : [];
+  return x;
 }
 function shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } if (b.length > 1 && b.every((v, i) => v === i)) [b[0], b[1]] = [b[1], b[0]]; return b; }
 function timeLeft() { const lim = Number(S.test?.timeLimitMin) || 0; if (!lim) return null; return Math.max(0, lim * 60 - Math.floor((Date.now() - S.started) / 1000)); }
@@ -573,7 +609,7 @@ function viewTest() {
       <div class="row">${left !== null ? `<span class="timer ${left < 300 ? 'low' : ''}" id="timer">${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}</span>` : ''}
       <button class="btn primary" data-act="submit-test" ${S.submitted ? 'disabled' : ''}>${S.submitted ? 'Sent for grading' : 'Submit for grading'}</button></div></div>
     <div class="qnav">${t.questions.map((x, i) => `<button data-act="goto-q" data-i="${i}" class="${answered(x) ? 'ans' : ''}" ${i === S.q ? 'aria-current="true"' : ''}>${i + 1}</button>`).join('')}</div>
-    <div class="card stack"><div class="qhead"><span>Question ${S.q + 1} of ${t.questions.length}</span><span>${q.points ?? 1} ${(q.points ?? 1) === 1 ? 'point' : 'points'}</span></div>
+    <div class="card stack"><div class="qhead"><span>Question ${S.q + 1} of ${t.questions.length}</span><span>${esc(Number(q.points ?? 1))} ${Number(q.points ?? 1) === 1 ? 'point' : 'points'}</span></div>
       ${questionBody(q)}</div>
     <div class="row between"><div class="row"><button class="btn quiet" data-act="prev-q" ${S.q ? '' : 'disabled'}>Previous</button>
       <button class="btn" data-act="next-q" ${S.q < t.questions.length - 1 ? '' : 'disabled'}>Next</button></div>${reportButton(t.title, q.id)}</div>${reportBox()}`;
@@ -642,11 +678,11 @@ function viewResults() {
   const items = (r.items ?? []).map((i, n) => {
     const cls = i.pending ? '' : i.points >= i.max ? 'full' : i.points === 0 ? 'zero' : '';
     return `<div class="item"><div class="row between"><span>${esc(i.n ?? n + 1)}. ${esc(i.prompt ?? i.id)}</span>
-      <span class="pts ${cls}">${i.pending ? 'waiting for Claude' : `${i.points} / ${i.max}`}</span></div>${i.feedback ? `<p class="muted">${esc(i.feedback)}</p>` : ''}</div>`;
+      <span class="pts ${cls}">${i.pending ? 'waiting for Claude' : `${esc(Number(i.points))} / ${esc(Number(i.max))}`}</span></div>${i.feedback ? `<p class="muted">${esc(i.feedback)}</p>` : ''}</div>`;
   }).join('');
   return `<h1>${esc(r.test ?? 'Results')}</h1>
     <div class="panel"><div class="score"><b>${esc(score ?? 0)}</b><span class="muted">/ ${esc(total ?? '')} points${r.pending ? ' so far' : ''}</span>${r.grade ? `<span class="muted"> · ${esc(r.grade)}</span>` : ''}</div>
-    ${r.pending ? `<p class="muted">Claude is grading ${r.manualCount} answer${r.manualCount === 1 ? '' : 's'}. If you solved anything on paper, attach a photo in the chat now.</p>` : ''}
+    ${r.pending ? `<p class="muted">Claude is grading ${esc(Number(r.manualCount))} answer${Number(r.manualCount) === 1 ? '' : 's'}. If you solved anything on paper, attach a photo in the chat now.</p>` : ''}
     ${r.weakTopics?.length ? `<p>Work on: ${r.weakTopics.map(esc).join(', ')}</p><div class="row"><button class="btn primary" data-act="weak">Practise these</button></div>` : ''}</div>
     <div class="panel">${items}</div>`;
 }
@@ -690,11 +726,11 @@ document.addEventListener('click', (e) => {
       return go('create');
     }
     case 'flip': S.flipped = !S.flipped; return render();
-    case 'rate': { const c = S.deck.cards[S.idx]; S.srs[c.id] = sched(S.srs[c.id], d.r); store.set('srs:' + S.deck.title, S.srs);
-      if (d.r === 'again') S.deck.cards.push(c); S.idx++; S.flipped = false; return render(); }
+    case 'rate': { const i = S.order[S.idx], c = S.deck.cards[i]; S.srs[c.id] = sched(S.srs[c.id], d.r); store.set('srs:' + S.deck.title, S.srs);
+      if (d.r === 'again') S.order.push(i); S.idx++; S.flipped = false; return render(); }
     case 'prev-card': S.idx = Math.max(0, S.idx - 1); S.flipped = false; return render();
     case 'next-card': S.idx++; S.flipped = false; return render();
-    case 'restart-deck': S.idx = 0; S.flipped = false; return render();
+    case 'restart-deck': S.order = S.deck.cards.map((_, i) => i); S.idx = 0; S.flipped = false; return render();
     case 'save-srs': toast('Sent to Claude to save');
       return ask(`save my flashcard progress for deck "${S.deck?.title}" to its .progress.json and update memory.md. Progress JSON: ${JSON.stringify(S.srs)}`);
     case 'export-csv': return exportCsv();
@@ -767,10 +803,11 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowLeft') { S.idx = Math.max(0, S.idx - 1); S.flipped = false; render(); }
 });
 setInterval(() => {
-  if (S.view !== 'test' || !S.test || S.submitted) return;
-  const left = timeLeft(), el = $('timer'); if (left === null || !el) return;
+  if (!S.test || S.submitted) return;
+  const left = timeLeft(), el = $('timer'); if (left === null) return;
+  if (left === 0) { toast('Time is up. Your answers were submitted.'); return submitTest(); }
+  if (!el) return;
   el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; el.classList.toggle('low', left < 300);
-  if (left === 0) { toast('Time is up. Your answers were submitted.'); submitTest(); }
 }, 1000);
 
 function exportCsv() {
@@ -797,11 +834,12 @@ function hostContext(ctx) {
   if (sa) { document.documentElement.style.setProperty('--top', `${Math.max(0, Number(sa.top) || 0)}px`); document.documentElement.style.setProperty('--bottom', `${Math.max(0, Number(sa.bottom) || 0)}px`); }
   const h = ctx.containerDimensions?.maxHeight ?? ctx.containerDimensions?.height;
   if (S.display === 'fullscreen' && h) document.documentElement.style.setProperty('--h', `${h}px`);
+  else document.documentElement.style.removeProperty('--h');
 }
 app.onhostcontextchanged = (ctx) => { hostContext({ ...app.getHostContext(), ...ctx }); render(); };
 app.ontoolinput = ({ arguments: a }) => {
   if (a?.session && /^[A-Za-z0-9_-]{12,64}$/.test(a.session)) S.session = a.session;
-  if (a?.view) S.view = a.view;
+  if (a?.view) S.view = { document: 'study', mindmap: 'study', deck: 'study', plan: 'study' }[a.view] ?? a.view;
   if (a?.data?.kind) receive({ kind: a.data.kind, title: a.data.title, payload: a.data.payload });
   render();
 };
@@ -809,6 +847,7 @@ app.ontoolinput = ({ arguments: a }) => {
 window.__studying = { receive: (m) => receive(m), go };
 render();
 await app.connect();
+connected = true;
 hostContext(app.getHostContext());
 render();
 if (S.modes.includes('fullscreen') && S.display !== 'fullscreen') toggleFull();
