@@ -124,7 +124,7 @@ const TOOLS = [
     name: 'study_pull',
     title: 'Window mailbox',
     description: 'Used by the Studying window to pick up results. Not for the model.',
-    inputSchema: { type: 'object', properties: { session: { type: 'string' }, after: { type: 'integer' }, library: { type: 'string' } }, required: ['session'] },
+    inputSchema: { type: 'object', properties: { session: { type: 'string' }, after: { type: 'integer' }, library: { type: 'string' }, lib_op: { type: 'string', enum: ['index', 'get'] }, id: { type: 'string' }, name: { type: 'string' } }, required: ['session'] },
     annotations: ann('Window mailbox', true),
     _meta: { ui: { visibility: ['app'] } },
   },
@@ -286,6 +286,8 @@ async function callTool(env, name, a) {
       return { topic: a.topic, guide: g };
     }
     case 'study_pull':
+      // library reads ride on the mailbox tool, which every client already knows
+      if (a.lib_op === 'index' || a.lib_op === 'get') return await callTool(env, 'study_library', { library: a.library, op: a.lib_op, id: a.id, name: a.name });
       return await box(env, a.session).pull(Number(a.after) || 0, LIBRARY_RE.test(String(a.library ?? '')) ? a.library : null);
     case 'study_library': {
       if (!env.LIBRARY) return { subjects: [], data: [], items: [], item: null };
@@ -321,7 +323,7 @@ async function handle(env, origin, msg) {
       // the window reads structuredContent; keep the text copy short for pulls
       const text = params.name === 'study_guide'
           ? `${res.guide}\n\n---\nIf Studying/_rules/guides/${res.topic}.md exists in the user's storage, read it now: it is their own version of this guide and wins where it differs (guide: customize).`
-        : params.name === 'study_pull' ? `${res.messages.length} message(s), seq ${res.seq}`
+        : params.name === 'study_pull' ? (res.messages ? `${res.messages.length} message(s), seq ${res.seq}` : 'library')
         : params.name === 'study_library' ? 'library' : JSON.stringify(res);
       return ok({ content: [{ type: 'text', text }], structuredContent: res });
     }
