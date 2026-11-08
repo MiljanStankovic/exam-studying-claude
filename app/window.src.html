@@ -188,6 +188,20 @@
   .k-test .app-ic { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
   .k-deck .app-ic { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
   @media (prefers-reduced-motion: reduce) { .app-tile { transition: none; } .app-tile:hover { transform: none; } }
+  .appgroup > h2, .appgroup .row h2 { margin: 0; }
+  .plan { display: grid; }
+  .planrow { display: grid; grid-template-columns: auto 110px 1fr; gap: 12px; align-items: baseline; padding: 10px 16px; border-top: 1px solid var(--line); cursor: pointer; }
+  .planrow b { font-weight: 600; font-size: 13px; }
+  .planrow span { color: var(--t2); }
+  .planrow.today { background: var(--accent-soft); }
+  .planrow.done b, .planrow.done span { color: var(--t3); text-decoration: line-through; }
+  button.topic { width: 100%; text-align: left; font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  button.topic:hover { background: var(--raised); }
+  details.sources > summary { display: flex; align-items: baseline; gap: 12px; padding: 16px; cursor: pointer; list-style: none; }
+  details.sources > summary::-webkit-details-marker { display: none; }
+  details.sources > summary::before { content: '▸'; color: var(--t3); }
+  details.sources[open] > summary::before { content: '▾'; }
+  .linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; }
   .mats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
   .mat { display: grid; gap: 6px; text-align: left; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font: inherit; color: inherit; }
   .mat:hover { border-color: var(--accent); }
@@ -977,105 +991,144 @@ function itemRow(x) {
     <span class="name"><b>${esc(x.name)}</b><small>${esc([x.part, KIND_LABEL[x.kind] ?? x.kind].filter(Boolean).join(' · '))}</small></span>
     <span class="side">${num(x.due) ? `<span class="tag" style="color:var(--accent)">${num(x.due)} due</span>` : ''}${x.score != null && x.total ? `<span class="pts">${num(x.score)} / ${num(x.total)}</span>` : x.count ? `<span class="meta">${num(x.count)}</span>` : ''}</span></button>`;
 }
-// the subject's home screen: everything Claude made, as apps you tap to open
-function appsPanel(ix) {
-  const groups = groupsOf(ix).filter((g) => g.generated.length);
-  if (!groups.length) return '';
-  const order = { test: 0, deck: 1, mindmap: 2, document: 3 };
-  return `<section class="apps">${groups.map((g) => `<div class="appgroup"><div class="row between"><h2>${esc(g.title)}</h2>
-      ${g.key !== '_shared' ? `<button class="btn sm quiet" data-act="open-part" data-p="${esc(g.key)}">Part dashboard</button>` : ''}</div>
-    <div class="appgrid">${[...g.generated].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9)).map((x) => appTile(x, g.key)).join('')}</div></div>`).join('')}</section>`;
-}
-function appTile(x) {
-  const c = lib.get(x), n = c?.payload?.questions?.length ?? c?.payload?.cards?.length ?? x.count;
-  const label = String(x.name).replace(/^.*?\s-\s/, '');
-  return `<button class="app-tile k-${esc(x.kind)}" data-act="open-file" data-id="${esc(x.id)}" data-n="${esc(x.name)}" title="${esc(x.name)}">
-    <span class="app-ic">${icon(KIND_ICON[x.kind] ?? 'note')}</span><b>${esc(label)}</b>
-    <span class="meta">${n ? `${num(n)} ${x.kind === 'test' ? 'questions' : 'cards'}` : esc(KIND_LABEL[x.kind] ?? x.kind)}</span></button>`;
-}
-function matsPanel(p) {
-  if (!p.generated.length) return '';
-  const miss = p.generated.filter((x) => !lib.has(x)).length;
-  const order = { test: 0, deck: 1, mindmap: 2, document: 3 };
-  const items = [...p.generated].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9));
-  return `<section class="panel"><div class="row between"><div class="stack" style="gap:2px"><h2>Your materials</h2>
-      <span class="meta">${miss ? `${miss} of ${p.generated.length} not in the app yet. Load them once and they open instantly, without Claude` : 'All in the app: they open instantly, without Claude'}</span></div>
-      ${miss ? `<button class="btn sm primary" data-act="load-all" data-p="${esc(p.name)}">Load all</button>` : ''}</div>
-    <div class="mats">${items.map((x) => { const c = lib.get(x), n = c?.payload?.questions?.length ?? c?.payload?.cards?.length ?? x.count;
-      return `<button class="mat ${c ? '' : 'off'}" data-act="open-file" data-id="${esc(x.id)}" data-n="${esc(x.name)}">
-        <span class="k">${icon(KIND_ICON[x.kind] ?? 'note')}${esc(KIND_LABEL[x.kind] ?? x.kind)}</span><b>${esc(x.name)}</b>
-        <span class="meta">${n ? `${num(n)} ${x.kind === 'test' ? 'questions' : 'cards'} · ` : ''}${c ? 'opens instantly' : 'not loaded'}</span></button>`; }).join('')}</div>
-    ${p.topics.length && p.generated.some((x) => x.kind === 'deck' && lib.has(x)) ? `<h3>Cards by topic</h3><div class="chips">${p.topics.map((t) => `<button class="chip" data-act="deck-topic" data-t="${esc(t.name)}">${dot(t.status)} ${esc(t.name)}</button>`).join('')}</div>` : ''}
-  </section>`;
-}
 function resumeBanner() {
   return S.test && !S.submitted && S.modal?.type !== 'test' ? `<div class="notice"><span>Test in progress: ${esc(S.test.title)}</span><button class="btn sm primary" data-act="resume-test">Resume</button></div>` : '';
 }
+// ---------- made material: sorted into Learn / Practise / Plan ----------
+const shortName = (n) => String(n ?? '').replace(/^.*?\s[-–]\s/, '');
+const isPlan = (x) => x.kind === 'plan' || (x.kind === 'document' && /plan/i.test(x.name));
+const isTasks = (x) => x.kind === 'document' && /zadac|task|vežb|vezb|exercise|practice/i.test(x.name);
+const isSummary = (x) => x.kind === 'document' && /rezime|summary|sažetak|sazetak/i.test(x.name);
+function sortMade(gen) {
+  const learn = [], practise = [], plan = [];
+  for (const x of gen) (isPlan(x) ? plan : x.kind === 'test' || isTasks(x) ? practise : learn).push(x);
+  const o = { document: 0, mindmap: 1, deck: 2, test: 0 };
+  learn.sort((a, b) => (isSummary(b) - isSummary(a)) || ((o[a.kind] ?? 9) - (o[b.kind] ?? 9)));
+  practise.sort((a, b) => (/mock|probni/i.test(b.name) - /mock|probni/i.test(a.name)) || ((o[a.kind] ?? 9) - (o[b.kind] ?? 9)));
+  return { learn, practise, plan };
+}
+function appTile(x, sub) {
+  const c = lib.get(x), n = c?.payload?.questions?.length ?? c?.payload?.cards?.length ?? x.count;
+  const what = sub ?? (n ? `${num(n)} ${x.kind === 'test' ? 'questions' : 'cards'}` : (KIND_LABEL[x.kind] ?? x.kind));
+  return `<button class="app-tile k-${esc(x.kind)}" data-act="open-file" data-id="${esc(x.id)}" data-n="${esc(x.name)}" title="${esc(x.name)}">
+    <span class="app-ic">${icon(KIND_ICON[x.kind] ?? 'note')}</span><b>${esc(shortName(x.name))}</b><span class="meta">${esc(what)}</span></button>`;
+}
+// the study plan: rows of the plan's table become days you tick off
+function planOf(p) {
+  const x = p?.generated.find(isPlan); if (!x) return null;
+  const c = lib.get(x); if (!c) return { file: x, rows: null };
+  const rows = [];
+  for (const line of String(c.payload?.markdown ?? '').split('\n')) {
+    if (!line.trim().startsWith('|')) continue;
+    const cells = line.trim().replace(/^\||\|$/g, '').split('|').map((t) => t.trim());
+    if (cells.length < 2 || /^[-:\s]+$/.test(cells.join('')) || /^(dan|day|datum|date)$/i.test(cells[0])) continue;
+    const label = cells[0].replace(/\*\*/g, '');
+    const m = label.match(/(\d{1,2})\.\s*(\d{1,2})\./);
+    const date = m ? `${new Date().getFullYear()}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+    rows.push({ label, date, text: cells.slice(1).filter(Boolean).join(' — ').replace(/\*\*/g, ''), key: `plan:${x.id}:${rows.length}` });
+  }
+  return { file: x, rows };
+}
+const isoToday = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+function planToday(plan) {
+  if (!plan?.rows?.length) return null;
+  const today = isoToday();
+  return plan.rows.find((r) => r.date === today && !store.get(r.key, false)) ?? plan.rows.find((r) => !store.get(r.key, false) && (!r.date || r.date >= today)) ?? null;
+}
+function planPanel(p) {
+  const plan = planOf(p); if (!plan) return '';
+  if (!plan.rows) return `<section class="panel"><h2>Plan</h2><p class="muted">Open the plan once and its days show here, to tick off</p><div class="appgrid">${appTile(plan.file)}</div></section>`;
+  const today = isoToday(), done = plan.rows.filter((r) => store.get(r.key, false)).length;
+  return `<section class="panel tight"><div class="row between" style="padding:16px 16px 8px"><h2>Plan</h2><span class="meta">${done} of ${plan.rows.length} done · <button class="linkish" data-act="open-file" data-id="${esc(plan.file.id)}" data-n="${esc(plan.file.name)}">whole plan</button></span></div>
+    <div class="plan">${plan.rows.map((r) => { const ok = store.get(r.key, false);
+      return `<label class="planrow ${ok ? 'done' : ''} ${r.date === today ? 'today' : ''}"><input type="checkbox" data-act="plan-tick" data-k="${esc(r.key)}" ${ok ? 'checked' : ''}>
+        <b>${esc(r.label)}${r.date === today ? ' · today' : ''}</b><span>${esc(r.text)}</span></label>`; }).join('')}</div></section>`;
+}
+// topic sheet: the topic's part of the summary, its cards and its questions
+function topicData(p, name) {
+  const own = p?.generated ?? [];
+  const cards = own.filter((x) => x.kind === 'deck').flatMap((x) => lib.get(x)?.payload?.cards ?? []).filter((c) => c.topic === name);
+  const qs = own.filter((x) => x.kind === 'test').flatMap((x) => lib.get(x)?.payload?.questions ?? []).filter((q) => q.topic === name);
+  let section = '';
+  const sum = own.find(isSummary), txt = sum && lib.get(sum)?.payload?.markdown;
+  if (txt) {
+    const norm = (t) => t.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
+    for (const part of String(txt).split(/\n(?=## )/)) { const h = part.split('\n')[0]; if (h.startsWith('## ') && norm(h).includes(norm(name))) { section = part; break; } }
+  }
+  return { cards, qs, section };
+}
+function mTopic() {
+  const p = partOf(S.part), t = p?.topics.find((x) => x.name === S.topicSheet); if (!t) return '<p class="muted">Topic not found</p>';
+  const { cards, qs, section } = topicData(p, t.name);
+  return `<div class="row">${dot(t.status)}<span class="meta">${esc(t.status)} · mastery ${num(t.mastery)}%${t.source ? ` · ${esc(t.source)}` : ''}</span></div>
+    <div class="row"><button class="btn primary" data-act="deck-topic" data-t="${esc(t.name)}" ${cards.length ? '' : 'disabled'}>${icon('cards')}Cards (${cards.length})</button>
+      <button class="btn" data-act="topic-quiz" data-t="${esc(t.name)}">${icon('test')}Quiz${qs.length ? ` (${qs.length})` : ''}</button></div>
+    ${section ? `<section class="panel">${md(section)}</section>` : '<p class="muted">The summary of this topic shows here once the summary is in the app</p>'}`;
+}
+// ---------- the subject: an overview; the material lives in its parts ----------
 function viewSubject() {
-  const ix = cur(), nx = nextStep(ix);
-  const dates = ix.parts.filter((p) => p.status !== 'done' && p.date).sort((a, b) => String(a.date).localeCompare(String(b.date)));
-  const recent = [...groupsOf(ix).flatMap((g) => g.generated.map((x) => ({ ...x, part: g.title }))), ...ix.parts.flatMap((p) => p.results.map((r) => ({ ...r, kind: 'result', part: p.name })))].slice(-6).reverse();
+  const ix = cur();
+  const upcoming = ix.parts.filter((p) => p.status !== 'done' && p.date && daysTo(p.date) >= 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const next = upcoming[0], today = next && planToday(planOf(next));
+  const nx = nextStep(ix);
   return `${resumeBanner()}
     <div class="head"><h1>${esc(ix.name)}</h1>
-      <p class="meta">${dates.length ? dates.map((p) => `${esc(p.name)} ${esc(fmtDate(p.date))}`).join(' · ') : 'No exam dates set'} · ${plural(ix.parts.length, 'part', 'parts')}</p></div>
-    ${appsPanel(ix)}
+      <p class="meta">${upcoming.length ? upcoming.map((p) => `${esc(p.name)} ${esc(fmtDate(p.date))}`).join(' · ') : 'No exam dates set'} · ${plural(ix.parts.length, 'part', 'parts')}</p></div>
     <div class="cols wide">${pointsTrack(ix)}
-      <section class="panel next"><div class="stack" style="gap:8px"><span class="meta">Next step</span><p>${esc(nx.text)}</p></div>
-        <div><button class="btn primary" data-act="${nx.act}">${esc(nx.label)}</button></div></section></div>
+      ${today ? `<section class="panel next"><div class="stack" style="gap:8px"><span class="meta">Today · ${esc(next.name)} · ${when(next.date)}</span><p>${esc(today.text)}</p></div>
+        <div><button class="btn primary" data-act="open-part" data-p="${esc(next.name)}">Start</button></div></section>`
+      : `<section class="panel next"><div class="stack" style="gap:8px"><span class="meta">Next step</span><p>${esc(nx.text)}</p></div>
+        <div><button class="btn primary" data-act="${nx.act}">${esc(nx.label)}</button></div></section>`}</div>
     <section class="stack"><h2>Exam parts</h2>
       <div class="parts">${ix.parts.map(partCard).join('')}</div></section>
     <div class="cols">
-      <section class="panel"><div class="row between"><h2>Recent</h2>${ix.memory.weakTopics.length ? `<button class="btn sm quiet" data-act="weak">Practise weak topics</button>` : ''}</div>
-        ${recent.length ? `<div class="list">${recent.map(itemRow).join('')}</div>` : '<p class="muted">Nothing made yet. Use Make for flashcards, a summary or a practice test</p>'}</section>
+      <section class="panel"><div class="row between"><h2>For the whole subject</h2><button class="btn sm quiet" data-act="all-files">${icon('folder')}All files</button></div>
+        ${ix.shared.materials.length ? `<div class="list">${ix.shared.materials.slice(0, 6).map((f) => fileRow(f, false)).join('')}</div>${ix.shared.materials.length > 6 ? `<p class="meta">and ${ix.shared.materials.length - 6} more</p>` : ''}` : '<p class="muted">Sources for every part (the main script, past papers) show here</p>'}
+        ${ix.inbox.length ? `<button class="btn" data-act="inbox">${icon('inbox')}Inbox: ${plural(ix.inbox.length, 'file waits', 'files wait')}</button>` : ''}</section>
       <section class="stack" style="gap:16px">
         <form class="panel" id="ask-form"><label class="field">Ask about ${esc(ix.name)}<input type="text" id="ask-q" placeholder="What does the exam usually ask about contracts"></label>
           <p class="muted">Claude searches every part of this subject and cites the page</p></form>
-        <div class="row"><button class="btn" data-act="notes">${icon('brain')}What Claude knows</button><button class="btn quiet" data-act="all-files">${icon('folder')}All materials</button></div>
+        <div class="row"><button class="btn" data-act="notes">${icon('brain')}What Claude knows</button></div>
       </section>
     </div>`;
 }
-
-// ---------- one exam part ----------
+// ---------- one exam part: everything made for it, as apps ----------
 function viewPart() {
   const ix = cur(), p = partOf(S.part);
   if (!p) return viewSubject();
   const done = p.status === 'done' && p.score != null;
-  const tests = p.generated.filter((x) => x.kind === 'test'), study = p.generated.filter((x) => x.kind !== 'test');
+  const { learn, practise } = sortMade(p.generated);
   const counts = { good: 0, learning: 0, weak: 0, 'not started': 0 };
   for (const t of p.topics) counts[t.status in counts ? t.status : 'not started']++;
-  const covered = p.topics.length ? Math.round(((p.topics.length - counts['not started']) / p.topics.length) * 100) : null;
-  const due = study.reduce((a, x) => a + num(x.due), 0);
-  return `${resumeBanner()}
-    <div class="row between" style="align-items:flex-end"><div class="head"><h1>${esc(p.name)}</h1>
-      <p class="meta">${p.format ? esc(p.format) + ' · ' : ''}${num(p.points)} points · ${p.date ? `${esc(fmtLong(p.date))} · ${when(p.date)}` : 'date not set'}</p></div>
-      <button class="btn" data-act="edit-part">Date and score</button></div>
-    <div class="stats">
-      <div class="stat"><span>Status</span><b style="font-size:20px;line-height:28px" class="status">${dot(p.status)}${esc(p.status)}</b></div>
-      <div class="stat"><span>${done ? 'Earned' : 'Best practice'}</span><b>${done ? num(p.score) : p.best != null ? num(p.best) : '—'}<span class="muted" style="font:14px var(--font)"> / ${num(p.points)}</span></b></div>
-      <div class="stat"><span>Topics covered</span><b>${covered === null ? '—' : `${covered}%`}</b></div>
-      <div class="stat"><span>Tests taken</span><b>${p.results.length}</b></div>
-    </div>
+  const ready = p.topics.length ? Math.round(p.topics.reduce((a, t) => a + num(t.mastery), 0) / p.topics.length) : null;
+  const due = p.generated.reduce((a, x) => a + num(x.due), 0);
+  const today = planToday(planOf(p)), miss = p.generated.filter((x) => !lib.has(x)).length;
+  const cont = S.test && !S.submitted ? `<span>Test in progress: ${esc(S.test.title)}</span><button class="btn sm primary" data-act="resume-test">Resume</button>`
+    : today ? `<span><b>${esc(today.label)}:</b> ${esc(today.text)}</span><label class="row" style="gap:6px;flex:none"><input type="checkbox" data-act="plan-tick" data-k="${esc(today.key)}">Done</label>`
+    : due ? `<span>${due} cards to review</span><button class="btn sm primary" data-act="due-cards" data-p="${esc(p.name)}">Review</button>` : '';
+  return `<div class="row between" style="align-items:flex-end"><div class="head"><h1>${esc(p.name)}</h1>
+      <p class="meta">${p.format ? esc(p.format) + ' · ' : ''}${num(p.points)} points · ${p.date ? `${esc(fmtLong(p.date))} · ${when(p.date)}` : 'date not set'}${done ? ` · earned ${num(p.score)}` : ready !== null ? ` · ready ${ready}%` : ''}</p></div>
+      <div class="row"><button class="btn quiet" data-act="edit-part">Date and score</button><button class="btn" data-act="make" data-p="${esc(p.name)}">${icon('plus')}Make</button></div></div>
+    ${cont ? `<div class="notice">${cont}</div>` : ''}
+    ${miss ? `<div class="notice"><span>${plural(miss, 'item is', 'items are')} not in the app yet</span><button class="btn sm" data-act="load-all" data-p="${esc(p.name)}">Load once</button></div>` : ''}
+    ${learn.length ? `<section class="appgroup"><h2>Learn</h2><div class="appgrid">${learn.map((x) => appTile(x)).join('')}</div></section>` : ''}
+    <section class="appgroup"><div class="row between"><h2>Practise</h2><div class="row"><button class="btn sm quiet" data-act="make-test" data-p="${esc(p.name)}">Custom test</button><button class="btn sm quiet" data-act="mock-exam" data-p="${esc(p.name)}">New mock exam</button></div></div>
+      ${practise.length ? `<div class="appgrid">${practise.map((x) => appTile(x)).join('')}</div>` : '<p class="muted">No tests yet</p>'}</section>
     <section class="panel tight">
       <div class="row between" style="padding:16px 16px 8px"><h2>Topics</h2><span class="meta">${p.topics.length ? `${counts.good} good · ${counts.learning} learning · ${counts.weak} weak · ${counts['not started']} not started` : ''}</span></div>
-      ${p.topics.length ? `<div class="topics">${p.topics.map((t) => `<div class="topic">${dot(t.status)}
-          <div class="nm"><span>${esc(t.name)}</span><small>${esc(t.status)}${t.lastTested ? ` · tested ${esc(fmtDate(t.lastTested))}` : ''}${t.source ? ` · ${esc(t.source)}` : ''}</small></div>
+      ${p.topics.length ? `<div class="topics">${p.topics.map((t) => `<button class="topic" data-act="topic-open" data-t="${esc(t.name)}">${dot(t.status)}
+          <div class="nm"><span>${esc(t.name)}</span><small>${esc(t.status)}${t.lastTested ? ` · tested ${esc(fmtDate(t.lastTested))}` : ''}${t.cards || t.questions ? ` · ${num(t.cards)} cards · ${num(t.questions)} questions` : ''}</small></div>
           <div class="mastery ${esc(t.status)}" title="Mastery ${num(t.mastery)}%"><b style="width:${Math.max(0, Math.min(100, num(t.mastery)))}%"></b></div>
-          <span class="meta" style="text-align:right">${num(t.mastery)}%</span>
-          <button class="btn sm quiet act" data-act="topic-quiz" data-t="${esc(t.name)}">Practise</button></div>`).join('')}</div>`
-        : `<div class="empty" style="padding:4px 16px 16px"><p>${done ? 'This part is done' : 'No topic map yet. Claude builds one from the materials: the areas this part of the exam covers. Every card and test question is then filed under its topic, so you see what is covered and what is not'}</p>
+          <span class="meta" style="text-align:right">${num(t.mastery)}%</span></button>`).join('')}</div>`
+        : `<div class="empty" style="padding:4px 16px 16px"><p>${done ? 'This part is done' : 'No topic map yet. Claude builds one from the materials: the areas this part of the exam covers'}</p>
           ${done ? '' : `<button class="btn" data-act="build-topics" ${p.materials.length || ix.shared.materials.length ? '' : 'disabled'}>Build the topic map</button>`}</div>`}
     </section>
-    <div class="cols">
-      <section class="panel"><div class="row between"><h2>Study</h2><div class="row">${due ? `<button class="btn sm primary" data-act="due-cards" data-p="${esc(p.name)}">Review ${due} due</button>` : ''}<button class="btn sm" data-act="make" data-p="${esc(p.name)}">${icon('plus')}Make</button></div></div>
-        ${study.length ? `<p class="muted">${plural(study.length, 'item', 'items')} below, under Your materials</p>` : '<p class="muted">No flashcards, mind maps or notes yet</p>'}</section>
-      <section class="panel"><div class="row between"><h2>Tests</h2><div class="row"><button class="btn sm" data-act="make-test" data-p="${esc(p.name)}">Custom</button><button class="btn sm primary" data-act="mock-exam" data-p="${esc(p.name)}">Mock exam</button></div></div>
-        ${tests.length ? `<div class="list">${tests.map(itemRow).join('')}</div>` : '<p class="muted">No tests yet</p>'}
-        ${p.results.length ? `<h3>Results</h3><div class="list">${p.results.slice().reverse().map((r) => itemRow({ ...r, kind: 'result', part: fmtDate(r.date) })).join('')}</div>` : ''}</section>
-    </div>
-    ${matsPanel(p)}
-    <section class="panel tight"><div class="row between" style="padding:16px 16px 8px"><h2>Materials</h2><span class="meta">${plural(p.materials.length, 'file', 'files')}</span></div>
+    <div class="cols">${planPanel(p) || '<span></span>'}
+      <section class="panel"><h2>Results</h2>
+        ${p.results.length ? `<div class="list">${p.results.slice().reverse().map((r) => itemRow({ ...r, kind: 'result', part: fmtDate(r.date) })).join('')}</div>` : '<p class="muted">Finished tests and their grades show here</p>'}</section></div>
+    <details class="panel tight sources"><summary><h2>Sources</h2><span class="meta">${plural(p.materials.length, 'file', 'files')} · the documents everything above was made from</span></summary>
       ${p.materials.length ? `<div class="list">${p.materials.map((f) => fileRow(f)).join('')}</div>` : '<div class="empty" style="padding:4px 16px 16px"><p>Nothing filed here yet</p><button class="btn" data-act="inbox">Add documents</button></div>'}
-      ${selBar()}</section>`;
+      ${selBar()}</details>`;
 }
 function fileRow(f, selectable = true) {
   const sel = S.selected.has(f.id);
@@ -1101,6 +1154,7 @@ function modalHtml(m = S.modal) {
     make: () => ['Make study material', S.subject, mMake()],
     sort: () => ['Where your documents go', S.subject, mSort()],
     inbox: () => ['Inbox', S.subject, mInbox()],
+    topic: () => [S.topicSheet ?? 'Topic', S.part, mTopic()],
     ready: () => ['New from Claude', 'Open what you want, when you want', mReady()],
     notes: () => ['What Claude knows', S.subject, mNotes()],
     editpart: () => [`${S.part}: date and score`, S.subject, mEditPart(), true],
@@ -1537,6 +1591,8 @@ document.addEventListener('click', (e) => {
     case 'edit-part': return openModal('editpart');
     case 'inbox': return openModal('inbox');
     case 'ready': return openModal('ready');
+    case 'topic-open': S.topicSheet = d.t; return openModal('topic');
+    case 'plan-tick': store.set(d.k, !!el.checked); return render();
     case 'load-all': { const p = partOf(d.p); const miss = (p?.generated ?? []).filter((x) => !lib.has(x));
       if (!miss.length && S.library) return toast('Everything is in your library: tap any tile to open it');
       if (!miss.length) return toast('Everything is already in the app');
