@@ -320,7 +320,19 @@
   .md em { font-style: italic; }
   .md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
   .md hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
-  .md blockquote { margin: 0; padding: 8px 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; color: var(--t2); }
+  .md blockquote { margin: 0; padding: 12px 16px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 10px 10px 0; color: var(--t1); }
+  .md blockquote > * + * { margin-top: 6px; }
+  .md blockquote p { margin: 0; }
+  .md code { font: 600 12px/1 var(--mono, ui-monospace, monospace); padding: 3px 6px; border-radius: 6px; background: var(--raised); border: 1px solid var(--line); color: var(--accent); white-space: nowrap; }
+  .md pre { background: var(--raised); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; overflow-x: auto; }
+  .md pre code { font: 13px/1.55 var(--mono, ui-monospace, monospace); padding: 0; border: 0; background: none; color: var(--t1); white-space: pre; }
+  .md h2 { display: flex; align-items: center; gap: 10px; }
+  .md h2::before { content: ''; width: 4px; align-self: stretch; border-radius: 4px; background: var(--accent); }
+  .md hr { margin: 28px 0 8px; }
+  .md table { border: 1px solid var(--line); border-radius: 10px; }
+  .md td:first-child { font-weight: 600; white-space: nowrap; }
+  .md tbody tr:nth-child(even) td { background: color-mix(in srgb, var(--raised) 55%, transparent); }
+  .md li { padding-left: 2px; }
   .md table { width: 100%; border-collapse: collapse; font-size: 14px; display: block; overflow-x: auto; }
   .md th, .md td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
   .md th { font-weight: 600; color: var(--t2); background: var(--raised); position: sticky; top: 0; }
