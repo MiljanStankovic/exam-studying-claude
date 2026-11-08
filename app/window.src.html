@@ -167,6 +167,11 @@
   .seg.lit span { color: var(--on-accent); }
   .passline { position: absolute; top: -4px; height: 36px; width: 2px; background: var(--margin); border-radius: 1px; z-index: 3; }
   .passline i { position: absolute; top: 38px; left: 50%; transform: translateX(-50%); font: 12px/16px var(--mono); font-style: normal; color: var(--margin); white-space: nowrap; }
+  .seg .tick { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--margin); z-index: 3; }
+  .rules { display: grid; gap: 0; }
+  .rule { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 10px; align-items: center; min-height: 32px; border-top: 1px solid var(--line); }
+  .rule:first-child { border-top: 0; }
+  .rule .ok { color: var(--ok); } .rule .no { color: var(--t3); }
   .next { display: grid; gap: 12px; align-content: space-between; }
   .next p { font: 400 19px/1.4 var(--serif); }
 
@@ -685,23 +690,68 @@ function viewLoading() {
 
 // ---------- the subject: one page with everything ----------
 function earnedOf(ix) { return ix.parts.reduce((a, p) => a + (p.status === 'done' && p.score != null ? Math.min(num(p.score), num(p.points)) : 0), 0); }
+// passing rules come from the subject (guide: subject, passRules), so every subject can pass differently
+function rulesOf(ix) {
+  const r = arr(ix.passRules).filter((x) => x && x.type);
+  if (!r.length && num(ix.passPoints)) r.push({ type: 'total', min: num(ix.passPoints) });
+  return r;
+}
+function partPts(p, practice) {
+  if (p.status === 'done' && p.score != null) return { v: Math.min(num(p.score), num(p.points)), real: true };
+  if (practice && p.best != null) return { v: Math.min(num(p.best), num(p.points)), real: false };
+  return { v: 0, real: false };
+}
+function partMin(rules, p) {
+  let m = 0;
+  for (const r of rules) {
+    if (r.type === 'each') m = Math.max(m, r.min != null ? num(r.min) : (num(r.minPct) / 100) * num(p.points));
+    if (r.type === 'part' && r.part === p.name) m = Math.max(m, r.min != null ? num(r.min) : (num(r.minPct) / 100) * num(p.points));
+  }
+  return Math.round(m * 100) / 100;
+}
+function checkRules(ix, rules, total) {
+  const earned = ix.parts.reduce((a, p) => a + partPts(p).v, 0);
+  const fmt = (x) => (Math.round(x * 100) / 100).toString();
+  return rules.map((r) => {
+    switch (r.type) {
+      case 'total': { const need = r.min != null ? num(r.min) : (num(r.minPct) / 100) * total;
+        return { ok: earned >= need, text: `At least ${fmt(need)} of ${total} points in total`, now: `${fmt(earned)} now` }; }
+      case 'each': { const bad = ix.parts.filter((p) => partPts(p).v < partMin([r], p));
+        return { ok: !bad.length, text: `Every part at least ${r.min != null ? `${num(r.min)} points` : `${num(r.minPct)}%`}`, now: bad.length ? `${bad.length} to go` : 'met' }; }
+      case 'part': { const p = ix.parts.find((x) => x.name === r.part); const need = p ? partMin([r], p) : 0;
+        return { ok: !!p && partPts(p).v >= need, text: `${r.part} at least ${fmt(need)} points`, now: p ? `${fmt(partPts(p).v)} now` : '' }; }
+      case 'done': { const p = ix.parts.find((x) => x.name === r.part);
+        return { ok: p?.status === 'done', text: `${r.part} passed`, now: p?.status ?? '' }; }
+      case 'best': { const okParts = ix.parts.filter((p) => partPts(p).v >= (num(r.minPct) / 100) * num(p.points)).length;
+        return { ok: okParts >= num(r.parts), text: `Any ${num(r.parts)} of ${num(r.of) || ix.parts.length} parts at least ${num(r.minPct)}%`, now: `${okParts} so far` }; }
+      default: return { ok: null, text: String(r.text ?? ''), now: '' };
+    }
+  });
+}
 function pointsTrack(ix) {
   const parts = ix.parts.filter((p) => num(p.points) > 0);
   const total = num(ix.totalPoints) || parts.reduce((a, p) => a + num(p.points), 0);
   if (!total) return '';
-  const pass = num(ix.passPoints), earned = earnedOf(ix);
+  const rules = rulesOf(ix), checks = checkRules(ix, rules, total);
+  const tr = rules.find((r) => r.type === 'total'), pass = tr ? (tr.min != null ? num(tr.min) : (num(tr.minPct) / 100) * total) : 0;
+  const earned = parts.reduce((a, p) => a + partPts(p).v, 0);
   const practice = parts.reduce((a, p) => a + (p.status !== 'done' && p.best != null ? Math.min(num(p.best), num(p.points)) : 0), 0);
-  const line = !pass ? '' : earned >= pass ? 'passed' : `${pass - earned} more needed to pass${practice ? `, your practice scores would add ${practice}` : ''}`;
+  const allOk = checks.length && checks.every((c) => c.ok !== false);
+  const grade = arr(ix.grades).filter((g) => earned >= num(g.min)).sort((a, b) => num(b.min) - num(a.min))[0];
+  const line = allOk ? `passed${grade ? `, grade ${esc(grade.grade)}` : ''}` : pass ? `${Math.max(0, pass - earned)} more needed in total${practice ? `, your practice scores would add ${practice}` : ''}` : '';
   return `<section class="panel points">
     <div class="row between"><h2>Points</h2><span class="meta">${pass ? `${pass} of ${total} to pass` : `${total} in total`}</span></div>
     <div class="big"><b>${earned}</b><span class="muted">of ${total} earned${line ? ` · ${line}` : ''}</span></div>
     <div class="bar">
       ${parts.map((p) => { const w = (num(p.points) / total) * 100, done = p.status === 'done' && p.score != null;
         const f = done ? Math.min(1, num(p.score) / num(p.points)) * 100 : 0, pr = !done && p.best != null ? Math.min(1, num(p.best) / num(p.points)) * 100 : 0;
-        return `<div class="seg ${f >= 55 ? 'lit' : ''}" style="width:calc(${w}% - 3px)" title="${esc(p.name)}">${pr ? `<i style="width:${pr}%"></i>` : ''}${f ? `<b style="width:${f}%"></b>` : ''}<span>${esc(p.name)} · ${num(p.points)}</span></div>`; }).join('')}
+        const pm = partMin(rules, p), tick = pm ? (pm / num(p.points)) * 100 : 0;
+        return `<div class="seg ${f >= 55 ? 'lit' : ''}" style="width:calc(${w}% - 3px)" title="${esc(p.name)}${pm ? `: at least ${pm} of ${num(p.points)}` : ''}">${pr ? `<i style="width:${pr}%"></i>` : ''}${f ? `<b style="width:${f}%"></b>` : ''}${tick ? `<span class="tick" style="left:calc(${tick}% - 1px);right:auto;top:0"></span>` : ''}<span>${esc(p.name)} · ${num(p.points)}</span></div>`; }).join('')}
       ${pass ? `<div class="passline" style="left:calc(${(pass / total) * 100}% - 1px)"><i>${pass} to pass</i></div>` : ''}
     </div>
-    <p class="muted">Solid is earned on the real exam, outlined is your best practice score</p>
+    ${checks.length ? `<div class="rules">${checks.map((c) => `<div class="rule"><span class="${c.ok ? 'ok' : 'no'}">${c.ok === null ? '·' : c.ok ? icon('check') : '○'}</span><span>${esc(c.text)}</span><span class="meta">${esc(c.now)}</span></div>`).join('')}</div>`
+      : '<p class="muted">Tell Claude how this subject is passed and the rules show up here</p>'}
+    <p class="muted">Solid is earned on the real exam, outlined is your best practice score${rules.some((r) => r.type === 'each' || r.type === 'part') ? ', red ticks are the minimum per part' : ''}</p>
   </section>`;
 }
 function nextStep(ix) {

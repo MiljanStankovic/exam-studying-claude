@@ -63,7 +63,8 @@ When you get "Studying: setup ... storage=<name>":
    Then read settings.json back to confirm the write worked.
 3. Push {kind:"setup_status", payload:{ok:true, storage, root:"Studying", subjects:[...]}}.
 4. When the user then creates a subject, ask only for what you cannot read from their
-   materials: exam parts, date, how it is graded, pass threshold. Write subject.md, the
+   materials: exam parts, date, how it is graded, pass threshold.
+   Turn how it is graded into passRules (guide: subject). Write subject.md, the
    folders from storage-layout (parts, _inbox, _shared) and subject.json. Push
    {kind:"subjects", payload:[...]} and then {kind:"subject", payload:<index>} (guide: subject).
 
@@ -285,6 +286,19 @@ Each subject.json write must keep every field you are not changing.
 Storage without in-place edits (the Google Drive connector can create files and change their
 metadata but not their content): to change a file, create the new version in the same folder,
 then move the old one to the trash (recoverable). Never leave two copies with the same name.
+Passing rules differ per subject, so they are data, not code. Write them in "passRules"; the
+window draws the points chart and a pass checklist from them. Translate what the user says
+about passing into these rules; ask only when it is ambiguous.
+  {"type":"total", "min":16}                       sum of all parts at least 16 points
+  {"type":"total", "minPct":51}                    sum at least 51% of totalPoints
+  {"type":"each", "minPct":51}                     every part at least 51% of its own points
+  {"type":"each", "min":5}                         every part at least 5 points
+  {"type":"part", "part":"Usmeni 1", "min":8}      one part at least 8 points (or "minPct")
+  {"type":"done", "part":"Projekat"}               this part must be passed or handed in
+  {"type":"best", "parts":2, "of":3, "minPct":50}  any 2 of the 3 parts at least 50% each
+  {"type":"note", "text":"oral exam decides the final grade"}   anything else, shown as text
+All rules must hold to pass. Optional "grades":[{"min":16,"grade":"6"},{"min":21,"grade":"7"}]
+maps total points to a grade. Keep "passPoints" equal to the total rule's min when there is one.
 readiness per part: your honest estimate from results, card progress and coverage of the
 part's scope; 0 when nothing is known. nextStep is the single most useful thing to do now:
 "sort" when the inbox has files, "make" when a part has materials but nothing generated,
