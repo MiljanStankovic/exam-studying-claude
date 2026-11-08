@@ -406,6 +406,11 @@ Files list: {kind:"files", payload:{ path:"Studying/...", items:[{ name, type:"f
 
 A single push must be under about 900 KB; split big decks or tests into several pushes.
 
+Every push of a saved file carries "id" (its storage file id) in the payload. The window keeps
+pushed material in the browser and opens it again by that id without asking you, so a file needs
+to be read and pushed only once. When the window asks to "load all generated material", read and
+push each listed file once and do nothing else.
+
 Pushed decks, tests, mind maps and documents do not pop open: the window puts them in its "New"
 tray and the user opens them when ready. Only what the user just asked to see (opening a file,
 grading a test) opens directly. So push each result as soon as it is saved.

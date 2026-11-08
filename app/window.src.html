@@ -176,6 +176,13 @@
   .next p { font: 400 19px/1.4 var(--serif); }
 
   /* exam part cards on the subject page */
+  .mats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+  .mat { display: grid; gap: 6px; text-align: left; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font: inherit; color: inherit; }
+  .mat:hover { border-color: var(--accent); }
+  .mat .k { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .mat b { font-weight: 600; line-height: 1.3; }
+  .mat .meta { font-size: 12px; }
+  .mat.off { opacity: .72; }
   .parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
   .partcard { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; box-shadow: var(--shadow); align-content: start;
     transition: border-color .15s var(--ease); }
@@ -400,6 +407,20 @@ const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 const store = { get(k, d) { try { const v = localStorage.getItem('studying:' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
                 set(k, v) { try { localStorage.setItem('studying:' + k, JSON.stringify(v)); } catch {} } };
 
+// ---------- library: generated material kept in this browser, so opening it needs no message to Claude ----------
+const lib = {
+  key: (x) => (x?.id ? 'id:' + x.id : 'n:' + String(x?.name ?? x?.title ?? '').toLowerCase().trim()),
+  get(x) { return store.get('lib:' + lib.key(x), null) ?? (x?.id ? store.get('lib:' + lib.key({ name: x.name }), null) : null); },
+  put(m) {
+    const p = m.payload ?? {}, id = p.id ?? m.id, name = m.title ?? p.title ?? p.name;
+    if (!id && !name) return;
+    const v = { kind: m.kind, title: name, payload: p, at: Date.now() };
+    if (id) store.set('lib:' + lib.key({ id }), v);
+    if (name) store.set('lib:' + lib.key({ name }), v);
+  },
+  has(x) { return !!lib.get(x); },
+};
+
 // ---------- state ----------
 // Places: subjects (home), subject (hub), part (one exam part), setup.
 // Everything else is a modal over the current place: deck, test, result, mindmap, doc, make,
@@ -413,7 +434,7 @@ const S = {
   deck: null, idx: 0, flipped: false, srs: {}, order: [],
   test: null, answers: {}, touched: new Set(), q: 0, started: 0, submitted: false,
   results: null, mindmap: null, doc: null, mmView: 'map', mmShut: new Set(),
-  ready: [], wantOpen: 0, progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null,
+  ready: [], wantOpen: 0, bulk: 0, bulkN: 0, progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null,
 };
 const STATUS = ['not started', 'studying', 'ready', 'done'];
 const cur = () => S.data[S.subject] ?? null;
@@ -425,7 +446,7 @@ const app = new App({ name: 'Studying', version: '0.2.0' }, { availableDisplayMo
 function ask(text) {
   const msg = `Studying: ${text} (session: ${S.session})`;
   // a job that makes material delivers in the background; anything else the user asked to see opens
-  S.wantOpen = /^make study material/.test(text) ? 0 : Date.now();
+  S.wantOpen = /^(make study material|load all)/.test(text) ? 0 : Date.now();
   keepPolling(10 * 60_000);
   const fail = () => { S.pollUntil = 0; toast('Could not send to Claude. Type your request in the chat instead.'); };
   app.sendMessage({ role: 'user', content: [{ type: 'text', text: msg }] }).then((r) => { if (r?.isError) fail(); }, fail);
@@ -503,6 +524,8 @@ function receive(m) {
     case 'proposal': S.proposal = { ...p, items: arr(p?.items).map((x) => ({ ...x, include: x.to !== 'skip' })) }; if (p?.subject) S.subject = p.subject; openModal('sort'); break;
     case 'files': S.files = { ...p, items: arr(p?.items) }; S.path = p?.path ?? S.path; openModal('files'); break;
     case 'deck': case 'test': case 'mindmap': case 'document': case 'plan': case 'results':
+      lib.put(m);
+      if (S.bulk && Date.now() - S.bulk < 15 * 60_000) { S.bulkN++; toast(`Loaded ${S.bulkN}: ${m.title ?? p?.title ?? m.kind}`); render(); break; }
       if (S.wantOpen && Date.now() - S.wantOpen < 10 * 60_000) { S.wantOpen = 0; show(m); }
       else { S.ready = [m, ...S.ready.filter((x) => (x.title ?? x.payload?.title) !== (m.title ?? p?.title))].slice(0, 30); toast(`Ready: ${m.title ?? p?.title ?? m.kind}`); drawTop(); if (S.modal?.type === 'ready') render(); }
       break;
@@ -856,6 +879,21 @@ function itemRow(x) {
     <span class="name"><b>${esc(x.name)}</b><small>${esc([x.part, KIND_LABEL[x.kind] ?? x.kind].filter(Boolean).join(' · '))}</small></span>
     <span class="side">${num(x.due) ? `<span class="tag" style="color:var(--accent)">${num(x.due)} due</span>` : ''}${x.score != null && x.total ? `<span class="pts">${num(x.score)} / ${num(x.total)}</span>` : x.count ? `<span class="meta">${num(x.count)}</span>` : ''}</span></button>`;
 }
+function matsPanel(p) {
+  if (!p.generated.length) return '';
+  const miss = p.generated.filter((x) => !lib.has(x)).length;
+  const order = { test: 0, deck: 1, mindmap: 2, document: 3 };
+  const items = [...p.generated].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9));
+  return `<section class="panel"><div class="row between"><div class="stack" style="gap:2px"><h2>Your materials</h2>
+      <span class="meta">${miss ? `${miss} of ${p.generated.length} not in the app yet. Load them once and they open instantly, without Claude` : 'All in the app: they open instantly, without Claude'}</span></div>
+      ${miss ? `<button class="btn sm primary" data-act="load-all" data-p="${esc(p.name)}">Load all</button>` : ''}</div>
+    <div class="mats">${items.map((x) => { const c = lib.get(x), n = c?.payload?.questions?.length ?? c?.payload?.cards?.length ?? x.count;
+      return `<button class="mat ${c ? '' : 'off'}" data-act="open-file" data-id="${esc(x.id)}" data-n="${esc(x.name)}">
+        <span class="k">${icon(KIND_ICON[x.kind] ?? 'note')}${esc(KIND_LABEL[x.kind] ?? x.kind)}</span><b>${esc(x.name)}</b>
+        <span class="meta">${n ? `${num(n)} ${x.kind === 'test' ? 'questions' : 'cards'} · ` : ''}${c ? 'opens instantly' : 'not loaded'}</span></button>`; }).join('')}</div>
+    ${p.topics.length && p.generated.some((x) => x.kind === 'deck' && lib.has(x)) ? `<h3>Cards by topic</h3><div class="chips">${p.topics.map((t) => `<button class="chip" data-act="deck-topic" data-t="${esc(t.name)}">${dot(t.status)} ${esc(t.name)}</button>`).join('')}</div>` : ''}
+  </section>`;
+}
 function resumeBanner() {
   return S.test && !S.submitted && S.modal?.type !== 'test' ? `<div class="notice"><span>Test in progress: ${esc(S.test.title)}</span><button class="btn sm primary" data-act="resume-test">Resume</button></div>` : '';
 }
@@ -914,11 +952,12 @@ function viewPart() {
     </section>
     <div class="cols">
       <section class="panel"><div class="row between"><h2>Study</h2><div class="row">${due ? `<button class="btn sm primary" data-act="due-cards" data-p="${esc(p.name)}">Review ${due} due</button>` : ''}<button class="btn sm" data-act="make" data-p="${esc(p.name)}">${icon('plus')}Make</button></div></div>
-        ${study.length ? `<div class="list">${study.map(itemRow).join('')}</div>` : '<p class="muted">No flashcards, mind maps or notes yet</p>'}</section>
+        ${study.length ? `<p class="muted">${plural(study.length, 'item', 'items')} below, under Your materials</p>` : '<p class="muted">No flashcards, mind maps or notes yet</p>'}</section>
       <section class="panel"><div class="row between"><h2>Tests</h2><div class="row"><button class="btn sm" data-act="make-test" data-p="${esc(p.name)}">Custom</button><button class="btn sm primary" data-act="mock-exam" data-p="${esc(p.name)}">Mock exam</button></div></div>
         ${tests.length ? `<div class="list">${tests.map(itemRow).join('')}</div>` : '<p class="muted">No tests yet</p>'}
         ${p.results.length ? `<h3>Results</h3><div class="list">${p.results.slice().reverse().map((r) => itemRow({ ...r, kind: 'result', part: fmtDate(r.date) })).join('')}</div>` : ''}</section>
     </div>
+    ${matsPanel(p)}
     <section class="panel tight"><div class="row between" style="padding:16px 16px 8px"><h2>Materials</h2><span class="meta">${plural(p.materials.length, 'file', 'files')}</span></div>
       ${p.materials.length ? `<div class="list">${p.materials.map((f) => fileRow(f)).join('')}</div>` : '<div class="empty" style="padding:4px 16px 16px"><p>Nothing filed here yet</p><button class="btn" data-act="inbox">Add documents</button></div>'}
       ${selBar()}</section>`;
@@ -1308,6 +1347,14 @@ document.addEventListener('click', (e) => {
     case 'edit-part': return openModal('editpart');
     case 'inbox': return openModal('inbox');
     case 'ready': return openModal('ready');
+    case 'load-all': { const p = partOf(d.p); const miss = (p?.generated ?? []).filter((x) => !lib.has(x));
+      if (!miss.length) return toast('Everything is already in the app');
+      S.bulk = Date.now(); S.bulkN = 0; toast(`Loading ${miss.length} files in the background`);
+      return ask(`load all generated material of part "${d.p}"${where()} into the app: read each of these files once and push it as its kind with "id" set to its file id. Do nothing else: no review, no summaries, no subject push, one short line at the end. Files: ${JSON.stringify(miss.map((x) => ({ id: x.id, name: x.name, kind: x.kind })))}`); }
+    case 'deck-topic': { const own = partOf(S.part)?.generated ?? [];
+      const cards = own.filter((x) => x.kind === 'deck').flatMap((x) => lib.get(x)?.payload?.cards ?? []).filter((c) => c.topic === d.t);
+      if (cards.length) return show({ kind: 'deck', payload: { title: `${d.t} – cards`, cards } });
+      return toast('Load the flashcards first'); }
     case 'open-ready': { const m = S.ready[+d.i]; if (!m) return; S.ready.splice(+d.i, 1); drawTop(); return show(m); }
     case 'notes': return openModal('notes');
     case 'all-files': return openModal('allfiles');
@@ -1323,12 +1370,18 @@ document.addEventListener('click', (e) => {
     }
     case 'build-topics': toast('Claude is reading the materials');
       return ask(`build the topic map for the part "${S.part}" of "${S.subject}" (guide: generation, "Topics first"). Use this part's materials and _shared, save it in subject.json and push the subject.`);
-    case 'topic-quiz': return ask(`make a short practice quiz on the topic "${d.t}" of the part "${S.part}" in "${S.subject}". Every question gets topic "${d.t}". Review it, then push it (kind test).`);
+    case 'topic-quiz': {
+      const own = partOf(S.part)?.generated ?? [];
+      const qs = own.filter((x) => x.kind === 'test').flatMap((x) => lib.get(x)?.payload?.questions ?? []).filter((q) => q.topic === d.t);
+      if (qs.length >= 3) return show({ kind: 'test', payload: { title: `${d.t} – practice`, timeLimitMin: 0, totalPoints: qs.reduce((a, q) => a + num(q.points || 1), 0), questions: qs } });
+    }
+      return ask(`make a short practice quiz on the topic "${d.t}" of the part "${S.part}" in "${S.subject}". Every question gets topic "${d.t}". Review it, then push it (kind test).`);
     case 'make': S.makePart = d.p ?? ''; S.makePreset = ''; return openModal('make');
     case 'make-test': S.makePart = d.p ?? ''; S.makePreset = 'test'; return openModal('make');
     case 'clear-sel': S.selected.clear(); return render();
     case 'select': if (el.checked) S.selected.set(d.id, d.n); else S.selected.delete(d.id); return render();
-    case 'open-file': return ask(`open "${d.n}"${d.id ? ` (id ${d.id})` : ''}${where()} and push it: decks, tests and mind maps as their kind, results as results, anything else as a document with a readable version of its content.`);
+    case 'open-file': { const c = lib.get({ id: d.id, name: d.n }); if (c) return show({ kind: c.kind, title: c.title, payload: c.payload }); }
+      return ask(`open "${d.n}"${d.id ? ` (id ${d.id})` : ''}${where()} and push it: decks, tests and mind maps as their kind, results as results, anything else as a document with a readable version of its content.`);
     case 'list': S.path = d.p; S.files = null; openModal('files'); return ask(`list files in "${d.p}" and push them (kind files).`);
     case 'next-step': return ask(`what should I study next${where()}? Use the part dates, topics, results and what is due, then push it as a document (kind plan).`);
     case 'due-cards': return ask(`collect the flashcards that are due today${where()}${d.p ? `, part "${d.p}"` : ''} (from *.progress.json) into one deck and push it.`);
