@@ -216,6 +216,7 @@ export class Library extends DurableObject {
       if (key === 'n:') return;
       await st.put('item:' + key, item);
       if (title) await st.put('name:' + nameKey(title), key);
+      await st.put('ts:' + key, now);
     }
   }
   async index() {
@@ -224,7 +225,8 @@ export class Library extends DurableObject {
     const data = [...(await st.list({ prefix: 'subj:' })).values()].map((x) => x.payload);
     const names = await st.list({ prefix: 'name:' });
     const items = [];
-    for (const [k, v] of names) items.push({ name: k.slice(5), key: v });
+    const ts = await st.list({ prefix: 'ts:' });
+    for (const [k, v] of names) items.push({ name: k.slice(5), key: v, ts: ts.get('ts:' + v) ?? 0 });
     return { subjects, data, last: (await st.get('last')) ?? null, items };
   }
   async get(id, name) {

@@ -650,7 +650,11 @@ async function openFile(d) {
 async function loadLibrary() {
   if (!S.library) return;
   let r; try { r = await callTool('study_pull', { session: S.session, library: S.library, lib_op: 'index' }); } catch { return; }
-  for (const x of r?.items ?? []) lib.remote.add(x.key);
+  for (const x of r?.items ?? []) {
+    lib.remote.add(x.key); lib.remote.add('n:' + x.name);
+    // a newer copy in the library replaces what this browser kept
+    for (const k of ['lib:' + x.key, 'lib:n:' + x.name]) { const loc = store.get(k, null); if (loc && x.ts && (loc.at ?? 0) < x.ts) store.set(k, null); }
+  }
   for (const ix of r?.data ?? []) if (ix?.name) S.data[ix.name] = normIndex(ix);
   if (r?.subjects?.length) setSubjects(r.subjects);
   else if (r?.data?.length && !S.subjects) setSubjects(r.data.map((x) => ({ name: x.name, parts: (x.parts ?? []).map((p) => p.name), examDate: x.examDate })));
