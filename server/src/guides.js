@@ -107,6 +107,12 @@ with a one-line header.`,
 Inputs: the selected materials (all, or the chapters/pages/topics the user chose), the
 subject and part files, the rules files, and the user's memory (weak spots get more coverage).
 
+Topics first. Each part has a topic map (areas of the exam) in subject.json parts[].topics.
+If the part has none yet, build it before making anything: 5-15 topics that cover the part's
+scope, named as the course names them, each with its source. Every card and every question
+then carries "topic" with one of those names, and a test is split into sections by topic.
+New material that adds a topic extends the map; never rename topics silently.
+
 General rules:
 - Ground everything in the materials. If something is not there, leave it out or mark it
   "outside the materials" and ask. Never fill gaps from general knowledge silently.
@@ -136,7 +142,8 @@ Outputs:
 
   "question-types": `# Question types
 
-Every question: {id, type, prompt, points, source, explanation} plus the fields of its type.
+Every question: {id, type, topic, prompt, points, source, explanation} plus the fields of its type.
+topic is one of the part's topic names (guide: generation), so results add up per topic.
 Explanations say why the answer is right and, for choice questions, why the tempting wrong
 option is wrong.
 
@@ -172,11 +179,14 @@ Open, practical and code answers are graded by you:
    decide and say why.
 3. Photos of paper answers: read the image carefully, transcribe what you rely on, then grade.
    If something is unreadable, say which part and do not guess.
-4. Final result: points per question, total, grade or pass/fail by the subject's rules, weak
-   topics (topics where the user lost points), and what to practise next.
+4. Final result: points per question, total, grade or pass/fail by the subject's rules, a
+   breakdown per topic ({name, score, total}), weak topics (where the user lost points), and
+   what to practise next.
+5. Update the part's topics in subject.json: mastery 0-100 from the recent results and card
+   progress on that topic, status (see guide: subject), lastTested. Update the part's best.
 
-Save the result to <Part>/results/ (formats guide), update memory.md (memory guide) and push
-{kind:"results", payload:{...}}.`,
+Save the result to <Part>/results/ (formats guide), update memory.md (memory guide), push
+{kind:"results", payload:{...}} and then the refreshed {kind:"subject"}.`,
 
   review: `# Review before delivery
 
@@ -239,7 +249,10 @@ Index (subject.json and the push payload):
 { "name":"...", "examDate":"YYYY-MM-DD"|null, "totalPoints":32, "passPoints":15,
   "folderUrl":"link to the subject folder", "inboxUrl":"link to _inbox",
   "parts":[{ "name":"Usmeni 1", "points":15, "format":"short text", "readiness":0-100,
-             "best":null|number,
+             "date":"YYYY-MM-DD"|null, "status":"not started"|"studying"|"ready"|"done",
+             "score":null|number,   official points once the part is done (the user tells you)
+             "best":null|number,    best practice score, in the part's points
+             "topics":[topic],
              "materials":[file], "generated":[item], "results":[result] }],
   "shared":{ "materials":[file], "generated":[item] },
   "inbox":[file],
@@ -254,8 +267,21 @@ file   = { "name", "id", "kind":"script"|"slides"|"past-exam"|"notes"|"assignmen
            "size", "modified", "note":"one line on what it is" }
 item   = { "name", "id", "kind":"deck"|"test"|"mindmap"|"document", "count":cards or questions,
            "due":cards due today }
-result = { "name", "id", "date", "score", "total" }
+result = { "name", "id", "date", "score", "total", "topics":[{name, score, total}] }
+topic  = { "name", "status":"not started"|"learning"|"good"|"weak", "mastery":0-100,
+           "cards":n, "questions":n, "lastTested":"YYYY-MM-DD"|null, "source":"file, pages" }
+item.topics = the topic names a deck or test covers.
 
+Each part is its own dashboard in the window: date, status, official score, topics with
+mastery, and the decks, tests and results of that part. Keep all of it in subject.json.
+When the user says how a part went ("I finished the project, 7/7"), set status "done" and
+score, add it to subject.md, and push the subject. Points already earned count toward the
+pass line before any practice scores do.
+Topic status: "not started" = no cards or questions answered yet; "learning" = studied but
+mastery under 70 or tested once; "good" = mastery 70+ in at least two tests or card reviews;
+"weak" = mastery under 50 after a test.
+
+Each subject.json write must keep every field you are not changing.
 readiness per part: your honest estimate from results, card progress and coverage of the
 part's scope; 0 when nothing is known. nextStep is the single most useful thing to do now:
 "sort" when the inbox has files, "make" when a part has materials but nothing generated,
@@ -312,8 +338,8 @@ Document  <name>.md  (summary, plan, cheat sheet, glossary). Push as
 
 Result  <date>-<test name>.result.json
 { "kind":"result", "test":"...", "date":"...", "score":11.5, "total":15, "grade":"...",
-  "items":[{ "id":"q1", "prompt":"question text", "points":1, "max":1, "feedback":"..." }],
-  "weakTopics":["..."] }
+  "items":[{ "id":"q1", "topic":"...", "prompt":"question text", "points":1, "max":1, "feedback":"..." }],
+  "topics":[{ "name":"...", "score":3, "total":5 }], "weakTopics":["..."] }
 Numbers are numbers, not strings.
 
 Progress for flashcards  <deck name>.progress.json
