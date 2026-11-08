@@ -1,0 +1,253 @@
+// Studying playbooks: the general "skills" Claude reads through study_guide.
+// They hold for every subject and exam. Anything specific to one subject lives in the
+// user's own storage (Studying/Subjects/<subject>/subject.md, part.md, memory.md).
+
+export const GUIDES = {
+  overview: `# Studying: how to work
+
+Studying is a study app. The user sees a window (the app); you are the brain in the chat.
+The server only shows the window and carries messages between it and you. It stores nothing.
+Everything the user keeps lives in THEIR OWN storage (Google Drive, MEGA or another connector
+they chose), which you reach with that storage's connector tools in this conversation.
+
+Every request from the window arrives as a chat message that starts with "Studying:" and ends
+with "(session: <id>)". Use that session id with study_push and study_progress so the result
+lands in the window that asked. If the user writes to you in plain words while the window is
+open, its session id is in the model context the window sent.
+
+Loop for every job:
+1. Read the guides you need (storage-layout always; then generation, question-types, grading,
+   review, memory, fixer as the job needs). Read them once per conversation.
+2. Read the rules in the user's storage before you produce anything:
+   Studying/_rules/*.md (general, all subjects) and the subject's subject.md, part.md, memory.md.
+   Rules in _rules/lessons-learned.md override your defaults.
+3. Report progress with study_progress: announce the planned steps first (step 0 of N),
+   then each step as it starts, then done. The window turns this into a progress bar and ETA.
+4. Produce, review (guide: review), fix what the review found.
+5. Save to storage in the formats from the guide "formats", then study_push the result.
+6. Update the subject memory (guide: memory) when the job taught you something about the user.
+7. Answer in chat briefly, in the user's language. The window UI is in English; generated
+   content follows the language of the user's materials unless they ask otherwise.
+
+Never invent facts beyond the user's materials. Every card, question and summary point carries
+its source (file, page or section).`,
+
+  setup: `# First-run setup
+
+The window walks the user through: storage choice, connecting it, creating the workspace,
+first subject. You do the parts that need tools.
+
+When you get "Studying: setup ... storage=<name>":
+1. Check that the storage connector's tools are available in this conversation (Google Drive:
+   tools to search, create and read files; MEGA: its file tools). If they are missing, tell
+   the user plainly to open claude.ai Settings > Connectors, connect <name>, and come back;
+   push {kind:"setup_status", payload:{ok:false, storage, reason:"not_connected"}}.
+2. If present, create the workspace (guide: storage-layout) if it does not exist yet. Write
+   Studying/_system/settings.json with {storage, created, version:1} and the starter rule files.
+   Then read settings.json back to confirm the write worked.
+3. Push {kind:"setup_status", payload:{ok:true, storage, root:"Studying", subjects:[...]}}.
+4. When the user then creates a subject, ask only for what you cannot read from their
+   materials: exam parts, date, how it is graded, pass threshold. Write subject.md and one
+   folder per part. Push {kind:"subjects", payload:[...]} so the home screen updates.
+
+Never ask for passwords or tokens. Connecting storage always happens in Claude's own
+connector settings, where the user signs in with the provider.`,
+
+  "storage-layout": `# Workspace layout (in the user's storage)
+
+Studying/
+  _system/settings.json        {storage, created, version, defaults:{...}}
+  _system/stats.json           job step durations, for progress estimates
+  _rules/generation-rules.md   how to make materials (general, all subjects)
+  _rules/question-types.md     question types and how to write them well
+  _rules/grading-rubrics.md    how open answers and practical tasks are graded
+  _rules/lessons-learned.md    mistakes found so far and the rule that prevents each one
+  Subjects/<Subject>/
+    subject.md                 exam rules, grading, dates, professor, what is in scope
+    memory.md                  what the user knows, weak spots, scores, what exams asked
+    <Part>/                    one folder per exam part, e.g. Oral, Written, Project
+      part.md                  format of this part, past questions, scope
+      materials/               the user's sources (PDF, DOCX, images, notes)
+      generated/               decks, tests, mind maps, summaries (formats guide)
+      results/                 finished tests with grades
+
+Names of subjects and parts are the user's, in any language. System folders stay in English.
+When listing files for the window, push {kind:"files", payload:{path, items:[{name, type:
+"folder"|"file", mime, id, size, modified}]}}. Keep the connector's file id in "id" so the
+window can ask for a file by id.
+
+Starter content for _rules files when creating the workspace: short headings and the line
+"Add rules here. Studying reads this file before every job." lessons-learned.md starts empty
+with a one-line header.`,
+
+  generation: `# Making study materials
+
+Inputs: the selected materials (all, or the chapters/pages/topics the user chose), the
+subject and part files, the rules files, and the user's memory (weak spots get more coverage).
+
+General rules:
+- Ground everything in the materials. If something is not there, leave it out or mark it
+  "outside the materials" and ask. Never fill gaps from general knowledge silently.
+- Use the materials' own terms, definitions and notation. When the course has official
+  definitions (numbered, named), quote them faithfully and keep their labels.
+- Every item gets a source: file name plus page, section or heading.
+- Cover the scope evenly first, then weight toward what past exams asked (part.md, memory.md).
+- One concept per item. No duplicates across a deck.
+
+Outputs:
+- Summary: structured notes per topic, plain explanation first, then the exact definition to
+  learn, then one example from the materials.
+- Mind map: a tree of topics, 3-4 levels, short node labels (3-8 words).
+- Flashcards: the front is one exam-style question; the back fully answers it in short
+  points: definition, short explanation, example. A card answers the whole question an exam
+  would ask, not a fragment of it. Code goes in fenced blocks.
+- Quiz / test: follow the question-types guide and the requested types, count, difficulty,
+  points and time limit. Mirror the real exam format from part.md when it is known.
+- Practice tasks: tasks like the ones on paper exams, each with a worked solution step by step,
+  hidden until the user asks.
+- Study plan: from today to the exam date, topic blocks per day, each block = read, mind map,
+  cards, quiz; spaced review of missed cards on day +1 and +3; a full mock exam before the
+  end; then a weak-spot loop.
+- Cheat sheet: one page of what must be memorised, in exam order.
+- Glossary: term, definition, source.
+- Past-exam analysis: questions grouped by topic with how often each came up.`,
+
+  "question-types": `# Question types
+
+Every question: {id, type, prompt, points, source, explanation} plus the fields of its type.
+Explanations say why the answer is right and, for choice questions, why the tempting wrong
+option is wrong.
+
+- single: one correct option. {options:[4 strings], answer: index}. Distractors are plausible:
+  swapped definitions, a neighbouring concept, a common misconception from the material.
+- multiple: several correct. {options:[4-6], answer:[indexes]}. Scoring: full points only when
+  the set is exact; say so in the prompt ("select all that apply").
+- truefalse: {answer: true|false}. Avoid double negatives.
+- fill: the prompt contains blanks written as [[1]], [[2]]. {blanks:{"1":["accepted", "variants"],
+  ...}}. Accept spelling variants and synonyms the material uses; case-insensitive.
+- matching: {left:[...], right:[...], answer:{"0":2, "1":0, ...}} (left index -> right index).
+- ordering: {items:[...in correct order]}; the window shuffles them.
+- open: free text. {rubric:[{point:"...", weight:n}], model_answer:"..."}. The rubric lists
+  what a full answer must contain, in the course's terms.
+- practical: a task solved on paper or in code (diagram, model, table, proof, program).
+  {rubric, model_answer}. The user may answer in the window or attach a photo in chat.
+- code: write or complete code. {language, starter, rubric, model_answer}.
+
+Difficulty: easy = recall of one definition; medium = explain or apply; hard = combine
+concepts, solve a task, or spot an error.`,
+
+  grading: `# Grading
+
+Objective types (single, multiple, truefalse, fill, matching, ordering) are graded in the
+window and arrive already scored; check that the scoring matched the key and correct it if not.
+
+Open, practical and code answers are graded by you:
+1. Grade against the question's rubric and model answer, in the course's terms. Give points per
+   rubric item, partial credit where the rubric allows, and a one-line reason per item.
+2. Second grader: if you can start a subagent (an Agent tool), have an independent subagent
+   grade the same answers without seeing your grades. Otherwise grade a second time from
+   scratch, as a strict examiner. Where the two grades differ by more than one rubric item,
+   decide and say why.
+3. Photos of paper answers: read the image carefully, transcribe what you rely on, then grade.
+   If something is unreadable, say which part and do not guess.
+4. Final result: points per question, total, grade or pass/fail by the subject's rules, weak
+   topics (topics where the user lost points), and what to practise next.
+
+Save the result to <Part>/results/ (formats guide), update memory.md (memory guide) and push
+{kind:"results", payload:{...}}.`,
+
+  review: `# Review before delivery
+
+Nothing reaches the window unreviewed.
+
+If you can start subagents (an Agent tool is available), start a reviewer that did not write
+the material, preferably on a stronger model, with the materials, the output and this checklist.
+Otherwise do the review yourself as a separate pass: re-read the sources, then check item by
+item.
+
+Checklist:
+- Every statement is supported by the cited source; nothing from outside the materials.
+- Official definitions are quoted faithfully, with their labels.
+- Answer keys are correct; each choice question has exactly the intended correct options.
+- No ambiguous wording, no trick questions, no duplicate items.
+- Distractors are plausible but clearly wrong for someone who knows the material.
+- Points and time match the requested or real exam format.
+- Code compiles in principle and solutions actually solve the task.
+Fix every finding before saving. If a finding reveals a systematic mistake, follow the fixer guide.`,
+
+  fixer: `# Fixer: learning from mistakes
+
+Triggers: the user reports a mistake ("Report a mistake" in the window, or in plain words), or
+a review finds a mistake that could happen again.
+
+1. Fix the item itself in storage and push the corrected item.
+2. Decide whether it is general (could happen in any subject) or specific to this subject.
+   - General: append a rule to Studying/_rules/lessons-learned.md as
+     "- <date>: <what went wrong> -> <rule that prevents it>".
+   - Subject-specific: append it to the subject's subject.md under "Rules".
+3. If the same kind of mistake appears in other generated files, list them and offer to fix them.
+4. If the rule belongs in Studying's own guides for everyone, tell the user in one line so the
+   maintainer can add it to the app.
+Rules are short, testable and written as instructions ("Quote numbered definitions verbatim").`,
+
+  memory: `# Subject memory
+
+memory.md is the record of the user's learning in one subject. Update it after every graded
+test, study session summary or explicit statement from the user.
+
+Sections (create when missing):
+## Status: exam date, days left, overall readiness per topic (0-100) from recent results.
+## Weak spots: topic -> what goes wrong, from which result, date.
+## Strong: topics answered right repeatedly.
+## Past exams: questions that appeared on real exams, with date and points.
+## Notes: preferences the user stated for this subject.
+
+Write facts, not guesses. Replace outdated lines rather than appending forever.`,
+
+  formats: `# File formats
+
+Generated files go to <Part>/generated/, results to <Part>/results/. JSON files are the
+source the window renders; you may also write a .md twin for reading outside the app.
+
+Deck  <name>.deck.json
+{ "kind":"deck", "title":"...", "subject":"...", "part":"...", "created":"ISO date",
+  "cards":[{ "id":"c1", "front":"...", "back":"...", "source":"file p.12", "topic":"..." }] }
+Back text may use short lines, "- " bullets, "1. " lists and fenced code.
+
+Test  <name>.test.json
+{ "kind":"test", "title":"...", "timeLimitMin":60, "totalPoints":15,
+  "questions":[ question objects from the question-types guide ] }
+
+Mind map  <name>.mindmap.json
+{ "kind":"mindmap", "title":"...", "root":{ "text":"...", "children":[{ "text":"...", "children":[] }] } }
+
+Document  <name>.md  (summary, plan, cheat sheet, glossary). Push as
+{kind:"document", title, payload:{markdown:"..."}}.
+
+Result  <date>-<test name>.result.json
+{ "kind":"result", "test":"...", "date":"...", "score":11.5, "total":15, "grade":"...",
+  "items":[{ "id":"q1", "points":1, "max":1, "feedback":"..." }], "weakTopics":["..."] }
+
+Progress for flashcards  <deck name>.progress.json
+{ "cards":{ "c1":{ "due":"ISO date", "interval":3, "ease":2.5, "reps":2 } } }
+
+Payloads pushed to the window use the same objects: {kind:"deck", payload:<deck>},
+{kind:"test", payload:<test>}, {kind:"mindmap", payload:<mindmap>}.`,
+
+  "study-flow": `# From zero to the exam
+
+1. New subject: exam rules, date, parts, materials (setup guide).
+2. Diagnostic: a short mixed test (10-15 questions) across the scope, to find what the user
+   already knows.
+3. Study plan to the exam date (generation guide), saved as a document and summarised in
+   memory.md.
+4. Per topic: summary -> mind map -> flashcards -> quiz -> practice tasks.
+5. Daily: flashcards that are due (window shows them), weak spots first.
+6. Mock exams in the real format (types, points, time) as the date approaches.
+7. Last day: cheat sheet and the "must memorise" list.
+8. After the exam: ask the user what was asked and record it under Past exams.
+
+Suggest the next step at the end of every job, in one line.`,
+};
+
+export const GUIDE_TOPICS = Object.keys(GUIDES);

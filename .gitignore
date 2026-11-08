@@ -1,0 +1,6 @@
+node_modules/
+.sdk/
+.wrangler/
+server/src/window.html
+.dev.vars
+*.log

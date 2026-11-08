@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studying</title>
+<style>
+  /* Direction: a reading-room desk. Quiet chrome from the host's own neutrals, one ink-blue accent,
+     and one signature: the red margin line of an index card, used only on cards and questions. */
+  :root {
+    color-scheme: light dark;
+    --bg: var(--color-background-primary, #ffffff);
+    --bg2: var(--color-background-secondary, #f5f4f0);
+    --bg3: var(--color-background-tertiary, #faf9f6);
+    --t1: var(--color-text-primary, #1c1f26);
+    --t2: var(--color-text-secondary, #474c57);
+    --t3: var(--color-text-tertiary, #777c87);
+    --l1: var(--color-border-tertiary, rgba(28, 31, 38, .12));
+    --l2: var(--color-border-secondary, rgba(28, 31, 38, .24));
+    --ok: var(--color-text-success, #2f6b2a);
+    --okbg: var(--color-background-success, #e8f1e3);
+    --bad: var(--color-text-danger, #a3322a);
+    --badbg: var(--color-background-danger, #f8e7e4);
+    --warn: var(--color-text-warning, #6b5214);
+    --warnbg: var(--color-background-warning, #f7efdc);
+    --r: var(--border-radius-md, 10px);
+    --rs: var(--border-radius-sm, 6px);
+    --font: var(--font-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --mono: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
+    --ink: #2d4a7a;          /* the one accent */
+    --ink-text: #ffffff;
+    --card: #fffefa;         /* index card paper */
+    --margin: #c0392b;       /* signature: card margin line */
+    --ease: cubic-bezier(.2, .7, .2, 1);
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg: var(--color-background-primary, #1e2026); --bg2: var(--color-background-secondary, #17191e); --bg3: var(--color-background-tertiary, #121418);
+    --t1: var(--color-text-primary, #eceef2); --t2: var(--color-text-secondary, #c3c7d0); --t3: var(--color-text-tertiary, #8e94a1);
+    --l1: var(--color-border-tertiary, rgba(236, 238, 242, .12)); --l2: var(--color-border-secondary, rgba(236, 238, 242, .24));
+    --ok: var(--color-text-success, #8fcf7f); --okbg: var(--color-background-success, #1d3319); --bad: var(--color-text-danger, #ef9a8f); --badbg: var(--color-background-danger, #3a1f1c);
+    --warn: var(--color-text-warning, #e2c06a); --warnbg: var(--color-background-warning, #3a2f12);
+    --ink: #9db8e8; --ink-text: #10141c; --card: #23262d; --margin: #e0705f; } }
+  :root[data-theme="dark"] { --ink: #9db8e8; --ink-text: #10141c; --card: #23262d; --margin: #e0705f; }
+  :root[data-theme="light"] { --ink: #2d4a7a; --ink-text: #ffffff; --card: #fffefa; --margin: #c0392b; }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: transparent; color: var(--t1); font: 14px/1.5 var(--font); }
+  body.full { background: var(--bg2); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+  [hidden] { display: none !important; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+  .app { display: flex; flex-direction: column; min-height: 560px; height: var(--h, auto); padding-top: var(--top, 0px); padding-bottom: var(--bottom, 0px); }
+  body.full .app { height: 100vh; }
+
+  /* top bar */
+  .bar { flex: none; display: flex; align-items: center; gap: 16px; padding: 8px 16px; border-bottom: 1px solid var(--l1); background: var(--bg2); }
+  .brand { font: 500 16px/1 var(--serif); letter-spacing: .01em; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+  .brand i { display: inline-block; width: 14px; height: 18px; border: 1.5px solid var(--t2); border-radius: 2px; position: relative; }
+  .brand i::before { content: ""; position: absolute; left: 3px; top: -1px; bottom: -1px; width: 1.5px; background: var(--margin); }
+  nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
+  nav button { background: none; border: 0; border-radius: var(--rs); padding: 6px 10px; color: var(--t2); white-space: nowrap; transition: background-color .15s var(--ease), color .15s var(--ease); }
+  nav button:hover { background: var(--bg3); color: var(--t1); }
+  nav button[aria-current="page"] { background: var(--bg); color: var(--t1); box-shadow: inset 0 0 0 1px var(--l1); }
+  .icon-btn { background: none; border: 1px solid var(--l1); border-radius: var(--rs); width: 32px; height: 32px; display: grid; place-items: center; color: var(--t2); flex: none; }
+  .icon-btn:hover:not(:disabled) { background: var(--bg3); color: var(--t1); }
+  .icon-btn:disabled { opacity: .35; cursor: default; }
+  svg.i { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* progress */
+  .progress { flex: none; padding: 12px 16px; border-bottom: 1px solid var(--l1); background: var(--bg); display: grid; gap: 8px; }
+  .progress .row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+  .progress .job { font-weight: 500; }
+  .progress .eta { color: var(--t3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .track { height: 4px; border-radius: 2px; background: var(--l1); overflow: hidden; }
+  .track b { display: block; height: 100%; background: var(--ink); width: 0; transition: width .4s var(--ease); }
+  .steps { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--t3); font-size: 12px; }
+  .steps .now { color: var(--t1); }
+  .steps .done { color: var(--t2); }
+
+  main { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 16px 32px; }
+  .wrap { max-width: 880px; margin: 0 auto; display: grid; gap: 24px; }
+  h1 { font: 500 24px/1.25 var(--serif); margin: 0; text-wrap: balance; }
+  h2 { font: 500 16px/1.3 var(--font); margin: 0; }
+  p { margin: 0; }
+  .muted { color: var(--t3); }
+  .sub { color: var(--t2); max-width: 64ch; }
+  .stack { display: grid; gap: 12px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .between { justify-content: space-between; }
+  .panel { background: var(--bg); border: 1px solid var(--l1); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
+  .btn { border: 1px solid var(--l2); background: var(--bg); border-radius: 8px; padding: 8px 14px; font-weight: 500; transition: background-color .15s var(--ease), border-color .15s var(--ease); }
+  .btn:hover { background: var(--bg3); }
+  .btn.primary { background: var(--ink); color: var(--ink-text); border-color: var(--ink); }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.quiet { border-color: transparent; background: none; color: var(--t2); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  .btn:active:not(:disabled) { transform: scale(.98); }
+  input[type=text], input[type=number], input[type=date], select, textarea { background: var(--bg); border: 1px solid var(--l2); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+  textarea { width: 100%; min-height: 96px; resize: vertical; line-height: 1.5; }
+  label.field { display: grid; gap: 4px; font-size: 13px; color: var(--t2); }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--l2); border-radius: 999px; padding: 6px 12px; background: var(--bg); user-select: none; }
+  .chip input { margin: 0; accent-color: var(--ink); }
+  .chip:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+
+  /* setup */
+  .stepper { display: flex; gap: 8px; color: var(--t3); font-size: 13px; flex-wrap: wrap; }
+  .stepper span[aria-current] { color: var(--t1); font-weight: 500; }
+  .choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+  .choice button { text-align: left; background: var(--bg); border: 1px solid var(--l2); border-radius: var(--r); padding: 16px; display: grid; gap: 4px; }
+  .choice button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .choice b { font-weight: 500; }
+
+  /* subjects */
+  .subjects { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+  .subject { text-align: left; background: var(--bg); border: 1px solid var(--l1); border-radius: var(--r); padding: 16px; display: grid; gap: 8px; }
+  .subject:hover { border-color: var(--l2); }
+  .subject .name { font: 500 17px/1.3 var(--serif); }
+  .subject .meta { color: var(--t3); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .ready { height: 4px; background: var(--l1); border-radius: 2px; overflow: hidden; }
+  .ready b { display: block; height: 100%; background: var(--ink); }
+
+  /* files */
+  .crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; color: var(--t3); font-size: 13px; }
+  .crumbs button { background: none; border: 0; padding: 2px 4px; border-radius: 4px; color: var(--t2); }
+  .crumbs button:hover { background: var(--bg3); }
+  .files { border: 1px solid var(--l1); border-radius: var(--r); overflow: hidden; background: var(--bg); }
+  .file { display: grid; grid-template-columns: 20px 24px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 0 12px; height: 40px; border-bottom: 1px solid var(--l1); }
+  .file:last-child { border-bottom: 0; }
+  .file:hover { background: var(--bg3); }
+  .file .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; background: none; border: 0; padding: 0; }
+  .file .m { color: var(--t3); font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .file input { accent-color: var(--ink); margin: 0; }
+  .empty { padding: 32px 16px; text-align: center; color: var(--t3); display: grid; gap: 12px; justify-items: center; }
+
+  /* index card: the signature */
+  .card { position: relative; background: var(--card); border: 1px solid var(--l1); border-radius: 12px; padding: 24px 24px 24px 48px;
+    box-shadow: 0 1px 2px rgba(20, 24, 32, .06), 0 8px 24px -12px rgba(20, 24, 32, .18); }
+  .card::before { content: ""; position: absolute; left: 28px; top: 0; bottom: 0; width: 1.5px; background: var(--margin); opacity: .65; }
+  .card .q { font: 400 20px/1.45 var(--serif); }
+  .card .a { font: 400 16px/1.6 var(--serif); color: var(--t1); }
+  .card .src { font: 12px/1.4 var(--mono); color: var(--t3); }
+  .flash { min-height: 280px; display: grid; align-content: center; gap: 16px; cursor: pointer; }
+  .flash.back { align-content: start; }
+  .counter { font: 12px/1 var(--mono); color: var(--t3); font-variant-numeric: tabular-nums; }
+  .rate { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .rate .btn { display: grid; gap: 2px; justify-items: center; padding: 8px; }
+  .rate small { color: var(--t3); font: 11px/1 var(--mono); }
+
+  /* markdown */
+  .md { display: grid; gap: 8px; }
+  .md h1, .md h2, .md h3 { font-family: var(--serif); font-weight: 500; }
+  .md h3 { font-size: 15px; margin: 4px 0 0; }
+  .md ul, .md ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  .md pre { margin: 0; background: var(--bg2); border: 1px solid var(--l1); border-radius: 8px; padding: 12px; overflow-x: auto; font: 13px/1.5 var(--mono); }
+  .md code { font: 13px/1.4 var(--mono); background: var(--bg2); padding: 1px 4px; border-radius: 4px; }
+  .md pre code { background: none; padding: 0; }
+
+  /* test */
+  .qhead { display: flex; justify-content: space-between; gap: 12px; color: var(--t3); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .opts { display: grid; gap: 8px; }
+  .opt { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; background: var(--bg); border: 1px solid var(--l1); border-radius: 8px; padding: 10px 12px; font: 16px/1.45 var(--serif); }
+  .opt input { margin: 3px 0 0; accent-color: var(--ink); }
+  .opt:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .opt.right { border-color: var(--ok); background: var(--okbg); }
+  .opt.wrong { border-color: var(--bad); background: var(--badbg); }
+  .blank { width: 9em; border: 0; border-bottom: 1.5px solid var(--l2); border-radius: 0; background: transparent; padding: 0 2px; font: inherit; }
+  .match { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: center; font: 16px/1.4 var(--serif); }
+  .order { display: grid; gap: 6px; }
+  .order div { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; background: var(--bg); border: 1px solid var(--l1); border-radius: 8px; padding: 6px 6px 6px 12px; font: 16px/1.4 var(--serif); }
+  .timer { font: 500 14px/1 var(--mono); font-variant-numeric: tabular-nums; }
+  .timer.low { color: var(--bad); }
+  .qnav { display: flex; flex-wrap: wrap; gap: 4px; }
+  .qnav button { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--l1); background: var(--bg); font: 12px/1 var(--mono); }
+  .qnav button.ans { border-color: var(--t3); background: var(--l1); color: var(--t1); }
+  .qnav button[aria-current] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+
+  /* results */
+  .score { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+  .score b { font: 500 40px/1 var(--serif); }
+  .item { display: grid; gap: 4px; padding: 12px 0; border-bottom: 1px solid var(--l1); }
+  .item:last-child { border-bottom: 0; }
+  .pts { font: 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+  .pts.full { color: var(--ok); } .pts.zero { color: var(--bad); }
+
+  /* mind map */
+  .tree { list-style: none; margin: 0; padding-left: 20px; border-left: 1px solid var(--l1); display: grid; gap: 4px; }
+  .tree.root { border-left: 0; padding-left: 0; }
+  .tree summary { cursor: pointer; padding: 4px 0; font: 16px/1.4 var(--serif); list-style: none; }
+  .tree summary::-webkit-details-marker { display: none; }
+  .tree summary::before { content: "+"; display: inline-block; width: 16px; color: var(--t3); font-family: var(--mono); }
+  .tree details[open] > summary::before { content: "−"; }
+  .tree .leaf { padding: 4px 0 4px 16px; font: 15px/1.4 var(--serif); color: var(--t2); }
+
+  .notice { border-radius: 8px; padding: 10px 12px; background: var(--warnbg); color: var(--warn); }
+  .toast { position: fixed; left: 50%; bottom: calc(16px + var(--bottom, 0px)); transform: translateX(-50%); background: var(--t1); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.2); z-index: 10; max-width: calc(100% - 32px); }
+  .report { display: grid; gap: 8px; }
+
+  @media (max-width: 600px) {
+    .bar { padding: 8px 12px; gap: 8px; } .brand span { display: none; }
+    main { padding: 16px 12px 24px; }
+    .card { padding: 20px 16px 20px 36px; } .card::before { left: 20px; }
+    .card .q { font-size: 18px; }
+    .rate { grid-template-columns: repeat(2, 1fr); }
+    .match { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="bar">
+    <div class="brand"><i aria-hidden="true"></i><span>Studying</span></div>
+    <nav id="nav" aria-label="Sections"></nav>
+    <button class="icon-btn" id="full" title="Full screen" aria-label="Full screen"></button>
+  </header>
+  <section class="progress" id="progress" hidden aria-live="polite"></section>
+  <main><div class="wrap" id="view"></div></main>
+</div>
+<div class="toast" id="toast" hidden role="status"></div>
+<script type="module">
+/*SDK*/
+const { App } = window.__mcpApps;
+
+// ---------- icons (lucide, 16px, 1.5 stroke) ----------
+const ICON = {
+  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
+  max: '<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>',
+  min: '<path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/>',
+  up: '<path d="m18 15-6-6-6 6"/>', down: '<path d="m6 9 6 6 6-6"/>',
+};
+const icon = (n) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const $ = (id) => document.getElementById(id);
+const store = { get(k, d) { try { const v = localStorage.getItem('studying:' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
+                set(k, v) { try { localStorage.setItem('studying:' + k, JSON.stringify(v)); } catch {} } };
+
+// ---------- state ----------
+const newSession = () => { const a = new Uint8Array(12); crypto.getRandomValues(a); return Array.from(a, (b) => b.toString(16).padStart(2, '0')).join(''); };
+const S = {
+  session: newSession(), view: 'home', display: 'inline', modes: ['inline'],
+  setup: { step: 0, storage: store.get('storage', ''), status: null },
+  subjects: null, subject: store.get('subject', ''), part: '',
+  files: null, path: 'Studying', selected: new Map(),
+  deck: null, idx: 0, flipped: false, srs: {},
+  test: null, answers: {}, touched: new Set(), q: 0, started: 0, submitted: false,
+  results: null, mindmap: null, doc: null,
+  progress: null, stepTimes: [], waitingSince: 0, lastSeq: 0, report: null,
+};
+const VIEWS = [['home', 'Home'], ['files', 'Files'], ['create', 'Create'], ['study', 'Study'], ['test', 'Test'], ['results', 'Results']];
+
+// ---------- connection with Claude ----------
+const app = new App({ name: 'Studying', version: '0.1.0' }, { availableDisplayModes: ['inline', 'fullscreen'] });
+function ask(text) {
+  const msg = `Studying: ${text} (session: ${S.session})`;
+  S.waitingSince = Date.now();
+  startPolling();
+  app.sendMessage({ role: 'user', content: [{ type: 'text', text: msg }] }).catch(() => toast('Could not send to Claude. Type your request in the chat instead.'));
+}
+function link(url) { app.openLink({ url }).catch(() => toast('Open ' + url)); }
+async function callTool(name, args) {
+  const r = await app.callServerTool({ name, arguments: args });
+  return r?.structuredContent ?? (() => { try { return JSON.parse(r?.content?.[0]?.text ?? '{}'); } catch { return {}; } })();
+}
+
+// mailbox: poll only while Claude is working on something this window asked for
+let pollTimer = null;
+function startPolling() { if (!pollTimer) { pollTimer = setInterval(pull, 2500); pull(); } }
+function stopPolling() { clearInterval(pollTimer); pollTimer = null; }
+async function pull() {
+  if (document.hidden) return;
+  let d;
+  try { d = await callTool('study_pull', { session: S.session, after: S.lastSeq }); } catch { return; }
+  if (d?.progress) onProgress(d.progress);
+  for (const m of d?.messages ?? []) { S.lastSeq = Math.max(S.lastSeq, m.seq); receive(m); }
+  const busy = S.progress && !S.progress.done && !S.progress.error;
+  const waited = S.waitingSince && Date.now() - S.waitingSince;
+  if (!busy && (!S.waitingSince || waited > 10 * 60_000)) stopPolling();
+  if (!busy && S.progress?.done && S.waitingSince && (d?.messages?.length ?? 0) > 0) S.waitingSince = 0;
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden && pollTimer) pull(); });
+
+function receive(m) {
+  const p = m.payload;
+  switch (m.kind) {
+    case 'setup_status': S.setup.status = p; if (p?.ok) { S.setup.step = 3; if (p.storage) store.set('storage', p.storage); if (p.subjects) S.subjects = p.subjects; } go('setup'); break;
+    case 'subjects': S.subjects = Array.isArray(p) ? p : p?.subjects ?? []; if (S.view === 'setup' && S.setup.step >= 3) S.setup.step = 4; render(); break;
+    case 'files': S.files = p; S.path = p?.path ?? S.path; go('files'); break;
+    case 'deck': openDeck(p); break;
+    case 'test': openTest(p); break;
+    case 'mindmap': S.mindmap = p; S.doc = null; S.deck = null; go('study'); break;
+    case 'document': case 'plan': S.doc = { title: m.title ?? p?.title ?? 'Document', markdown: p?.markdown ?? String(p ?? '') }; S.mindmap = null; S.deck = null; go('study'); break;
+    case 'results': S.results = p; go('results'); break;
+    case 'notice': toast(p?.text ?? String(p ?? '')); break;
+  }
+  S.waitingSince = 0;
+}
+
+// progress bar + estimate from the pace of the steps so far
+function onProgress(p) {
+  const prev = S.progress;
+  if (!prev || prev.job !== p.job || p.step < prev.step) S.stepTimes = [{ step: p.step, t: Date.now() }];
+  else if (p.step !== prev.step) S.stepTimes.push({ step: p.step, t: Date.now() });
+  S.progress = p;
+  if (p.done) {
+    const st = store.get('stats', {}); const dur = Date.now() - (S.stepTimes[0]?.t ?? Date.now());
+    if (p.total > 0 && dur > 0) { st.perStep = Math.round(((st.perStep ?? dur / p.total) * 2 + dur / p.total) / 3); store.set('stats', st); }
+    setTimeout(() => { if (S.progress === p) { S.progress = null; drawProgress(); } }, 4000);
+  }
+  drawProgress();
+}
+function eta() {
+  const p = S.progress; if (!p || p.done || p.error) return '';
+  const first = S.stepTimes[0], last = S.stepTimes[S.stepTimes.length - 1];
+  let per = store.get('stats', {}).perStep ?? 0;
+  if (first && last && last.step > first.step) per = (last.t - first.t) / (last.step - first.step);
+  if (!per) return 'Estimating…';
+  const left = Math.max(0, (p.total - p.step) * per - (Date.now() - (last?.t ?? Date.now())) * 0.5);
+  const s = Math.round(left / 1000);
+  return s < 60 ? `about ${Math.max(5, s)} s left` : `about ${Math.round(s / 60)} min left`;
+}
+function drawProgress() {
+  const el = $('progress'), p = S.progress;
+  el.hidden = !p;
+  if (!p) return;
+  const pct = p.done ? 100 : Math.min(98, Math.round(((p.step) / p.total) * 100));
+  const steps = p.steps?.length ? `<div class="steps">${p.steps.map((s, i) => `<span class="${i < p.step ? 'done' : i === p.step ? 'now' : ''}">${i + 1}. ${esc(s)}</span>`).join('')}</div>` : '';
+  el.innerHTML = `<div class="row"><span class="job">${esc(p.job)}${p.label && !p.done ? ` · <span class="muted">${esc(p.label)}</span>` : ''}</span>
+    <span class="eta">${p.error ? 'Stopped' : p.done ? 'Done' : esc(eta())}</span></div>
+    <div class="track"><b style="width:${pct}%"></b></div>${steps}${p.error ? `<p class="notice">${esc(p.error)}</p>` : ''}`;
+}
+setInterval(() => { if (S.progress && !S.progress.done) drawProgress(); }, 5000);
+
+// what Claude sees about the window
+let lastCtx = '';
+function tellClaude() {
+  const parts = [`The Studying window is open (session: ${S.session}). View: ${S.view}.`];
+  if (S.subject) parts.push(`Subject: ${S.subject}${S.part ? ', part: ' + S.part : ''}.`);
+  if (S.view === 'files') parts.push(`Folder: ${S.path}.`);
+  if (S.view === 'study' && S.deck) parts.push(`Flashcards "${S.deck.title}", card ${S.idx + 1}/${S.deck.cards.length}.`);
+  if (S.view === 'test' && S.test) parts.push(`Test "${S.test.title}", question ${S.q + 1}/${S.test.questions.length}${S.submitted ? ', submitted' : ''}.`);
+  const t = parts.join(' ');
+  if (t === lastCtx) return; lastCtx = t;
+  try { app.updateModelContext({ content: [{ type: 'text', text: t }] }).catch(() => {}); } catch {}
+}
+
+// ---------- rendering helpers ----------
+let toastT = null;
+function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (el.hidden = true), 4000); }
+function md(src) {
+  const lines = String(src ?? '').replace(/\r/g, '').split('\n'); let out = '', list = null, code = null;
+  const inline = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  const close = () => { if (list) { out += `</${list}>`; list = null; } };
+  for (const l of lines) {
+    if (code !== null) { if (/^```/.test(l)) { out += `<pre><code>${esc(code)}</code></pre>`; code = null; } else code += (code ? '\n' : '') + l; continue; }
+    if (/^```/.test(l)) { close(); code = ''; continue; }
+    let m;
+    if ((m = l.match(/^(#{1,3})\s+(.*)/))) { close(); const n = Math.min(3, m[1].length + 1); out += `<h${n}>${inline(m[2])}</h${n}>`; continue; }
+    if ((m = l.match(/^\s*[-*•]\s+(.*)/))) { if (list !== 'ul') { close(); out += '<ul>'; list = 'ul'; } out += `<li>${inline(m[1])}</li>`; continue; }
+    if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (list !== 'ol') { close(); out += '<ol>'; list = 'ol'; } out += `<li>${inline(m[1])}</li>`; continue; }
+    close();
+    if (l.trim()) out += `<p>${inline(l)}</p>`;
+  }
+  if (code !== null) out += `<pre><code>${esc(code)}</code></pre>`;
+  close();
+  return `<div class="md">${out}</div>`;
+}
+const fmtSize = (n) => !n ? '' : n < 1024 ? `${n} B` : n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`;
+const fmtDate = (d) => { const x = new Date(d); return isNaN(x) ? '' : x.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); };
+
+function go(view) { S.view = view; render(); }
+function render() {
+  $('nav').innerHTML = VIEWS.map(([v, l]) => `<button data-v="${v}" ${S.view === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
+  const full = S.display === 'fullscreen';
+  $('full').innerHTML = icon(full ? 'min' : 'max'); $('full').title = full ? 'Exit full screen' : 'Full screen';
+  $('full').hidden = !S.modes.includes('fullscreen');
+  document.body.classList.toggle('full', full);
+  const v = { setup: viewSetup, home: viewHome, files: viewFiles, create: viewCreate, study: viewStudy, test: viewTest, results: viewResults }[S.view] ?? viewHome;
+  $('view').innerHTML = v();
+  drawProgress();
+  tellClaude();
+}
+
+// ---------- setup ----------
+const STORAGES = [
+  ['Google Drive', 'Your Google Drive. Files appear in a Studying folder you can also open in Drive.'],
+  ['MEGA', 'Your MEGA cloud drive, end-to-end encrypted.'],
+  ['Other', 'Another storage that has a Claude connector. Tell Claude which one.'],
+];
+function viewSetup() {
+  const st = S.setup, names = ['Welcome', 'Storage', 'Connect', 'Workspace', 'First subject'];
+  const head = `<div class="stepper">${names.map((n, i) => `<span ${i === st.step ? 'aria-current="step"' : ''}>${i + 1}. ${n}</span>`).join('<span aria-hidden="true">·</span>')}</div>`;
+  if (st.step === 0) return `${head}<h1>Study anything with Claude</h1>
+    <p class="sub">Bring your course materials. Claude turns them into summaries, mind maps, flashcards and practice exams, grades your answers and remembers what you still need to work on. Everything is kept in your own cloud storage.</p>
+    <div class="row"><button class="btn primary" data-act="setup-next">Get started</button></div>`;
+  if (st.step === 1) return `${head}<h1>Where should your things live?</h1>
+    <p class="sub">Studying keeps nothing on its own server. Pick the storage Claude should use.</p>
+    <div class="choice">${STORAGES.map(([n, d]) => `<button data-act="pick-storage" data-s="${esc(n)}" aria-pressed="${st.storage === n}"><b>${esc(n)}</b><span class="muted">${esc(d)}</span></button>`).join('')}</div>
+    <div class="row"><button class="btn quiet" data-act="setup-back">Back</button><button class="btn primary" data-act="setup-next" ${st.storage ? '' : 'disabled'}>Continue</button></div>`;
+  if (st.step === 2) {
+    const s = st.status;
+    return `${head}<h1>Connect ${esc(st.storage)}</h1>
+    <ol class="sub stack" style="padding-left:20px;margin:0">
+      <li>Open Claude's connectors and connect <strong>${esc(st.storage)}</strong>. You sign in with ${esc(st.storage === 'Other' ? 'that service' : st.storage)} there; Studying never sees your password.</li>
+      <li>Come back here and check the connection. Claude will create a <strong>Studying</strong> folder for you.</li>
+    </ol>
+    ${s && !s.ok ? `<p class="notice">Claude could not reach ${esc(st.storage)} yet${s.reason === 'not_connected' ? ': the connector is not connected in this chat' : ''}. Connect it, then check again.</p>` : ''}
+    <div class="row"><button class="btn quiet" data-act="setup-back">Back</button><button class="btn" data-act="open-connectors">Open connectors</button>
+    <button class="btn primary" data-act="check-storage">Check connection</button></div>`;
+  }
+  if (st.step === 3) return `${head}<h1>Your workspace is ready</h1>
+    <p class="sub">Claude created the <strong>Studying</strong> folder in ${esc(st.storage)}, with a place for general rules and one folder per subject.</p>
+    <div class="row"><button class="btn primary" data-act="setup-next">Add your first subject</button></div>`;
+  return `${head}<h1>Add a subject</h1>${subjectForm()}`;
+}
+function subjectForm() {
+  return `<form class="panel" id="subject-form">
+    <div class="grid2">
+      <label class="field">Subject name<input type="text" id="f-name" required placeholder="Software Design"></label>
+      <label class="field">Exam date<input type="date" id="f-date"></label>
+    </div>
+    <label class="field">Exam parts, comma separated<input type="text" id="f-parts" value="Oral, Written, Project"></label>
+    <label class="field">How is it graded? Anything Claude should know<textarea id="f-notes" placeholder="Two tests of 15 and 10 points; 16 points in total to pass. Paper exam, no notes."></textarea></label>
+    <div class="row"><button class="btn primary" type="submit">Create subject</button></div>
+  </form>`;
+}
+
+// ---------- home ----------
+function viewHome() {
+  if (S.subjects === null) return `<h1>Studying</h1>
+    <div class="panel"><p class="sub">Ask Claude to load your subjects from your storage, or set up Studying if this is your first time.</p>
+    <div class="row"><button class="btn primary" data-act="load-subjects">Load my subjects</button><button class="btn" data-act="go-setup">First-time setup</button></div></div>`;
+  const list = S.subjects.length ? `<div class="subjects">${S.subjects.map((s) => {
+    const days = s.examDate ? Math.ceil((new Date(s.examDate) - new Date()) / 86400000) : null;
+    const ready = Number(s.readiness ?? 0);
+    return `<button class="subject" data-act="pick-subject" data-s="${esc(s.name)}"><span class="name">${esc(s.name)}</span>
+      <span class="meta">${s.parts?.length ? esc(s.parts.join(' · ')) : ''}${days !== null ? ` · ${days >= 0 ? days + ' days to exam' : 'exam passed'}` : ''}</span>
+      <span class="ready" title="Readiness ${ready}%"><b style="width:${Math.max(0, Math.min(100, ready))}%"></b></span>
+      ${s.due ? `<span class="meta">${s.due} cards due today</span>` : ''}</button>`;
+  }).join('')}</div>` : `<div class="empty"><p>No subjects yet.</p></div>`;
+  return `<div class="row between"><h1>Your subjects</h1><button class="btn" data-act="new-subject">Add subject</button></div>${list}
+    ${S.subject ? `<div class="panel"><h2>${esc(S.subject)}</h2><div class="row">
+      <button class="btn primary" data-act="next-step">What should I do next</button>
+      <button class="btn" data-act="due-cards">Review due cards</button>
+      <button class="btn" data-act="mock-exam">Mock exam</button>
+      <button class="btn quiet" data-act="browse-subject">Open folder</button></div></div>` : ''}
+    <div id="new-subject" hidden>${subjectForm()}</div>`;
+}
+
+// ---------- files ----------
+function viewFiles() {
+  const parts = S.path.split('/').filter(Boolean);
+  const crumbs = `<div class="crumbs">${parts.map((p, i) => `${i ? '<span aria-hidden="true">/</span>' : ''}<button data-act="crumb" data-p="${esc(parts.slice(0, i + 1).join('/'))}">${esc(p)}</button>`).join('')}</div>`;
+  const items = S.files?.items;
+  const body = !items ? `<div class="empty"><p>Ask Claude to list this folder.</p><button class="btn primary" data-act="list" data-p="${esc(S.path)}">List files</button></div>`
+    : !items.length ? `<div class="empty"><p>This folder is empty. Add files to it in your storage, or attach them in the chat and ask Claude to save them here.</p></div>`
+    : items.map((f) => {
+      const p = `${S.path}/${f.name}`, sel = S.selected.has(p);
+      return `<div class="file">${f.type === 'folder' ? '<span></span>' : `<input type="checkbox" data-act="select" data-p="${esc(p)}" data-id="${esc(f.id ?? '')}" ${sel ? 'checked' : ''} aria-label="Select ${esc(f.name)}">`}
+        <span class="muted">${icon(f.type === 'folder' ? 'folder' : 'file')}</span>
+        <button class="n" data-act="${f.type === 'folder' ? 'list' : 'open-file'}" data-p="${esc(p)}" data-id="${esc(f.id ?? '')}" data-name="${esc(f.name)}">${esc(f.name)}</button>
+        <span class="m">${esc(fmtSize(f.size))} ${esc(fmtDate(f.modified))}</span></div>`;
+    }).join('');
+  return `<div class="row between"><h1>Files</h1><div class="row">
+      ${S.selected.size ? `<span class="muted">${S.selected.size} selected</span><button class="btn primary" data-act="use-selected">Create from selected</button>` : ''}
+      <button class="btn quiet" data-act="list" data-p="${esc(S.path)}">Refresh</button></div></div>
+    ${crumbs}<div class="files">${body}</div>
+    <p class="muted">To add materials, put them in this folder in your storage, or attach them in the chat and say where to save them.</p>`;
+}
+
+// ---------- create ----------
+const OUTPUTS = ['Summary', 'Mind map', 'Flashcards', 'Quiz', 'Practice test', 'Practice tasks', 'Study plan', 'Cheat sheet', 'Glossary', 'Past-exam analysis'];
+const QTYPES = [['single', 'Single choice'], ['multiple', 'Multiple choice'], ['truefalse', 'True / false'], ['fill', 'Fill in the blank'], ['matching', 'Matching'], ['ordering', 'Ordering'], ['open', 'Open answer'], ['practical', 'Practical task'], ['code', 'Code']];
+function viewCreate() {
+  const c = store.get('create', { outputs: ['Flashcards', 'Quiz'], types: ['single', 'multiple', 'fill', 'open'], count: 15, difficulty: 'Mixed', time: 60, points: 15, review: true });
+  const sel = [...S.selected.keys()];
+  return `<h1>Create study material</h1>
+  <form class="stack" id="create-form">
+    <div class="panel"><h2>From</h2>
+      <div class="grid2">
+        <label class="field">Subject<input type="text" id="c-subject" value="${esc(S.subject)}" placeholder="Subject name"></label>
+        <label class="field">Part<input type="text" id="c-part" value="${esc(S.part)}" placeholder="Oral"></label>
+      </div>
+      <div class="chips"><label class="chip"><input type="radio" name="scope" value="all" ${sel.length ? '' : 'checked'}> All materials of this part</label>
+        <label class="chip"><input type="radio" name="scope" value="selected" ${sel.length ? 'checked' : ''}> Selected files (${sel.length})</label></div>
+      ${sel.length ? `<p class="muted">${sel.map((p) => esc(p.split('/').pop())).join(', ')}</p>` : `<p class="muted">Select files in Files to use only some of them.</p>`}
+      <label class="field">Only these chapters, pages or topics (optional)<input type="text" id="c-focus" placeholder="pages 6–74, 84–91"></label>
+    </div>
+    <div class="panel"><h2>Make</h2>
+      <div class="chips">${OUTPUTS.map((o) => `<label class="chip"><input type="checkbox" name="out" value="${esc(o)}" ${c.outputs.includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div>
+    </div>
+    <div class="panel"><h2>Questions for quizzes and tests</h2>
+      <div class="chips">${QTYPES.map(([k, l]) => `<label class="chip"><input type="checkbox" name="qt" value="${k}" ${c.types.includes(k) ? 'checked' : ''}> ${l}</label>`).join('')}</div>
+      <div class="grid2">
+        <label class="field">Number of questions<input type="number" id="c-count" min="1" max="100" value="${c.count}"></label>
+        <label class="field">Difficulty<select id="c-diff">${['Easy', 'Mixed', 'Hard', 'Like the real exam'].map((d) => `<option ${c.difficulty === d ? 'selected' : ''}>${d}</option>`).join('')}</select></label>
+        <label class="field">Time limit, minutes<input type="number" id="c-time" min="0" max="300" value="${c.time}"></label>
+        <label class="field">Total points<input type="number" id="c-points" min="0" max="1000" value="${c.points}"></label>
+      </div>
+    </div>
+    <div class="panel"><label class="chip" style="justify-self:start"><input type="checkbox" id="c-review" ${c.review ? 'checked' : ''}> Have it checked by a second reviewer before I see it</label>
+      <label class="field">Anything else for Claude (optional)<textarea id="c-note" placeholder="Make the cards answer the whole exam question, with the official definitions."></textarea></label>
+      <div class="row"><button class="btn primary" type="submit">Create</button></div></div>
+  </form>`;
+}
+
+// ---------- study: flashcards, mind map, documents ----------
+function openDeck(d) {
+  S.deck = d && Array.isArray(d.cards) ? d : null; S.mindmap = null; S.doc = null; S.idx = 0; S.flipped = false;
+  S.srs = store.get('srs:' + (d?.title ?? ''), {});
+  go('study');
+}
+function viewStudy() {
+  if (S.mindmap) return viewMindmap();
+  if (S.doc) return `<div class="row between"><h1>${esc(S.doc.title)}</h1>${reportButton(S.doc.title, '')}</div><div class="panel">${md(S.doc.markdown)}</div>${reportBox()}`;
+  if (!S.deck) return `<h1>Study</h1><div class="empty"><p>Open a deck, a mind map or notes from Files, or ask Claude to make some in Create.</p>
+    <div class="row"><button class="btn primary" data-act="due-cards">Review due cards</button><button class="btn" data-act="goto" data-v="create">Create</button></div></div>`;
+  const cards = S.deck.cards, c = cards[S.idx];
+  if (!c) return `<h1>${esc(S.deck.title)}</h1><div class="empty"><p>Deck finished.</p><div class="row"><button class="btn primary" data-act="save-srs">Save my progress</button><button class="btn" data-act="restart-deck">Start again</button></div></div>`;
+  const s = S.srs[c.id];
+  return `<div class="row between"><h1>${esc(S.deck.title)}</h1><span class="counter">${S.idx + 1} / ${cards.length}</span></div>
+    <div class="card flash ${S.flipped ? 'back' : ''}" data-act="flip" role="button" tabindex="0" aria-label="${S.flipped ? 'Answer' : 'Question'}, press Space to flip">
+      <div class="q">${esc(c.front)}</div>
+      ${S.flipped ? `<div class="a">${md(c.back)}</div>${c.source ? `<div class="src">${esc(c.source)}</div>` : ''}` : `<div class="muted">Space or click to see the answer</div>`}
+    </div>
+    ${S.flipped ? `<div class="rate">${[['again', 'Again', '<1 min'], ['hard', 'Hard', next(s, 'hard')], ['good', 'Good', next(s, 'good')], ['easy', 'Easy', next(s, 'easy')]].map(([k, l, t]) => `<button class="btn" data-act="rate" data-r="${k}">${l}<small>${t}</small></button>`).join('')}</div>` : ''}
+    <div class="row between"><div class="row"><button class="btn quiet" data-act="prev-card" ${S.idx ? '' : 'disabled'}>Previous</button><button class="btn quiet" data-act="next-card">Skip</button></div>
+      <div class="row">${reportButton(S.deck.title, c.id)}<button class="btn quiet" data-act="save-srs">Save progress</button><button class="btn quiet" data-act="export-csv">Export CSV</button></div></div>${reportBox()}`;
+}
+// simple spaced repetition (SM-2 style): days until the card comes back
+function sched(s, r) {
+  const prev = s ?? { interval: 0, ease: 2.5, reps: 0 };
+  let { interval, ease, reps } = prev;
+  if (r === 'again') { interval = 0; ease = Math.max(1.3, ease - 0.2); reps = 0; }
+  else if (r === 'hard') { interval = Math.max(1, Math.round((interval || 1) * 1.2)); ease = Math.max(1.3, ease - 0.15); reps++; }
+  else if (r === 'good') { interval = reps === 0 ? 1 : reps === 1 ? 3 : Math.round(interval * ease); reps++; }
+  else { interval = reps === 0 ? 3 : Math.round((interval || 1) * ease * 1.3); ease += 0.15; reps++; }
+  const due = new Date(Date.now() + interval * 86400000).toISOString().slice(0, 10);
+  return { interval, ease: Math.round(ease * 100) / 100, reps, due };
+}
+const next = (s, r) => { const d = sched(s, r).interval; return d === 0 ? '<1 min' : d === 1 ? '1 day' : `${d} days`; };
+function viewMindmap() {
+  const node = (n, depth) => {
+    const kids = n.children ?? [];
+    if (!kids.length) return `<li class="leaf">${esc(n.text)}</li>`;
+    return `<li><details ${depth < 1 ? 'open' : ''}><summary>${esc(n.text)}</summary><ul class="tree">${kids.map((k) => node(k, depth + 1)).join('')}</ul></details></li>`;
+  };
+  const root = S.mindmap.root ?? { text: S.mindmap.title, children: [] };
+  return `<div class="row between"><h1>${esc(S.mindmap.title ?? root.text)}</h1><div class="row"><button class="btn quiet" data-act="tree-all" data-open="1">Expand all</button><button class="btn quiet" data-act="tree-all" data-open="0">Collapse</button></div></div>
+    <div class="panel"><ul class="tree root">${(root.children ?? []).map((k) => node(k, 0)).join('')}</ul></div>
+    <p class="muted">Ask Claude about any branch in the chat, for example: explain "${esc(root.children?.[0]?.text ?? 'this topic')}".</p>`;
+}
+
+// ---------- test ----------
+function openTest(t) {
+  S.test = t && Array.isArray(t.questions) ? t : null; S.answers = {}; S.touched = new Set(); S.q = 0; S.started = Date.now(); S.submitted = false;
+  for (const q of S.test?.questions ?? []) if (q.type === 'ordering') S.answers[q.id] = shuffle(q.items.map((_, i) => i));
+  go('test');
+}
+function shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } if (b.length > 1 && b.every((v, i) => v === i)) [b[0], b[1]] = [b[1], b[0]]; return b; }
+function timeLeft() { const lim = Number(S.test?.timeLimitMin) || 0; if (!lim) return null; return Math.max(0, lim * 60 - Math.floor((Date.now() - S.started) / 1000)); }
+function viewTest() {
+  const t = S.test;
+  if (!t) return `<h1>Test</h1><div class="empty"><p>No test open. Ask Claude for a practice test in Create, or open one from Files.</p><div class="row"><button class="btn primary" data-act="goto" data-v="create">Create a test</button><button class="btn" data-act="mock-exam">Mock exam</button></div></div>`;
+  const q = t.questions[S.q], left = timeLeft();
+  const answered = (x) => { const a = S.answers[x.id]; if (x.type === 'ordering') return S.touched.has(x.id); return a !== undefined && a !== '' && !(Array.isArray(a) && !a.length && x.type !== 'ordering') && !(typeof a === 'object' && !Array.isArray(a) && !Object.values(a).some((v) => v !== '' && v !== undefined)); };
+  return `<div class="row between"><h1>${esc(t.title)}</h1>
+      <div class="row">${left !== null ? `<span class="timer ${left < 300 ? 'low' : ''}" id="timer">${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}</span>` : ''}
+      <button class="btn primary" data-act="submit-test" ${S.submitted ? 'disabled' : ''}>${S.submitted ? 'Sent for grading' : 'Submit for grading'}</button></div></div>
+    <div class="qnav">${t.questions.map((x, i) => `<button data-act="goto-q" data-i="${i}" class="${answered(x) ? 'ans' : ''}" ${i === S.q ? 'aria-current="true"' : ''}>${i + 1}</button>`).join('')}</div>
+    <div class="card stack"><div class="qhead"><span>Question ${S.q + 1} of ${t.questions.length}</span><span>${q.points ?? 1} ${(q.points ?? 1) === 1 ? 'point' : 'points'}</span></div>
+      ${questionBody(q)}</div>
+    <div class="row between"><div class="row"><button class="btn quiet" data-act="prev-q" ${S.q ? '' : 'disabled'}>Previous</button>
+      <button class="btn" data-act="next-q" ${S.q < t.questions.length - 1 ? '' : 'disabled'}>Next</button></div>${reportButton(t.title, q.id)}</div>${reportBox()}`;
+}
+function questionBody(q) {
+  const a = S.answers[q.id], dis = S.submitted ? 'disabled' : '';
+  const prompt = `<div class="q">${q.type === 'fill' ? fillPrompt(q, a, dis) : esc(q.prompt)}</div>`;
+  switch (q.type) {
+    case 'single': case 'truefalse': {
+      const opts = q.type === 'truefalse' ? ['True', 'False'] : q.options;
+      const val = q.type === 'truefalse' ? (a === true ? 0 : a === false ? 1 : -1) : a;
+      return prompt + `<div class="opts">${opts.map((o, i) => `<label class="opt"><input type="radio" name="q-${esc(q.id)}" data-act="ans-single" data-i="${i}" ${val === i ? 'checked' : ''} ${dis}><span>${esc(o)}</span></label>`).join('')}</div>`;
+    }
+    case 'multiple':
+      return prompt + `<p class="muted">Select all that apply.</p><div class="opts">${q.options.map((o, i) => `<label class="opt"><input type="checkbox" data-act="ans-multi" data-i="${i}" ${(a ?? []).includes(i) ? 'checked' : ''} ${dis}><span>${esc(o)}</span></label>`).join('')}</div>`;
+    case 'fill': return prompt;
+    case 'matching':
+      return prompt + `<div class="match">${q.left.map((l, i) => `<span>${esc(l)}</span><select data-act="ans-match" data-i="${i}" ${dis}><option value="">Choose…</option>${q.right.map((r, j) => `<option value="${j}" ${String(a?.[i] ?? '') === String(j) ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select>`).join('')}</div>`;
+    case 'ordering':
+      return prompt + `<p class="muted">Put them in the right order.</p><div class="order">${(a ?? []).map((idx, pos) => `<div><span>${esc(q.items[idx])}</span>
+        <button class="icon-btn" data-act="move" data-pos="${pos}" data-d="-1" aria-label="Move up" ${pos && !S.submitted ? '' : 'disabled'}>${icon('up')}</button>
+        <button class="icon-btn" data-act="move" data-pos="${pos}" data-d="1" aria-label="Move down" ${pos < a.length - 1 && !S.submitted ? '' : 'disabled'}>${icon('down')}</button></div>`).join('')}</div>`;
+    case 'code':
+      return prompt + `<textarea data-act="ans-text" spellcheck="false" style="font-family:var(--mono);min-height:200px" ${dis}>${esc(a ?? q.starter ?? '')}</textarea>`;
+    case 'practical':
+      return prompt + `<textarea data-act="ans-text" placeholder="Write your solution, or solve it on paper and attach a photo in the chat after you submit." ${dis}>${esc(a ?? '')}</textarea>`;
+    default: // open
+      return prompt + `<textarea data-act="ans-text" placeholder="Your answer" ${dis}>${esc(a ?? '')}</textarea>`;
+  }
+}
+function fillPrompt(q, a, dis) {
+  return esc(q.prompt).replace(/\[\[(\w+)\]\]/g, (_, k) => `<input class="blank" type="text" data-act="ans-fill" data-k="${esc(k)}" value="${esc(a?.[k] ?? '')}" aria-label="Blank ${esc(k)}" ${dis}>`);
+}
+// objective questions are scored here; open, practical and code go to Claude
+function autoScore(q, a) {
+  const pts = Number(q.points ?? 1), norm = (s) => String(s ?? '').trim().toLowerCase().replace(/\s+/g, ' ');
+  switch (q.type) {
+    case 'single': return a === q.answer ? pts : 0;
+    case 'truefalse': return a === q.answer ? pts : 0;
+    case 'multiple': { const want = [...(q.answer ?? [])].sort().join(','), got = [...(a ?? [])].sort().join(','); return want === got ? pts : 0; }
+    case 'fill': { const keys = Object.keys(q.blanks ?? {}); if (!keys.length) return null; const ok = keys.filter((k) => (q.blanks[k] ?? []).map(norm).includes(norm(a?.[k]))).length; return Math.round((pts * ok / keys.length) * 100) / 100; }
+    case 'matching': { const keys = Object.keys(q.answer ?? {}); if (!keys.length) return null; const ok = keys.filter((k) => String(a?.[k] ?? '') === String(q.answer[k])).length; return Math.round((pts * ok / keys.length) * 100) / 100; }
+    case 'ordering': return (a ?? []).every((v, i) => v === i) ? pts : 0;
+    default: return null;
+  }
+}
+function submitTest() {
+  const t = S.test; if (!t || S.submitted) return;
+  const items = t.questions.map((q) => ({ id: q.id, type: q.type, answer: S.answers[q.id] ?? null, auto: autoScore(q, S.answers[q.id]), max: Number(q.points ?? 1) }));
+  const auto = items.filter((i) => i.auto !== null), manual = items.filter((i) => i.auto === null);
+  S.submitted = true;
+  S.results = { pending: true, test: t.title, autoScore: auto.reduce((s, i) => s + i.auto, 0), autoMax: auto.reduce((s, i) => s + i.max, 0), manualCount: manual.length,
+    items: t.questions.map((q, n) => ({ id: q.id, n: n + 1, prompt: String(q.prompt ?? '').replace(/\[\[\w+\]\]/g, '___'), points: items[n].auto, max: items[n].max, pending: items[n].auto === null })) };
+  const mins = Math.round((Date.now() - S.started) / 60000);
+  ask(`grade my test "${t.title}" (${mins} min). Objective questions are auto-scored in the window: ${S.results.autoScore}/${S.results.autoMax}. ` +
+    `Grade the ${manual.length} open/practical/code answers with the grading guide, check the auto-scores, save the result, update memory and push results. ` +
+    `Answers JSON: ${JSON.stringify(items)}`);
+  go('results');
+}
+
+// ---------- results ----------
+function viewResults() {
+  const r = S.results;
+  if (!r) return `<h1>Results</h1><div class="empty"><p>Finish a test to see your results here.</p></div>`;
+  const score = r.score ?? r.autoScore, total = r.total ?? (r.pending ? r.autoMax : r.total);
+  const items = (r.items ?? []).map((i, n) => {
+    const cls = i.pending ? '' : i.points >= i.max ? 'full' : i.points === 0 ? 'zero' : '';
+    return `<div class="item"><div class="row between"><span>${esc(i.n ?? n + 1)}. ${esc(i.prompt ?? i.id)}</span>
+      <span class="pts ${cls}">${i.pending ? 'waiting for Claude' : `${i.points} / ${i.max}`}</span></div>${i.feedback ? `<p class="muted">${esc(i.feedback)}</p>` : ''}</div>`;
+  }).join('');
+  return `<h1>${esc(r.test ?? 'Results')}</h1>
+    <div class="panel"><div class="score"><b>${esc(score ?? 0)}</b><span class="muted">/ ${esc(total ?? '')} points${r.pending ? ' so far' : ''}</span>${r.grade ? `<span class="muted"> · ${esc(r.grade)}</span>` : ''}</div>
+    ${r.pending ? `<p class="muted">Claude is grading ${r.manualCount} answer${r.manualCount === 1 ? '' : 's'}. If you solved anything on paper, attach a photo in the chat now.</p>` : ''}
+    ${r.weakTopics?.length ? `<p>Work on: ${r.weakTopics.map(esc).join(', ')}</p><div class="row"><button class="btn primary" data-act="weak">Practise these</button></div>` : ''}</div>
+    <div class="panel">${items}</div>`;
+}
+
+// ---------- mistakes ----------
+function reportButton(title, id) { return `<button class="btn quiet" data-act="report" data-t="${esc(title)}" data-id="${esc(id)}">Report a mistake</button>`; }
+function reportBox() {
+  if (!S.report) return '';
+  return `<form class="panel report" id="report-form"><label class="field">What is wrong?<textarea id="r-note" required placeholder="The answer uses a different definition than the script, page 14."></textarea></label>
+    <div class="row"><button class="btn primary" type="submit">Send to Claude</button><button class="btn quiet" type="button" data-act="report-cancel">Cancel</button></div></form>`;
+}
+
+// ---------- events ----------
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('[data-act]'), nav = e.target.closest('#nav button');
+  if (nav) return go(nav.dataset.v);
+  if (e.target.closest('#full')) return toggleFull();
+  if (!el) return;
+  const d = el.dataset;
+  switch (d.act) {
+    case 'goto': return go(d.v);
+    case 'go-setup': S.setup.step = 0; return go('setup');
+    case 'setup-next': S.setup.step++; return render();
+    case 'setup-back': S.setup.step = Math.max(0, S.setup.step - 1); return render();
+    case 'pick-storage': S.setup.storage = d.s; store.set('storage', d.s); return render();
+    case 'open-connectors': return link('https://claude.ai/customize/connectors');
+    case 'check-storage': toast('Asked Claude to check ' + S.setup.storage);
+      return ask(`setup. storage=${S.setup.storage}. Read the setup guide, check that this storage connector works, create the Studying workspace if it is missing, then push setup_status and subjects.`);
+    case 'load-subjects': return ask('list my subjects from the Studying workspace (Studying/Subjects) and push them (kind subjects) with parts, exam date, readiness and cards due today. If there is no workspace, push setup_status with ok false.');
+    case 'new-subject': { const b = $('new-subject'); if (b) b.hidden = !b.hidden; return; }
+    case 'pick-subject': S.subject = d.s; S.part = ''; store.set('subject', d.s); return render();
+    case 'next-step': return ask(`what should I study next in "${S.subject}"? Use memory.md, the study plan and what is due, then push it as a document (kind plan).`);
+    case 'due-cards': return ask(`collect the flashcards that are due today${S.subject ? ` in "${S.subject}"` : ''} (from *.progress.json) into one deck and push it.`);
+    case 'mock-exam': return ask(`make a mock exam${S.subject ? ` for "${S.subject}"` : ''} in the real exam format from subject.md and part.md (question types, points, time). Review it first, then push it (kind test).`);
+    case 'browse-subject': S.path = `Studying/Subjects/${S.subject}`; S.files = null; go('files'); return ask(`list files in "${S.path}" and push them (kind files).`);
+    case 'crumb': case 'list': S.path = d.p; S.files = null; go('files'); return ask(`list files in "${d.p}" and push them (kind files).`);
+    case 'open-file': return ask(`open the file "${d.p}"${d.id ? ` (id ${d.id})` : ''} and push it to the window: decks, tests and mind maps as their kind, anything else as a document with a readable summary of its content.`);
+    case 'select': if (el.checked) S.selected.set(d.p, d.id); else S.selected.delete(d.p); return render();
+    case 'use-selected': {
+      const m = S.path.match(/^Studying\/Subjects\/([^/]+)(?:\/([^/]+))?/); if (m) { S.subject = m[1]; if (m[2]) S.part = m[2]; }
+      return go('create');
+    }
+    case 'flip': S.flipped = !S.flipped; return render();
+    case 'rate': { const c = S.deck.cards[S.idx]; S.srs[c.id] = sched(S.srs[c.id], d.r); store.set('srs:' + S.deck.title, S.srs);
+      if (d.r === 'again') S.deck.cards.push(c); S.idx++; S.flipped = false; return render(); }
+    case 'prev-card': S.idx = Math.max(0, S.idx - 1); S.flipped = false; return render();
+    case 'next-card': S.idx++; S.flipped = false; return render();
+    case 'restart-deck': S.idx = 0; S.flipped = false; return render();
+    case 'save-srs': toast('Sent to Claude to save');
+      return ask(`save my flashcard progress for deck "${S.deck?.title}" to its .progress.json and update memory.md. Progress JSON: ${JSON.stringify(S.srs)}`);
+    case 'export-csv': return exportCsv();
+    case 'tree-all': document.querySelectorAll('.tree details').forEach((x) => (x.open = d.open === '1')); return;
+    case 'goto-q': S.q = Number(d.i); return render();
+    case 'prev-q': S.q = Math.max(0, S.q - 1); return render();
+    case 'next-q': S.q = Math.min(S.test.questions.length - 1, S.q + 1); return render();
+    case 'move': { const q = S.test.questions[S.q], a = S.answers[q.id], i = Number(d.pos), j = i + Number(d.d); [a[i], a[j]] = [a[j], a[i]]; S.touched.add(q.id); return render(); }
+    case 'submit-test': return submitTest();
+    case 'weak': return ask(`make a practice quiz on my weak topics: ${(S.results?.weakTopics ?? []).join(', ')}. Review it, then push it (kind test).`);
+    case 'report': S.report = { title: d.t, id: d.id }; render(); $('r-note')?.focus(); return;
+    case 'report-cancel': S.report = null; return render();
+  }
+});
+document.addEventListener('change', (e) => {
+  const el = e.target.closest('[data-act]'); if (!el || !S.test) return;
+  const q = S.test.questions[S.q], d = el.dataset;
+  if (d.act === 'ans-single') S.answers[q.id] = q.type === 'truefalse' ? Number(d.i) === 0 : Number(d.i);
+  else if (d.act === 'ans-multi') { const s = new Set(S.answers[q.id] ?? []); el.checked ? s.add(Number(d.i)) : s.delete(Number(d.i)); S.answers[q.id] = [...s]; }
+  else if (d.act === 'ans-match') { S.answers[q.id] = { ...(S.answers[q.id] ?? {}) }; S.answers[q.id][d.i] = el.value === '' ? '' : Number(el.value); }
+  else return;
+  render();
+});
+document.addEventListener('input', (e) => {
+  const el = e.target.closest('[data-act]'); if (!el || !S.test) return;
+  const q = S.test.questions[S.q];
+  if (el.dataset.act === 'ans-text') S.answers[q.id] = el.value;
+  if (el.dataset.act === 'ans-fill') S.answers[q.id] = { ...(S.answers[q.id] ?? {}), [el.dataset.k]: el.value };
+});
+document.addEventListener('submit', (e) => {
+  e.preventDefault();
+  if (e.target.id === 'subject-form') {
+    const v = (id) => $(id).value.trim();
+    const name = v('f-name'); if (!name) return;
+    S.subject = name; store.set('subject', name);
+    toast('Asked Claude to create ' + name);
+    return ask(`create a new subject "${name}". Parts: ${v('f-parts') || 'none given'}. Exam date: ${v('f-date') || 'unknown'}. Notes: ${v('f-notes') || 'none'}. ` +
+      'Create the folders and subject.md (storage-layout guide), then push subjects.');
+  }
+  if (e.target.id === 'create-form') {
+    const f = e.target, val = (id) => $(id).value.trim();
+    const outputs = [...f.querySelectorAll('input[name=out]:checked')].map((x) => x.value);
+    const types = [...f.querySelectorAll('input[name=qt]:checked')].map((x) => x.value);
+    if (!outputs.length) return toast('Choose at least one thing to make');
+    const c = { outputs, types, count: Number(val('c-count')) || 15, difficulty: $('c-diff').value, time: Number(val('c-time')) || 0, points: Number(val('c-points')) || 0, review: $('c-review').checked };
+    store.set('create', c);
+    S.subject = val('c-subject') || S.subject; S.part = val('c-part') || S.part;
+    const scope = f.querySelector('input[name=scope]:checked')?.value === 'selected' && S.selected.size
+      ? `these files: ${[...S.selected.entries()].map(([p, id]) => `"${p}"${id ? ` (id ${id})` : ''}`).join(', ')}` : 'all materials of this part';
+    const testy = outputs.some((o) => /Quiz|test/.test(o));
+    const job = {
+      subject: S.subject, part: S.part, from: scope, focus: val('c-focus') || null, make: outputs,
+      questions: testy ? { types, count: c.count, difficulty: c.difficulty, timeLimitMin: c.time, totalPoints: c.points } : undefined,
+      review: c.review, note: val('c-note') || null,
+    };
+    toast('Sent to Claude');
+    return ask(`create study material. Follow the overview, generation${testy ? ', question-types' : ''}, review and formats guides. ` +
+      'Report each step with study_progress, save everything in the part\'s generated/ folder, then push each result. Job: ' + JSON.stringify(job));
+  }
+  if (e.target.id === 'report-form') {
+    const note = $('r-note').value.trim(); if (!note) return;
+    const r = S.report; S.report = null; render(); toast('Sent to Claude');
+    return ask(`report a mistake in "${r.title}"${r.id ? `, item ${r.id}` : ''}: "${note}". Fix it, push the corrected item and follow the fixer guide.`);
+  }
+});
+document.addEventListener('keydown', (e) => {
+  if (S.view !== 'study' || !S.deck || e.target.closest('input, textarea, select')) return;
+  if (e.code === 'Space') { e.preventDefault(); S.flipped = !S.flipped; render(); }
+  else if (e.key === 'ArrowRight') { S.idx++; S.flipped = false; render(); }
+  else if (e.key === 'ArrowLeft') { S.idx = Math.max(0, S.idx - 1); S.flipped = false; render(); }
+});
+setInterval(() => {
+  if (S.view !== 'test' || !S.test || S.submitted) return;
+  const left = timeLeft(), el = $('timer'); if (left === null || !el) return;
+  el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; el.classList.toggle('low', left < 300);
+  if (left === 0) { toast('Time is up. Your answers were submitted.'); submitTest(); }
+}, 1000);
+
+function exportCsv() {
+  const q = (s) => `"${String(s ?? '').replace(/"/g, '""')}"`;
+  const csv = 'front,back,source\n' + S.deck.cards.map((c) => [c.front, c.back, c.source].map(q).join(',')).join('\n');
+  const name = (S.deck.title || 'deck').replace(/[^\w-]+/g, '-') + '.csv';
+  app.downloadFile({ contents: [{ type: 'resource', resource: { uri: `file:///${name}`, mimeType: 'text/csv', text: csv } }] })
+    .catch(() => toast('Your Claude app does not allow downloads from here. Ask Claude to save the CSV to your storage.'));
+}
+
+// ---------- display ----------
+async function toggleFull() {
+  const target = S.display === 'fullscreen' ? 'inline' : 'fullscreen';
+  try { const r = await app.requestDisplayMode({ mode: target }); S.display = r?.mode ?? target; } catch {}
+  render();
+}
+function hostContext(ctx) {
+  if (!ctx) return;
+  if (ctx.theme) document.documentElement.dataset.theme = ctx.theme;
+  if (ctx.styles?.variables) for (const [k, v] of Object.entries(ctx.styles.variables)) if (v) document.documentElement.style.setProperty(k, v);
+  if (ctx.displayMode) S.display = ctx.displayMode;
+  if (ctx.availableDisplayModes) S.modes = ctx.availableDisplayModes;
+  const sa = ctx.safeAreaInsets;
+  if (sa) { document.documentElement.style.setProperty('--top', `${Math.max(0, Number(sa.top) || 0)}px`); document.documentElement.style.setProperty('--bottom', `${Math.max(0, Number(sa.bottom) || 0)}px`); }
+  const h = ctx.containerDimensions?.maxHeight ?? ctx.containerDimensions?.height;
+  if (S.display === 'fullscreen' && h) document.documentElement.style.setProperty('--h', `${h}px`);
+}
+app.onhostcontextchanged = (ctx) => { hostContext({ ...app.getHostContext(), ...ctx }); render(); };
+app.ontoolinput = ({ arguments: a }) => {
+  if (a?.session && /^[A-Za-z0-9_-]{12,64}$/.test(a.session)) S.session = a.session;
+  if (a?.view) S.view = a.view;
+  if (a?.data?.kind) receive({ kind: a.data.kind, title: a.data.title, payload: a.data.payload });
+  render();
+};
+// test hook: lets a page without a host feed messages in (used by tests and local previews)
+window.__studying = { receive: (m) => receive(m), go };
+render();
+await app.connect();
+hostContext(app.getHostContext());
+render();
+if (S.modes.includes('fullscreen') && S.display !== 'fullscreen') toggleFull();
+// pick up anything Claude pushed to this session before the window opened
+startPolling();
+</script>
+</body>
+</html>

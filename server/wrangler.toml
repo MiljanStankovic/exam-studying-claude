@@ -1,0 +1,19 @@
+name = "studying"
+main = "src/index.js"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+# the window (HTML with the MCP Apps SDK built in) and the pages ship as text
+[[rules]]
+type = "Text"
+globs = ["**/*.html"]
+fallthrough = true
+
+# one small mailbox per open window; it empties itself after two hours of silence
+[[durable_objects.bindings]]
+name = "MAILBOX"
+class_name = "Mailbox"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Mailbox"]

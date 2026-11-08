@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studying privacy policy</title>
+<style>
+  body { margin:0; background:#f6f5f1; color:#1f2633; font:16px/1.6 Georgia, serif; }
+  main { max-width: 680px; margin: 0 auto; padding: 40px 20px 64px; }
+  h1 { font-weight: 500; } h2 { font-weight: 500; font-size: 20px; margin-top: 28px; }
+  @media (prefers-color-scheme: dark) { body { background:#16181d; color:#eceef2; } a { color:#8fb0e8; } }
+</style>
+</head>
+<body>
+<main>
+<h1>Privacy policy</h1>
+<p>Last updated: 8 November 2026. Studying is an open source project by Miljan Stanković.</p>
+
+<h2>What we collect</h2>
+<p>Nothing about you personally. Studying has no accounts and no sign-in of its own.</p>
+
+<h2>How data flows</h2>
+<p>The Studying server shows the app window inside Claude and passes messages between the window and Claude. When Claude sends a result to an open window (for example a set of flashcards), it waits in a temporary mailbox for that window until the window picks it up. Mailboxes are identified by a random id created by the window, hold at most the last 20 messages, and are deleted automatically two hours after the window was last used.</p>
+
+<h2>Your files</h2>
+<p>Your materials, flashcards, tests, results and notes are stored in your own storage (for example Google Drive or MEGA), which Claude reaches through the connectors you connected in Claude. The Studying server never receives your storage credentials and never reads your storage.</p>
+
+<h2>Third parties</h2>
+<p>The server runs on Cloudflare Workers. Cloudflare processes requests to deliver the service. We do not sell or share data with anyone else.</p>
+
+<h2>Retention</h2>
+<p>Mailbox contents: at most two hours after last use. Standard Cloudflare request logs follow Cloudflare's own retention.</p>
+
+<h2>Contact</h2>
+<p>Open an issue at <a href="https://github.com/MiljanStankovic/exam-studying-claude/issues">github.com/MiljanStankovic/exam-studying-claude</a>.</p>
+</main>
+</body>
+</html>
