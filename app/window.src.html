@@ -249,6 +249,18 @@
   .modal.narrow { width: min(560px, 100%); }
   /* the open/close motion plays once; redraws inside an open window (flipping a card, folding the map) stay still */
   .overlay.still, .overlay.still .modal { animation: none; }
+  /* windows: drag by the title bar, resize from the corner, snap to edges like a desktop */
+  #layer { position: absolute; inset: 56px 0 0 0; z-index: 10; pointer-events: none; }
+  #layer .win { position: absolute; pointer-events: auto; max-height: none; width: auto; resize: both; min-width: 320px; min-height: 220px; animation: rise .25s var(--ease) both; }
+  #layer .win.still { animation: none; }
+  #layer .win.snapped { resize: none; border-radius: 0; }
+  #layer .win.front { box-shadow: var(--lift), 0 0 0 1px var(--accent-soft); }
+  #layer .win header { cursor: grab; user-select: none; touch-action: none; }
+  #layer .win.dragging { transition: none; opacity: .92; }
+  #layer .win.dragging header { cursor: grabbing; }
+  #layer .win .mbody { flex: 1; min-height: 0; }
+  .snapzone { position: absolute; z-index: 9; background: var(--accent-soft); border: 2px solid var(--accent); border-radius: 12px; pointer-events: none; transition: all .12s var(--ease); }
+  .winbtns { display: flex; gap: 2px; }
   .modal header { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 12px 0 24px; border-bottom: 1px solid var(--line); background: var(--card); flex: none; }
   .modal header .t { flex: 1; min-width: 0; display: grid; }
   .modal header .t b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -362,6 +374,7 @@
     .topic .mastery, .topic .act { display: none; }
     .inbox { grid-template-columns: 1fr; }
     .overlay { padding: 0; }
+    #layer .win { inset: 0 !important; width: auto !important; height: auto !important; resize: none; border-radius: 0; }
     .modal, .modal.narrow { width: 100%; height: 100%; max-height: none; border-radius: 0; border: 0; }
     .mbody { padding: 16px; }
     .card { padding: 20px 16px 20px 40px; } .card::before { left: 24px; }
@@ -402,6 +415,7 @@ const ICON = {
   cards: '<rect x="3" y="6" width="15" height="13" rx="2"/><path d="M7 3h12a2 2 0 0 1 2 2v10"/>',
   map: '<circle cx="12" cy="12" r="2"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M6.5 6.5l4 4M17.5 6.5l-4 4M6.5 17.5l4-4M17.5 17.5l-4-4"/>',
   test: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/>',
+  half: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 3v18"/>',
   max: '<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>',
   min: '<path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/>',
   up: '<path d="m18 15-6-6-6 6"/>', down: '<path d="m6 9 6 6 6-6"/>', back: '<path d="m15 18-6-6 6-6"/>',
@@ -458,6 +472,19 @@ const S = {
   results: null, mindmap: null, doc: null, mmView: 'map', mmShut: new Set(),
   ready: [], wantOpen: 0, bulk: 0, bulkN: 0, library: '', progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null,
 };
+// open windows, back to front; S.modal is the front one (setting it to null closes the front one)
+S.wins = [];
+Object.defineProperty(S, 'modal', {
+  get() { return S.wins[S.wins.length - 1] ?? null; },
+  set(v) { if (v) { winOpen(v); } else { S.wins.pop(); } },
+});
+const winStore = store.get('wins', {});
+function winOpen(m) {
+  const i = S.wins.findIndex((w) => w.type === m.type);
+  if (i >= 0) { const w = Object.assign(S.wins.splice(i, 1)[0], m); S.wins.push(w); return; }
+  const n = S.wins.length, saved = winStore[m.type];
+  S.wins.push({ ...m, fresh: true, geo: saved ?? null, snap: saved?.snap ?? '', off: n * 28 });
+}
 const STATUS = ['not started', 'studying', 'ready', 'done'];
 const cur = () => S.data[S.subject] ?? null;
 const partOf = (name) => cur()?.parts.find((p) => p.name === name);
@@ -709,7 +736,8 @@ function loadSubject(name, why = 'open') {
   ask(`load the subject "${name}" (guide: subject). Read or rebuild its subject.json and push it (kind subject)${why === 'refresh' ? '. Rebuild it from the folders, files may have changed' : ''}.`);
 }
 function openModal(type, extra = {}) { S.modal = { type, ...extra }; S.menu = false; render(); }
-function closeModal() { S.modal = null; S.report = null; render(); }
+function closeModal(type) { if (type) S.wins = S.wins.filter((w) => w.type !== type); else S.wins.pop(); S.report = null; render(); }
+function focusWin(type) { const i = S.wins.findIndex((w) => w.type === type); if (i < 0 || i === S.wins.length - 1) return; S.wins.push(S.wins.splice(i, 1)[0]); render(); }
 
 // ---------- rendering ----------
 let lastKey = '';
@@ -735,15 +763,16 @@ function render() {
   let v = pages[S.view] ?? viewSubjects;
   if ((S.view === 'subject' || S.view === 'part') && !cur()) v = viewLoading;
   try { $('view').innerHTML = v(); } catch (e) { console.error(e); $('view').innerHTML = `<h1>Something here could not be shown</h1><p class="sub">Ask Claude to check the file and send it again</p>`; }
-  const sameModal = S.modal && lastKey.split('|')[1] === S.modal.type;
-  // keep the scroll position of scrollable parts of an open window across redraws
-  const scrolls = sameModal ? [...$('layer').querySelectorAll('.mbody, .mbody *')].map((el) => [el.scrollTop, el.scrollLeft]) : null;
-  $('layer').innerHTML = S.modal ? modalHtml() : '';
-  if (sameModal) {
-    $('layer').querySelector('.overlay')?.classList.add('still');
-    const els = [...$('layer').querySelectorAll('.mbody, .mbody *')];
-    scrolls.forEach(([t, l], i) => { if ((t || l) && els[i]) { els[i].scrollTop = t; els[i].scrollLeft = l; } });
+  // keep each window's scroll positions across redraws
+  const scrolls = {};
+  for (const el of $('layer').querySelectorAll('.win')) scrolls[el.dataset.w] = [...el.querySelectorAll('.mbody, .mbody *')].map((x) => [x.scrollTop, x.scrollLeft]);
+  $('layer').innerHTML = S.wins.map((w, i) => winHtml(w, i === S.wins.length - 1)).join('');
+  for (const el of $('layer').querySelectorAll('.win')) {
+    const sc = scrolls[el.dataset.w]; if (!sc) continue;
+    const els = [...el.querySelectorAll('.mbody, .mbody *')];
+    sc.forEach(([t, l], i) => { if ((t || l) && els[i]) { els[i].scrollTop = t; els[i].scrollLeft = l; } });
   }
+  for (const w of S.wins) w.fresh = false;
   restoreForms(document.body, keep);
   if (!same && S.view !== lastKey.split('|')[0]) { const el = $('view'); el.style.animation = 'none'; void el.offsetHeight; el.style.animation = ''; }
   lastKey = key;
@@ -1044,8 +1073,8 @@ function selBar() {
 }
 
 // ---------- modals ----------
-function modalHtml() {
-  const m = S.modal, ix = cur();
+function modalHtml(m = S.modal) {
+  const ix = cur();
   const defs = {
     deck: () => [S.deck?.title ?? 'Flashcards', S.deck ? `${S.idx + 1} of ${S.order.length}` : '', mDeck()],
     test: () => [S.test?.title ?? 'Test', S.test ? `${S.test.questions.length} questions${S.test.timeLimitMin ? ` · ${num(S.test.timeLimitMin)} min` : ''}` : '', viewTest()],
@@ -1064,11 +1093,82 @@ function modalHtml() {
     settings: () => ['Settings', 'Saved to your own storage, only for you', mSettings()],
   };
   const [title, sub, body, narrow] = (defs[m.type] ?? (() => ['', '', '']))();
-  return `<div class="overlay" data-act="scrim"><div class="modal ${narrow ? 'narrow' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
-    <header><div class="t"><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>
-            <button class="icon-btn" data-act="close" aria-label="Close">${icon('x')}</button></header>
-    <div class="mbody">${body}</div></div></div>`;
+  return { title, sub, body, narrow };
 }
+// one window: position from its snap or saved place, else centred with a small cascade
+function winGeo(w, narrow) {
+  const L = $('layer').getBoundingClientRect(), W = L.width || 1000, H = L.height || 700;
+  const z = { left: [0, 0, W / 2, H], right: [W / 2, 0, W / 2, H], max: [0, 0, W, H], tl: [0, 0, W / 2, H / 2], tr: [W / 2, 0, W / 2, H / 2], bl: [0, H / 2, W / 2, H / 2], br: [W / 2, H / 2, W / 2, H / 2] }[w.snap];
+  if (z) return z;
+  if (w.geo) { const ww = Math.min(w.geo.w, W), hh = Math.min(w.geo.h, H); return [Math.max(0, Math.min(w.geo.x, W - ww)), Math.max(0, Math.min(w.geo.y, H - hh)), ww, hh]; }
+  const ww = Math.min(narrow ? 560 : 880, W - 32), hh = Math.min(H - 48, 760);
+  return [Math.max(0, (W - ww) / 2 + w.off), Math.max(0, Math.min(24 + w.off, H - hh)), ww, hh];
+}
+function winHtml(w, front) {
+  const { title, sub, body, narrow } = modalHtml(w);
+  const [x, y, ww, hh] = winGeo(w, narrow);
+  return `<div class="modal win ${w.snap ? 'snapped' : ''} ${front ? 'front' : ''} ${w.fresh ? '' : 'still'}" data-w="${esc(w.type)}" role="dialog" aria-label="${esc(title)}" style="left:${x}px;top:${y}px;width:${ww}px;height:${hh}px;z-index:${S.wins.indexOf(w) + 1}">
+    <header data-drag="${esc(w.type)}"><div class="t"><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>
+      <div class="winbtns">
+        <button class="icon-btn" data-act="win-snap" data-w="${esc(w.type)}" data-s="left" aria-label="Snap left" title="Snap: left half, right half, back">${icon('half')}</button>
+        <button class="icon-btn" data-act="win-max" data-w="${esc(w.type)}" aria-label="${w.snap === 'max' ? 'Restore' : 'Full window'}" title="${w.snap === 'max' ? 'Restore' : 'Full window'}">${icon(w.snap === 'max' ? 'min' : 'max')}</button>
+        <button class="icon-btn" data-act="close" data-w="${esc(w.type)}" aria-label="Close">${icon('x')}</button></div></header>
+    <div class="mbody">${body}</div></div>`;
+}
+function saveWin(w) { winStore[w.type] = { ...(w.geo ?? {}), snap: w.snap }; store.set('wins', winStore); }
+// dragging: move with the pointer; near an edge a preview shows where it will snap
+let drag = null, zTop = 100;
+function snapAt(px, py) {
+  const L = $('layer').getBoundingClientRect(), x = px - L.left, y = py - L.top, e = 24;
+  const left = x < e, right = x > L.width - e, top = y < e, bottom = y > L.height - e;
+  if (top && left) return 'tl'; if (top && right) return 'tr'; if (bottom && left) return 'bl'; if (bottom && right) return 'br';
+  if (top) return 'max'; if (left) return 'left'; if (right) return 'right'; return '';
+}
+document.addEventListener('pointerdown', (e) => {
+  const win = e.target.closest('#layer .win'); if (!win) return;
+  const type = win.dataset.w;
+  if (S.wins[S.wins.length - 1]?.type !== type) { for (const el of $('layer').querySelectorAll('.win')) el.classList.toggle('front', el === win); const i = S.wins.findIndex((w) => w.type === type); S.wins.push(S.wins.splice(i, 1)[0]); win.style.zIndex = String(++zTop); }
+  const h = e.target.closest('[data-drag]'); if (!h || e.target.closest('button') || window.innerWidth < 760) return;
+  const w = S.wins.find((x) => x.type === type), r = win.getBoundingClientRect(), L = $('layer').getBoundingClientRect();
+  // pulling a snapped window out restores its free size under the pointer
+  if (w.snap) { const g = w.geo ?? { w: Math.min(880, L.width - 32), h: Math.min(760, L.height - 48) }; const nx = e.clientX - L.left - g.w * ((e.clientX - r.left) / r.width); w.geo = { x: nx, y: 0, w: g.w, h: g.h }; }
+  else w.geo = { x: r.left - L.left, y: r.top - L.top, w: r.width, h: r.height };
+  drag = { w, el: win, dx: e.clientX - L.left - w.geo.x, dy: e.clientY - L.top - w.geo.y, moved: false, wasSnap: w.snap };
+  h.setPointerCapture(e.pointerId);
+});
+document.addEventListener('pointermove', (e) => {
+  if (!drag) return;
+  const L = $('layer').getBoundingClientRect();
+  if (!drag.moved) { if (Math.abs(e.clientX - L.left - drag.dx - drag.w.geo.x) + Math.abs(e.clientY - L.top - drag.dy - drag.w.geo.y) < 4) return; drag.moved = true; drag.w.snap = ''; drag.el.classList.add('dragging'); drag.el.classList.remove('snapped'); drag.el.style.width = drag.w.geo.w + 'px'; drag.el.style.height = drag.w.geo.h + 'px'; }
+  const x = Math.max(-drag.w.geo.w + 80, Math.min(L.width - 80, e.clientX - L.left - drag.dx)), y = Math.max(0, Math.min(L.height - 40, e.clientY - L.top - drag.dy));
+  drag.el.style.left = x + 'px'; drag.el.style.top = y + 'px'; drag.w.geo.x = x; drag.w.geo.y = y;
+  const sz = snapAt(e.clientX, e.clientY); let z = $('layer').querySelector('.snapzone');
+  if (sz) { if (!z) { z = document.createElement('div'); z.className = 'snapzone'; $('layer').prepend(z); } const [zx, zy, zw, zh] = winGeo({ snap: sz }); Object.assign(z.style, { left: zx + 8 + 'px', top: zy + 8 + 'px', width: zw - 16 + 'px', height: zh - 16 + 'px' }); }
+  else z?.remove();
+  drag.zone = sz;
+});
+document.addEventListener('pointerup', () => {
+  if (!drag) return;
+  const d = drag; drag = null; d.el.classList.remove('dragging'); $('layer').querySelector('.snapzone')?.remove();
+  if (!d.moved) { d.w.snap = d.wasSnap; return; }
+  d.w.snap = d.zone || ''; saveWin(d.w); render();
+});
+// resizing from the corner (CSS resize): remember the new size
+const winRO = new MutationObserver(() => { for (const el of $('layer').querySelectorAll('.win')) winSizeRO.observe(el); });
+const winSizeRO = new ResizeObserver((entries) => {
+  if (drag) return;
+  for (const en of entries) {
+    const el = en.target, w = S.wins.find((x) => x.type === el.dataset.w); if (!w || w.snap) continue;
+    const r = el.getBoundingClientRect(), L = $('layer').getBoundingClientRect();
+    if (!w.geo || Math.abs(w.geo.w - r.width) > 2 || Math.abs(w.geo.h - r.height) > 2) { w.geo = { x: r.left - L.left, y: r.top - L.top, w: r.width, h: r.height }; saveWin(w); }
+  }
+});
+winRO.observe($('layer'), { childList: true });
+document.addEventListener('dblclick', (e) => {
+  const h = e.target.closest('#layer [data-drag]'); if (!h || e.target.closest('button')) return;
+  const w = S.wins.find((x) => x.type === h.dataset.drag); if (!w) return;
+  w.snap = w.snap === 'max' ? '' : 'max'; saveWin(w); render();
+});
 function timerHtml() { const left = timeLeft(); return left === null ? '' : `<span class="timer ${left < 300 ? 'low' : ''}" id="timer">${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}</span>`; }
 
 function openDeck(d) {
@@ -1392,8 +1492,10 @@ document.addEventListener('click', (e) => {
   if (!el || el.matches('input[type=checkbox][data-act^="prop"], select, input[type=text]')) return;
   const d = el.dataset;
   switch (d.act) {
-    case 'scrim': if (e.target === el) closeModal(); return;
-    case 'close': return closeModal();
+    case 'scrim': return;
+    case 'close': return closeModal(d.w);
+    case 'win-max': { const w = S.wins.find((x) => x.type === d.w); if (!w) return; w.snap = w.snap === 'max' ? '' : 'max'; saveWin(w); return render(); }
+    case 'win-snap': { const w = S.wins.find((x) => x.type === d.w); if (!w) return; w.snap = w.snap === 'left' ? 'right' : w.snap === 'right' ? '' : 'left'; saveWin(w); return render(); }
     case 'menu': S.menu = !S.menu; return render();
     case 'home': S.modal = null; return go('subjects');
     case 'full': return toggleFull();
