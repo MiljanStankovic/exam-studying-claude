@@ -435,7 +435,7 @@ const lib = {
   has(x) { return !!lib.get(x) || (x?.id && lib.remote.has('id:' + x.id)) || lib.remote.has('n:' + String(x?.name ?? '').toLowerCase().trim()); },
   async fetch(x) {
     if (!S.library) return null;
-    try { const r = await callTool('study_library', { library: S.library, op: 'get', id: x?.id || undefined, name: x?.name || undefined }); if (r?.item) { lib.put({ kind: r.item.kind, title: r.item.title, payload: r.item.payload }); return r.item; } } catch {}
+    try { const r = await callTool('study_pull', { session: S.session, library: S.library, lib_op: 'get', id: x?.id || undefined, name: x?.name || undefined }); if (r?.item) { lib.put({ kind: r.item.kind, title: r.item.title, payload: r.item.payload }); return r.item; } } catch {}
     return null;
   },
 };
@@ -529,6 +529,7 @@ function receive(m) {
       render(); break;
     case 'subject': {
       if (!p?.name) break;
+      if (/^[A-Za-z0-9_-]{24,64}$/.test(p.library ?? '') && p.library !== S.library) { S.library = p.library; store.set('library', p.library); loadLibrary(); }
       const ix = normIndex(p);
       S.data[ix.name] = ix;
       if (p.subjects) setSubjects(p.subjects);
@@ -564,7 +565,7 @@ async function openFile(d) {
 // shows the last known subjects at once, from the server library
 async function loadLibrary() {
   if (!S.library) return;
-  let r; try { r = await callTool('study_library', { library: S.library, op: 'index' }); } catch { return; }
+  let r; try { r = await callTool('study_pull', { session: S.session, library: S.library, lib_op: 'index' }); } catch { return; }
   for (const x of r?.items ?? []) lib.remote.add(x.key);
   for (const ix of r?.data ?? []) if (ix?.name) S.data[ix.name] = normIndex(ix);
   if (r?.subjects?.length) setSubjects(r.subjects);
