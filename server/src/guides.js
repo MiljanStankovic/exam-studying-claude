@@ -406,7 +406,7 @@ Files list: {kind:"files", payload:{ path:"Studying/...", items:[{ name, type:"f
 
 A single push must be under about 900 KB; split big decks or tests into several pushes.
 
-The user's library: Studying/settings.json has "library", a random key of 32 letters and digits
+The user's library: Studying/_system/settings.json has "library", a random key of 32 letters and digits
 (make one and save it if it is missing). Pass it to study_open every time. The server keeps a copy
 of every subject, deck, test, mind map and document you push under that key, so the window shows
 the subjects at once and opens made material by itself, without a message to you.

@@ -59,7 +59,7 @@ const TOOLS = [
         view: { type: 'string', enum: ['setup', 'home', 'subject', 'files', 'create', 'study', 'test', 'results', 'document'], default: 'home' },
         session: { type: 'string', description: 'existing window session id, if any' },
         data: { type: ['object', 'array'], description: '{kind, title, payload} to show on open' },
-        library: { type: 'string', description: 'the user\'s library key from Studying/settings.json "library" (24-64 letters, digits, - or _). If missing, make one at random and save it there first.' },
+        library: { type: 'string', description: 'the user\'s library key from Studying/_system/settings.json "library" (24-64 letters, digits, - or _). If missing, make one at random and save it there first.' },
       },
     },
     annotations: ann('Open Studying', true),
