@@ -6,9 +6,17 @@ export const GUIDES = {
   overview: `# Studying: how to work
 
 Studying is a study app. The user sees a window (the app); you are the brain in the chat.
-The server only shows the window and carries messages between it and you. It stores nothing.
 Everything the user keeps lives in THEIR OWN storage (Google Drive, MEGA or another connector
-they chose), which you reach with that storage's connector tools in this conversation.
+they chose), which you reach with that storage's connector tools in this conversation. The
+server shows the window, carries messages, and keeps a copy of what you push in the user's
+library (keyed by "library" in settings.json), so the window can show and open it without you.
+
+What costs the user tokens is you. The window does everything it can alone: showing subjects,
+opening made material, flashcards, objective questions, topic quizzes, the plan checklist. You
+are needed to read sources, make material, sort files, grade open answers and change files.
+
+Opening the app (study_open): read only Studying/_system/settings.json and pass "library".
+Do not read subject files just to open the window; the window loads them from the library.
 
 Every request from the window arrives as a chat message that starts with "Studying:" and ends
 with "(session: <id>)". Use that session id with study_push and study_progress so the result
@@ -28,7 +36,8 @@ Loop for every job:
    number of steps already finished), then done:true. Always finish with done or error.
    The window turns this into a progress bar and ETA.
 4. Produce, review (guide: review), fix what the review found.
-5. Save to storage in the formats from the guide "formats", then study_push the result.
+5. Save to storage in the formats from the guide "formats", then study_push the result with
+   "id" set to the saved file's id. The push puts it in the library; do not push it twice.
 6. Update the subject memory (guide: memory) when the job taught you something about the user.
 7. Answer in chat briefly, in the user's language. The window UI is in English; generated
    content follows the language of the user's materials unless they ask otherwise.
@@ -48,7 +57,16 @@ How Studying feels to the user:
   part's materials, look in the other parts and in _shared before saying it is missing, and
   cite where you found it. Redundancy is fine: the same script may serve several parts.
 - After every job that changes files, refresh the subject index and push {kind:"subject"} so
-  the window shows the current state without another request.`,
+  the window shows the current state without another request.
+
+Where things show in the window (so you know what each output is for):
+- Home: the subjects. Subject page: points to pass, "Today" from the plan, the exam parts,
+  files for the whole subject, the inbox. No material lives on the subject page.
+- Part page (one exam part): Learn (theory, summary, cheat sheet, glossary, mind map, cards),
+  Practise (mock exam, question bank, practice tasks), Topics (each opens a sheet with that
+  topic's theory, summary, cards and quiz), Plan (days to tick off), Results, Sources.
+- Everything opens as a window the user can drag, snap side by side and maximise.
+The window sorts generated items by "role" (guide: subject), so always set it.`,
 
   setup: `# First-run setup
 
@@ -125,22 +143,42 @@ General rules:
 - Cover the scope evenly first, then weight toward what past exams asked (part.md, memory.md).
 - One concept per item. No duplicates across a deck.
 
-Outputs:
-- Summary: structured notes per topic, plain explanation first, then the exact definition to
-  learn, then one example from the materials.
+Outputs (name files "<Part> - <Name>", in the materials' language, and set the item's role):
+- Theory (role theory): the full text to read, per topic: everything the materials say about
+  each topic, gathered from all sources, with the official definitions, examples and code. It
+  is the reading material, not a summary; keep the source's wording.
+- Summary (role summary): structured notes per topic, plain explanation first, then the exact
+  definition to learn, then one example from the materials.
+Theory, summary, cheat sheet and glossary use one "## N. <topic name>" section per topic, with
+the topic names exactly as in the topic map: a topic's sheet in the window shows that section.
 - Mind map: a tree of topics, 3-4 levels, short node labels (3-8 words).
 - Flashcards: the front is one exam-style question; the back fully answers it in short
   points: definition, short explanation, example. A card answers the whole question an exam
   would ask, not a fragment of it. Code goes in fenced blocks.
-- Quiz / test: follow the question-types guide and the requested types, count, difficulty,
-  points and time limit. Mirror the real exam format from part.md when it is known.
+- Question bank (role bank): many questions of all requested types, every topic covered,
+  points 1 each, no time limit. The window builds topic quizzes from it by itself.
+- Mock exam (role mock): one test exactly like the real one: same number and kinds of
+  questions, the same points and time, built after the most recent real papers in part.md.
+- Quiz / custom test: follow the question-types guide and the requested types, count,
+  difficulty, points and time limit.
 - Practice tasks: tasks like the ones on paper exams, each with a worked solution step by step,
   hidden until the user asks.
-- Study plan: from today to the exam date, topic blocks per day, each block = read, mind map,
-  cards, quiz; spaced review of missed cards on day +1 and +3; a full mock exam before the
-  end; then a weak-spot loop.
-- Cheat sheet: one page of what must be memorised, in exam order.
-- Glossary: term, definition, source.
+- Study plan (role plan): from today to the exam date as a Markdown table with the columns
+  Day | Topics | What to do, one row per day, the first cell starting with the date as
+  "D. M." (e.g. "Mon 9. 11."). The window turns the rows into a checklist and "Today".
+  Each day = read the theory, the mind map, the topic's cards, its quiz; review missed cards on
+  day +1 and +3; the mock exam on the last day before the exam; then the weak spots.
+- Cheat sheet (role cheatsheet): what must be memorised, in exam order, one section per
+  topic: a callout with the key definition, then a table (term | meaning | example) instead
+  of long sentences.
+- Glossary (role glossary): a table term | definition | source.
+
+Writing documents so they are easy to read (the window renders full Markdown):
+- Short paragraphs (2-3 sentences). Bullets for lists, tables for anything that compares or
+  pairs things (term/meaning, operation/rule, step/result).
+- "> " callouts for the definition to learn and for examples from the materials.
+- Inline code for labels and names: \`ZA1\`, \`Zapamti(Racun)\`. Fenced blocks for code.
+- Bold only the key word of a line, not whole sentences. No walls of text.
 - Past-exam analysis: questions grouped by topic with how often each came up.`,
 
   "question-types": `# Question types
@@ -277,6 +315,7 @@ Write facts, not guesses. Replace outdated lines rather than appending forever.`
 The window is built around one subject at a time. When the user opens a subject the window
 asks you to load it. Answer with one push: {kind:"subject", payload:<index>}.
 
+Usually the window already has the subject from the library and does not ask. When it asks:
 Load: read Subjects/<Subject>/subject.json. If it is missing or older than the files, rebuild it:
 list the subject folder recursively (parts, _shared, _inbox, their materials/generated/results),
 read subject.md and memory.md, then write subject.json and push it.
@@ -294,7 +333,7 @@ Index (subject.json and the push payload):
   "inbox":[file],
   "memory":{ "summary":"2-3 sentences", "weakTopics":["..."], "strengths":["..."] },
   "nextStep":{ "text":"one concrete action", "action":"sort"|"make"|"review"|"test"|"read" },
-  "updated":"ISO time",
+  "updated":"ISO time", "library":"the key from settings.json",
   "ids":{ "folder", "inbox", "shared", "sharedMaterials", "sharedGenerated",
           "<Part>":{ "folder", "materials", "generated", "results" } } }
 Keep the storage folder ids in "ids" so later jobs write straight to the right folder without
@@ -302,7 +341,11 @@ searching. The window ignores "ids".
 file   = { "name", "id", "kind":"script"|"slides"|"past-exam"|"notes"|"assignment"|"image"|"other",
            "size", "modified", "note":"one line on what it is" }
 item   = { "name", "id", "kind":"deck"|"test"|"mindmap"|"document", "count":cards or questions,
-           "due":cards due today }
+           "due":cards due today, "topics":[topic names],
+           "role":"theory"|"summary"|"cheatsheet"|"glossary"|"mindmap"|"cards"|"mock"|"bank"
+                  |"tasks"|"plan"|"other" }
+  role decides where the part page shows it: theory, summary, cheatsheet, glossary, mindmap
+  and cards under Learn; mock, bank and tasks under Practise; plan under Plan.
 result = { "name", "id", "date", "score", "total", "topics":[{name, score, total}] }
 topic  = { "name", "status":"not started"|"learning"|"good"|"weak", "mastery":0-100,
            "cards":n, "questions":n, "lastTested":"YYYY-MM-DD"|null, "source":"file, pages" }
@@ -385,8 +428,12 @@ Test  <name>.test.json
 Mind map  <name>.mindmap.json
 { "kind":"mindmap", "title":"...", "root":{ "text":"...", "children":[{ "text":"...", "children":[] }] } }
 
-Document  <name>.md  (summary, plan, cheat sheet, glossary). Push as
-{kind:"document", title, payload:{markdown:"..."}}.
+Document  <name>.md  (theory, summary, plan, cheat sheet, glossary, tasks). Push as
+{kind:"document", title, payload:{markdown:"...", id:"<file id>"}}.
+
+After saving made material, add each file to the part's "generated" in subject.json with id,
+role, count and topics, update each topic's "cards" and "questions" counts, and push the
+subject. Replacing a file (create new + trash old) changes its id: update subject.json too.
 
 Result  <date>-<test name>.result.json
 { "kind":"result", "test":"...", "date":"...", "score":11.5, "total":15, "grade":"...",

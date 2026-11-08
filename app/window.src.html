@@ -1022,16 +1022,19 @@ function resumeBanner() {
 }
 // ---------- made material: sorted into Learn / Practise / Plan ----------
 const shortName = (n) => String(n ?? '').replace(/^.*?\s[-–]\s/, '');
-const isPlan = (x) => x.kind === 'plan' || (x.kind === 'document' && /plan/i.test(x.name));
-const isTasks = (x) => x.kind === 'document' && /zadac|task|vežb|vezb|exercise|practice/i.test(x.name);
-const isSummary = (x) => x.kind === 'document' && /rezime|summary|sažetak|sazetak/i.test(x.name);
-const isTheory = (x) => x.kind === 'document' && /teorij|theory/i.test(x.name);
+// "role" from the index decides; older items without one are recognised by name
+const roleIs = (x, r, re) => (x.role ? x.role === r : re.test(x.name ?? ''));
+const isPlan = (x) => x.kind === 'plan' || (x.kind === 'document' && roleIs(x, 'plan', /plan/i));
+const isTasks = (x) => x.kind === 'document' && roleIs(x, 'tasks', /zadac|task|vežb|vezb|exercise|practice/i);
+const isSummary = (x) => x.kind === 'document' && roleIs(x, 'summary', /rezime|summary|sažetak|sazetak/i);
+const isTheory = (x) => x.kind === 'document' && roleIs(x, 'theory', /teorij|theory/i);
+const isMock = (x) => x.kind === 'test' && roleIs(x, 'mock', /mock|probni/i);
 function sortMade(gen) {
   const learn = [], practise = [], plan = [];
   for (const x of gen) (isPlan(x) ? plan : x.kind === 'test' || isTasks(x) ? practise : learn).push(x);
   const o = { document: 0, mindmap: 1, deck: 2, test: 0 };
   learn.sort((a, b) => (isTheory(b) - isTheory(a)) || (isSummary(b) - isSummary(a)) || ((o[a.kind] ?? 9) - (o[b.kind] ?? 9)));
-  practise.sort((a, b) => (/mock|probni/i.test(b.name) - /mock|probni/i.test(a.name)) || ((o[a.kind] ?? 9) - (o[b.kind] ?? 9)));
+  practise.sort((a, b) => (isMock(b) - isMock(a)) || ((o[a.kind] ?? 9) - (o[b.kind] ?? 9)));
   return { learn, practise, plan };
 }
 function appTile(x, sub) {
@@ -1051,7 +1054,9 @@ function planOf(p) {
     if (cells.length < 2 || /^[-:\s]+$/.test(cells.join('')) || /^(dan|day|datum|date)$/i.test(cells[0])) continue;
     const label = cells[0].replace(/\*\*/g, '');
     const m = label.match(/(\d{1,2})\.\s*(\d{1,2})\./);
-    const date = m ? `${new Date().getFullYear()}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
+    // a plan crosses New Year: a month far behind this one belongs to next year
+    const now = new Date(), mo = m ? +m[2] : 0, yr = now.getFullYear() + (m && mo < now.getMonth() + 1 - 6 ? 1 : 0);
+    const date = m ? `${yr}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : null;
     rows.push({ label, date, text: cells.slice(1).filter(Boolean).join(' — ').replace(/\*\*/g, ''), key: `plan:${x.id}:${rows.length}` });
   }
   return { file: x, rows };
