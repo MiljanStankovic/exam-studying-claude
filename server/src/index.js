@@ -48,9 +48,10 @@ const TOOLS = [
     title: 'Open Studying',
     description:
       'Opens the Studying app window. Use view "setup" the first time, when the user has no Studying workspace ' +
-      'in their storage yet. Otherwise open it on a subject: read that subject\'s subject.json first (guide: ' +
-      'subject) and pass data = {kind:"subject", payload:<index>} so the window shows everything at once; add ' +
-      'payload.subjects with the list of all subjects. Pass session to reopen the same window session (keeps its ' +
+      'in their storage yet. Otherwise read only Studying/_system/settings.json and pass its "library": the window ' +
+      'then shows the subjects and everything made so far by itself, so do not read subject files just to open it. ' +
+      'Without a library key, read the subject\'s subject.json (guide: subject) and pass data = {kind:"subject", ' +
+      'payload:<index>}, with payload.subjects listing all subjects. Pass session to reopen the same window session (keeps its ' +
       'mailbox). data may also be any study_push message {kind, title, payload}, or an array of them. Always pass library: ' +
       'with it the window shows the last known subjects at once and opens made material without you.',
     inputSchema: {
