@@ -247,6 +247,8 @@
   .modal { width: min(880px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--bg); border-radius: 18px; box-shadow: var(--lift); overflow: hidden;
     animation: rise .3s var(--ease) both; border: 1px solid var(--line); }
   .modal.narrow { width: min(560px, 100%); }
+  /* the open/close motion plays once; redraws inside an open window (flipping a card, folding the map) stay still */
+  .overlay.still, .overlay.still .modal { animation: none; }
   .modal header { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 12px 0 24px; border-bottom: 1px solid var(--line); background: var(--card); flex: none; }
   .modal header .t { flex: 1; min-width: 0; display: grid; }
   .modal header .t b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -557,8 +559,9 @@ function receive(m) {
 
 // opens made material from the server library; asks Claude only when the library does not have it
 async function openFile(d) {
-  toast('Opening');
+  const slow = setTimeout(() => toast('Opening'), 500);
   const it = await lib.fetch({ id: d.id, name: d.n });
+  clearTimeout(slow);
   if (it) return show({ kind: it.kind, title: it.title, payload: it.payload });
   ask(`open "${d.n}"${d.id ? ` (id ${d.id})` : ''}${where()} and push it with "id" set to its file id: decks, tests and mind maps as their kind, results as results, anything else as a document with a readable version of its content.`);
 }
@@ -732,7 +735,15 @@ function render() {
   let v = pages[S.view] ?? viewSubjects;
   if ((S.view === 'subject' || S.view === 'part') && !cur()) v = viewLoading;
   try { $('view').innerHTML = v(); } catch (e) { console.error(e); $('view').innerHTML = `<h1>Something here could not be shown</h1><p class="sub">Ask Claude to check the file and send it again</p>`; }
+  const sameModal = S.modal && lastKey.split('|')[1] === S.modal.type;
+  // keep the scroll position of scrollable parts of an open window across redraws
+  const scrolls = sameModal ? [...$('layer').querySelectorAll('.mbody, .mbody *')].map((el) => [el.scrollTop, el.scrollLeft]) : null;
   $('layer').innerHTML = S.modal ? modalHtml() : '';
+  if (sameModal) {
+    $('layer').querySelector('.overlay')?.classList.add('still');
+    const els = [...$('layer').querySelectorAll('.mbody, .mbody *')];
+    scrolls.forEach(([t, l], i) => { if ((t || l) && els[i]) { els[i].scrollTop = t; els[i].scrollLeft = l; } });
+  }
   restoreForms(document.body, keep);
   if (!same && S.view !== lastKey.split('|')[0]) { const el = $('view'); el.style.animation = 'none'; void el.offsetHeight; el.style.animation = ''; }
   lastKey = key;
