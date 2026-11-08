@@ -32,7 +32,21 @@ Loop for every job:
    content follows the language of the user's materials unless they ask otherwise.
 
 Never invent facts beyond the user's materials. Every card, question and summary point carries
-its source (file, page or section).`,
+its source (file, page or section).
+
+How Studying feels to the user:
+- Everything is organised around one subject. Inside a subject the user finds all of it:
+  materials, what you made, tests, results and what you remember (guide: subject).
+- You do the tedious work. The user drops all their documents for a subject in one place;
+  you read them, sort them, name them, and propose what to do with them (guide: intake).
+  Use subagents for the heavy reading when the Agent tool exists; otherwise work file by file.
+- Propose, then act. Anything that moves, renames or deletes the user's files is shown as a
+  proposal first and done only after the user approves it in the window or the chat.
+- Search the whole subject. When you need an answer for one part and it is not in that
+  part's materials, look in the other parts and in _shared before saying it is missing, and
+  cite where you found it. Redundancy is fine: the same script may serve several parts.
+- After every job that changes files, refresh the subject index and push {kind:"subject"} so
+  the window shows the current state without another request.`,
 
   setup: `# First-run setup
 
@@ -49,9 +63,9 @@ When you get "Studying: setup ... storage=<name>":
    Then read settings.json back to confirm the write worked.
 3. Push {kind:"setup_status", payload:{ok:true, storage, root:"Studying", subjects:[...]}}.
 4. When the user then creates a subject, ask only for what you cannot read from their
-   materials: exam parts, date, how it is graded, pass threshold. Write subject.md and one
-   folder per part. Push {kind:"subjects", payload:[...]} so the home screen updates
-   (item shape in the guide "formats").
+   materials: exam parts, date, how it is graded, pass threshold. Write subject.md, the
+   folders from storage-layout (parts, _inbox, _shared) and subject.json. Push
+   {kind:"subjects", payload:[...]} and then {kind:"subject", payload:<index>} (guide: subject).
 
 Never ask for passwords or tokens. Connecting storage always happens in Claude's own
 connector settings, where the user signs in with the provider.`,
@@ -67,13 +81,18 @@ Studying/
   _rules/lessons-learned.md    mistakes found so far and the rule that prevents each one
   Subjects/<Subject>/
     subject.md                 exam rules, grading, dates, professor, what is in scope
+    subject.json               the index the window shows (guide: subject); keep it current
     memory.md                  what the user knows, weak spots, scores, what exams asked
+    _inbox/                    drop zone: the user puts every document here, unsorted
+    _shared/                   materials that serve the whole subject (main script, syllabus)
+      materials/  generated/
     <Part>/                    one folder per exam part, e.g. Oral, Written, Project
       part.md                  format of this part, past questions, scope
       materials/               the user's sources (PDF, DOCX, images, notes)
       generated/               decks, tests, mind maps, summaries (formats guide)
       results/                 finished tests with grades
 
+Every new subject gets _inbox/ and _shared/ (with materials/ and generated/) besides its parts.
 Names of subjects and parts are the user's, in any language. System folders stay in English.
 When listing files for the window, push {kind:"files", payload:{path, items:[{name, type:
 "folder"|"file", mime, id, size, modified}]}}. Keep the connector's file id in "id" so the
@@ -206,6 +225,64 @@ Sections (create when missing):
 ## Notes: preferences the user stated for this subject.
 
 Write facts, not guesses. Replace outdated lines rather than appending forever.`,
+
+  subject: `# The subject workspace
+
+The window is built around one subject at a time. When the user opens a subject the window
+asks you to load it. Answer with one push: {kind:"subject", payload:<index>}.
+
+Load: read Subjects/<Subject>/subject.json. If it is missing or older than the files, rebuild it:
+list the subject folder recursively (parts, _shared, _inbox, their materials/generated/results),
+read subject.md and memory.md, then write subject.json and push it.
+
+Index (subject.json and the push payload):
+{ "name":"...", "examDate":"YYYY-MM-DD"|null, "totalPoints":32, "passPoints":15,
+  "folderUrl":"link to the subject folder", "inboxUrl":"link to _inbox",
+  "parts":[{ "name":"Usmeni 1", "points":15, "format":"short text", "readiness":0-100,
+             "best":null|number,
+             "materials":[file], "generated":[item], "results":[result] }],
+  "shared":{ "materials":[file], "generated":[item] },
+  "inbox":[file],
+  "memory":{ "summary":"2-3 sentences", "weakTopics":["..."], "strengths":["..."] },
+  "nextStep":{ "text":"one concrete action", "action":"sort"|"make"|"review"|"test"|"read" },
+  "updated":"ISO time" }
+file   = { "name", "id", "kind":"script"|"slides"|"past-exam"|"notes"|"assignment"|"image"|"other",
+           "size", "modified", "note":"one line on what it is" }
+item   = { "name", "id", "kind":"deck"|"test"|"mindmap"|"document", "count":cards or questions,
+           "due":cards due today }
+result = { "name", "id", "date", "score", "total" }
+
+readiness per part: your honest estimate from results, card progress and coverage of the
+part's scope; 0 when nothing is known. nextStep is the single most useful thing to do now:
+"sort" when the inbox has files, "make" when a part has materials but nothing generated,
+"review" when cards are due, "test" when material was studied but never tested.
+
+Questions about the subject ("Studying: ask about <subject> ..."): answer in the chat. Search
+the part named first, then the other parts and _shared, and cite file and page.`,
+
+  intake: `# Intake: sorting the user's documents
+
+The user should never have to file things by hand. They drop everything for a subject into
+Subjects/<Subject>/_inbox (or attach files in the chat; save those to _inbox first).
+
+When asked to sort the inbox:
+1. study_progress with one step per file plus "Proposal".
+2. Read every file in _inbox (use subagents in parallel when the Agent tool exists, one file
+   each, returning: what it is, which part(s) it serves, kind, a clear file name, and
+   anything it says about the exam: format, points, dates, typical questions).
+3. Decide for each file: destination = a part's materials/, or _shared/materials/ when it serves
+   several parts (a main script usually does), or "skip" (duplicates, empty, unrelated).
+   Propose a clear name: "<kind> - <topic>.<ext>", keep the user's language.
+4. Push {kind:"proposal", payload:{ subject, summary:"one paragraph: what you found and
+   anything learned about the exam", items:[{ id, name, newName, kind, to:"Usmeni 1"|"_shared"
+   |"skip", reason:"short" }], learned:["facts for subject.md / part.md, with source"] }}.
+   Do not move anything yet.
+5. When the user approves ("Studying: apply sorting ..."), move each file (update the file's
+   parent; rename when newName differs), add the learned facts to subject.md / part.md with
+   their source, rebuild subject.json and push {kind:"subject"}. Report what moved in one line.
+
+If a file belongs to two parts, put it in _shared and mention it in both part.md files.
+Never delete the user's files; "skip" leaves them in _inbox.`,
 
   formats: `# File formats
 

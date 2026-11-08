@@ -30,15 +30,20 @@ Paste this into a new chat after adding the connector:
 
 ## What you can do
 
-| In the window | What Claude does |
-|---|---|
-| **Files**: browse the subject folders, select materials | Lists the folder in your storage and opens files |
-| **Create**: pick materials, outputs (summary, mind map, flashcards, quiz, practice test, tasks, study plan, cheat sheet, glossary, past-exam analysis), question types, count, difficulty, time and points | Generates, has a second pass review it, saves it to `generated/`, shows progress with a time estimate |
-| **Study**: flashcards with spaced repetition, mind maps, notes | Saves your card progress and updates the subject memory |
-| **Test**: single and multiple choice, true/false, fill in the blank, matching, ordering, open answers, practical tasks, code; timer | The window scores objective questions itself; Claude grades open answers against a rubric and saves the result |
-| **Report a mistake** on any card, question or note | Fixes the item and records the lesson in the rules so it does not happen again |
+Everything is organised around a subject. Open one and you have all of it in one place:
 
-Rules and lessons are plain Markdown files in `Studying/_rules/`, so you can read and edit them yourself. Tell Claude in the chat when something is wrong and it updates them.
+| Section | What it holds | What Claude does |
+|---|---|---|
+| **Overview** | Next step, points toward passing per exam part, what was made recently, a question box | Picks the single most useful next step; answers questions by searching every part of the subject |
+| **Materials** | An **inbox** for unsorted documents, then files per exam part and for the whole subject | Reads everything in the inbox (in parallel with subagents where available), proposes a clear name and where each file belongs, and moves them once you approve |
+| **Study** | Flashcards with spaced repetition, mind maps, summaries | Makes them from the materials, checks them with a second reviewer, saves them to your storage |
+| **Practice** | Custom tests and mock exams per part, every question type (single and multiple choice, true/false, fill in the blank, matching, ordering, open answers, practical tasks, code), timer | The window scores objective questions; Claude grades open answers against a rubric |
+| **Results** | Every graded test, weak topics | Turns weak topics into a targeted quiz |
+| **Notes** | What Claude remembers about the subject and about you | Adds what you tell it to the subject notes |
+
+**Report a mistake** on any card, question or note: Claude fixes the item and records a general rule so it does not happen again.
+
+You never have to file anything yourself. Drop documents into the subject's `_inbox` folder (or attach them in the chat) and press **Sort with Claude**.
 
 ### Workspace layout
 
@@ -48,7 +53,10 @@ Studying/
   _rules/generation-rules.md, question-types.md, grading-rubrics.md, lessons-learned.md
   Subjects/<Subject>/
     subject.md        exam format, dates, grading
+    subject.json      the index the window shows
     memory.md         weak topics, progress, what to do next
+    _inbox/           drop zone for unsorted documents
+    _shared/          materials for the whole subject
     <Part>/
       part.md
       materials/      your files

@@ -21,7 +21,7 @@ const hash = (str) => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++)
 const WINDOW_URI = `ui://studying/window-${VERSION}-${hash(WINDOW_HTML)}.html`;
 const WINDOW_MIME = 'text/html;profile=mcp-app';
 const SESSION_RE = /^[A-Za-z0-9_-]{12,64}$/;
-const KINDS = ['files', 'subjects', 'deck', 'test', 'mindmap', 'document', 'results', 'setup_status', 'notice', 'plan'];
+const KINDS = ['subject', 'proposal', 'files', 'subjects', 'deck', 'test', 'mindmap', 'document', 'results', 'setup_status', 'notice', 'plan'];
 const MAX_PAYLOAD = 900_000; // UTF-8 bytes of JSON per push (Durable Object values max out at 2 MB)
 const LIMIT_PER_HOUR = 600; // pushes and progress updates per window session per hour
 const PULL_LIMIT_PER_HOUR = 3000; // window reads per session per hour (two windows polling every 2.5 s fit)
@@ -43,16 +43,17 @@ const TOOLS = [
     name: 'study_open',
     title: 'Open Studying',
     description:
-      'Opens the Studying app window. view: setup | home | files | create | study | test | results | document. ' +
-      'Pass session to reopen the same window session (keeps its mailbox). Pass data to show content right away ' +
-      '(same shape as study_push: {kind, title, payload}). Use view "setup" the first time, when the user has no ' +
-      'Studying workspace in their storage yet.',
+      'Opens the Studying app window. Use view "setup" the first time, when the user has no Studying workspace ' +
+      'in their storage yet. Otherwise open it on a subject: read that subject\'s subject.json first (guide: ' +
+      'subject) and pass data = {kind:"subject", payload:<index>} so the window shows everything at once; add ' +
+      'payload.subjects with the list of all subjects. Pass session to reopen the same window session (keeps its ' +
+      'mailbox). data may also be any study_push message {kind, title, payload}, or an array of them.',
     inputSchema: {
       type: 'object',
       properties: {
-        view: { type: 'string', enum: ['setup', 'home', 'files', 'create', 'study', 'test', 'results', 'document'], default: 'home' },
+        view: { type: 'string', enum: ['setup', 'home', 'subject', 'files', 'create', 'study', 'test', 'results', 'document'], default: 'home' },
         session: { type: 'string', description: 'existing window session id, if any' },
-        data: { type: 'object', description: '{kind, title, payload} to show on open' },
+        data: { type: ['object', 'array'], description: '{kind, title, payload} to show on open' },
       },
     },
     annotations: ann('Open Studying', true),
@@ -63,8 +64,9 @@ const TOOLS = [
     title: 'Show in Studying',
     description:
       'Sends a result to an open Studying window: kind is one of ' + KINDS.join(', ') + '. ' +
-      'payload follows the "formats" guide (deck, test, mindmap, document {markdown}, files {path, items}, ' +
-      'subjects [..], results, setup_status {ok, storage, reason?}, notice {text}). The window shows it within ' +
+      'payload follows the guides: subject (the subject index, guide "subject"), proposal (guide "intake"), ' +
+      'deck, test, mindmap, document {markdown}, files {path, items}, subjects [..], results, ' +
+      'setup_status {ok, storage, reason?}, notice {text} (guide "formats"). The window shows it within ' +
       'a few seconds. session comes from the window\'s message "(session: <id>)".',
     inputSchema: {
       type: 'object',

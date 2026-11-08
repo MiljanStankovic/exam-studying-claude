@@ -5,221 +5,295 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Studying</title>
 <style>
-  /* Direction: a reading-room desk. Quiet chrome from the host's own neutrals, one ink-blue accent,
-     and one signature: the red margin line of an index card, used only on cards and questions. */
+  /* Direction
+     Product   a study companion that keeps everything for one subject in one place and does the filing
+     Character patient, exact, quietly encouraging
+     World     a student's desk: a binder with a divider per exam part, index cards, a ruled margin
+     Moments   the points track toward passing, and the index card itself
+     Signature the red margin line of an index card (cards, questions, the sorting sheet) */
   :root {
     color-scheme: light dark;
-    --bg: var(--color-background-primary, #ffffff);
-    --bg2: var(--color-background-secondary, #f5f4f0);
-    --bg3: var(--color-background-tertiary, #faf9f6);
-    --t1: var(--color-text-primary, #1c1f26);
-    --t2: var(--color-text-secondary, #474c57);
-    --t3: var(--color-text-tertiary, #777c87);
-    --l1: var(--color-border-tertiary, rgba(28, 31, 38, .12));
-    --l2: var(--color-border-secondary, rgba(28, 31, 38, .24));
-    --ok: var(--color-text-success, #2f6b2a);
-    --okbg: var(--color-background-success, #e8f1e3);
-    --bad: var(--color-text-danger, #a3322a);
-    --badbg: var(--color-background-danger, #f8e7e4);
-    --warn: var(--color-text-warning, #6b5214);
-    --warnbg: var(--color-background-warning, #f7efdc);
-    --r: var(--border-radius-md, 10px);
-    --rs: var(--border-radius-sm, 6px);
-    --font: var(--font-sans, system-ui, -apple-system, "Segoe UI", sans-serif);
-    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --bg: var(--color-background-secondary, #f7f7f6);
+    --side: var(--color-background-tertiary, #f0efed);
+    --card: var(--color-background-primary, #ffffff);
+    --raised: #f1f1f0;
+    --t1: var(--color-text-primary, #191919);
+    --t2: var(--color-text-secondary, #545454);
+    --t3: var(--color-text-tertiary, #767676);
+    --line: rgba(25, 25, 25, .08);
+    --line2: rgba(25, 25, 25, .16);
+    --accent: #2f5597;
+    --on-accent: #ffffff;
+    --accent-soft: rgba(47, 85, 151, .10);
+    --ok: #237a4b; --bad: #c0362c; --warn: #8a6212;
+    --paper: #fffef9;
+    --margin: #c8463b;
+    --font: var(--font-sans, "Inter", system-ui, -apple-system, "Segoe UI", sans-serif);
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
     --mono: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
-    --ink: #2d4a7a;          /* the one accent */
-    --ink-text: #ffffff;
-    --card: #fffefa;         /* index card paper */
-    --margin: #c0392b;       /* signature: card margin line */
-    --ease: cubic-bezier(.2, .7, .2, 1);
+    --ease: cubic-bezier(.22, 1, .36, 1);
+    --shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 8px 24px rgba(0, 0, 0, .06);
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-    --bg: var(--color-background-primary, #1e2026); --bg2: var(--color-background-secondary, #17191e); --bg3: var(--color-background-tertiary, #121418);
-    --t1: var(--color-text-primary, #eceef2); --t2: var(--color-text-secondary, #c3c7d0); --t3: var(--color-text-tertiary, #8e94a1);
-    --l1: var(--color-border-tertiary, rgba(236, 238, 242, .12)); --l2: var(--color-border-secondary, rgba(236, 238, 242, .24));
-    --ok: var(--color-text-success, #8fcf7f); --okbg: var(--color-background-success, #1d3319); --bad: var(--color-text-danger, #ef9a8f); --badbg: var(--color-background-danger, #3a1f1c);
-    --warn: var(--color-text-warning, #e2c06a); --warnbg: var(--color-background-warning, #3a2f12);
-    --ink: #9db8e8; --ink-text: #10141c; --card: #23262d; --margin: #e0705f; } }
-  :root[data-theme="dark"] { --ink: #9db8e8; --ink-text: #10141c; --card: #23262d; --margin: #e0705f; }
-  :root[data-theme="light"] { --ink: #2d4a7a; --ink-text: #ffffff; --card: #fffefa; --margin: #c0392b; }
+    --bg: var(--color-background-secondary, #141415); --side: var(--color-background-tertiary, #0f0f10); --card: var(--color-background-primary, #19191b);
+    --raised: #232325; --t1: var(--color-text-primary, #ededed); --t2: var(--color-text-secondary, #a1a1a6); --t3: var(--color-text-tertiary, #85858b);
+    --line: rgba(237, 237, 237, .08); --line2: rgba(237, 237, 237, .16);
+    --accent: #9fb9e6; --on-accent: #0e1420; --accent-soft: rgba(159, 185, 230, .12);
+    --ok: #4cc38a; --bad: #e5484d; --warn: #d9b45a; --paper: #1e1e20; --margin: #d9675c; --shadow: none; } }
+  :root[data-theme="dark"] {
+    --raised: #232325; --line: rgba(237, 237, 237, .08); --line2: rgba(237, 237, 237, .16);
+    --accent: #9fb9e6; --on-accent: #0e1420; --accent-soft: rgba(159, 185, 230, .12);
+    --ok: #4cc38a; --bad: #e5484d; --warn: #d9b45a; --paper: #1e1e20; --margin: #d9675c; --shadow: none; }
 
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: transparent; color: var(--t1); font: 14px/1.5 var(--font); }
-  body.full { background: var(--bg2); }
+  html, body { margin: 0; color: var(--t1); font: 14px/20px var(--font); background: transparent; }
+  body.full { background: var(--bg); }
   button, input, select, textarea { font: inherit; color: inherit; }
-  button { cursor: pointer; }
+  button { cursor: pointer; background: none; border: 0; padding: 0; }
   [hidden] { display: none !important; }
-  :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+  svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
-  .app { display: flex; flex-direction: column; min-height: 560px; height: var(--h, auto); padding-top: var(--top, 0px); padding-bottom: var(--bottom, 0px); }
-  body.full .app { height: 100vh; }
+  /* shell */
+  .shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 600px; height: var(--h, auto);
+    padding-top: var(--top, 0px); padding-bottom: var(--bottom, 0px); background: var(--bg); border-radius: 12px; overflow: hidden; }
+  body.full .shell { height: 100vh; border-radius: 0; }
+  aside { background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 12px 8px; gap: 4px; min-height: 0; overflow-y: auto; }
+  .brand { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 8px; font-weight: 500; font-size: 15px; }
+  .mark { width: 16px; height: 20px; border: 1.5px solid var(--t2); border-radius: 3px; position: relative; flex: none; }
+  .mark::before { content: ""; position: absolute; left: 3px; top: -1.5px; bottom: -1.5px; width: 1.5px; background: var(--margin); }
+  .navlabel { padding: 0 8px; margin: 20px 0 4px; color: var(--t3); font-size: 12px; line-height: 16px; display: flex; justify-content: space-between; align-items: center; }
+  .navlabel button { color: var(--t3); border-radius: 4px; padding: 0 4px; }
+  .navlabel button:hover { color: var(--t1); }
+  .nav { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 8px; border-radius: 8px; color: var(--t2); width: 100%; text-align: left;
+    transition: background-color .15s var(--ease), color .15s var(--ease); }
+  .nav:hover { background: var(--raised); color: var(--t1); }
+  .nav[aria-current] { background: var(--card); color: var(--t1); box-shadow: inset 0 0 0 1px var(--line); }
+  .nav .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .nav .count { font: 12px/16px var(--mono); color: var(--t3); font-variant-numeric: tabular-nums; }
+  .nav .count.hot { color: var(--accent); }
+  .side-foot { margin-top: auto; padding-top: 12px; display: grid; gap: 2px; }
 
-  /* top bar */
-  .bar { flex: none; display: flex; align-items: center; gap: 16px; padding: 8px 16px; border-bottom: 1px solid var(--l1); background: var(--bg2); }
-  .brand { font: 500 16px/1 var(--serif); letter-spacing: .01em; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
-  .brand i { display: inline-block; width: 14px; height: 18px; border: 1.5px solid var(--t2); border-radius: 2px; position: relative; }
-  .brand i::before { content: ""; position: absolute; left: 3px; top: -1px; bottom: -1px; width: 1.5px; background: var(--margin); }
-  nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
-  nav button { background: none; border: 0; border-radius: var(--rs); padding: 6px 10px; color: var(--t2); white-space: nowrap; transition: background-color .15s var(--ease), color .15s var(--ease); }
-  nav button:hover { background: var(--bg3); color: var(--t1); }
-  nav button[aria-current="page"] { background: var(--bg); color: var(--t1); box-shadow: inset 0 0 0 1px var(--l1); }
-  .icon-btn { background: none; border: 1px solid var(--l1); border-radius: var(--rs); width: 32px; height: 32px; display: grid; place-items: center; color: var(--t2); flex: none; }
-  .icon-btn:hover:not(:disabled) { background: var(--bg3); color: var(--t1); }
-  .icon-btn:disabled { opacity: .35; cursor: default; }
-  svg.i { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .top { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 32px; flex: none; }
+  .top .crumb { color: var(--t3); display: flex; gap: 6px; align-items: center; min-width: 0; }
+  .top .crumb button { color: var(--t2); }
+  .top .crumb button:hover { color: var(--t1); }
+  .top .spacer { flex: 1; }
+  .mobile-only { display: none; }
+  .scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 32px 48px; }
+  .page { max-width: 1040px; display: grid; gap: 32px; animation: rise .4s var(--ease) both; }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 
   /* progress */
-  .progress { flex: none; padding: 12px 16px; border-bottom: 1px solid var(--l1); background: var(--bg); display: grid; gap: 8px; }
-  .progress .row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+  .progress { margin: 0 32px 8px; padding: 12px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 8px; flex: none; }
+  .progress .row1 { display: flex; justify-content: space-between; gap: 12px; }
   .progress .job { font-weight: 500; }
-  .progress .eta { color: var(--t3); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .track { height: 4px; border-radius: 2px; background: var(--l1); overflow: hidden; }
-  .track b { display: block; height: 100%; background: var(--ink); width: 0; transition: width .4s var(--ease); }
-  .steps { display: flex; flex-wrap: wrap; gap: 4px 12px; color: var(--t3); font-size: 12px; }
-  .steps .now { color: var(--t1); }
-  .steps .done { color: var(--t2); }
+  .progress .eta { color: var(--t3); font: 12px/20px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .track { height: 4px; border-radius: 2px; background: var(--line); overflow: hidden; }
+  .track b { display: block; height: 100%; background: var(--accent); width: 0; transition: width .4s var(--ease); }
+  .steps { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--t3); font-size: 12px; line-height: 16px; }
+  .steps .now { color: var(--t1); } .steps .done { color: var(--t2); }
 
-  main { flex: 1; min-height: 0; overflow-y: auto; padding: 24px 16px 32px; }
-  .wrap { max-width: 880px; margin: 0 auto; display: grid; gap: 24px; }
-  h1 { font: 500 24px/1.25 var(--serif); margin: 0; text-wrap: balance; }
-  h2 { font: 500 16px/1.3 var(--font); margin: 0; }
+  /* type */
+  h1 { font: 400 32px/1.15 var(--serif); margin: 0; letter-spacing: -.005em; text-wrap: balance; }
+  h2 { font: 500 15px/20px var(--font); margin: 0; }
+  h3 { font: 500 14px/20px var(--font); margin: 0; }
   p { margin: 0; }
-  .muted { color: var(--t3); }
   .sub { color: var(--t2); max-width: 64ch; }
-  .stack { display: grid; gap: 12px; }
-  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .muted { color: var(--t3); }
+  .meta { color: var(--t3); font: 12px/16px var(--mono); font-variant-numeric: tabular-nums; }
+  .head { display: grid; gap: 8px; }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .between { justify-content: space-between; }
-  .panel { background: var(--bg); border: 1px solid var(--l1); border-radius: var(--r); padding: 16px; display: grid; gap: 12px; min-width: 0; }
-  .btn { border: 1px solid var(--l2); background: var(--bg); border-radius: 8px; padding: 8px 14px; font-weight: 500; transition: background-color .15s var(--ease), border-color .15s var(--ease); }
-  .btn:hover { background: var(--bg3); }
-  .btn.primary { background: var(--ink); color: var(--ink-text); border-color: var(--ink); }
-  .btn.primary:hover { filter: brightness(1.06); }
-  .btn.quiet { border-color: transparent; background: none; color: var(--t2); }
-  .btn:disabled { opacity: .5; cursor: default; }
+  .stack { display: grid; gap: 12px; }
+  .section { display: grid; gap: 12px; }
+  .section > .row.between { min-height: 32px; }
+
+  /* surfaces and controls */
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; min-width: 0; box-shadow: var(--shadow); }
+  .panel.tight { padding: 4px; gap: 0; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 14px; border-radius: 8px; font-weight: 500;
+    background: var(--card); border: 1px solid var(--line2); color: var(--t1); white-space: nowrap;
+    transition: background-color .15s var(--ease), border-color .15s var(--ease), transform .12s var(--ease); }
+  .btn:hover { background: var(--raised); }
   .btn:active:not(:disabled) { transform: scale(.98); }
-  input[type=text], input[type=number], input[type=date], select, textarea { background: var(--bg); border: 1px solid var(--l2); border-radius: 8px; padding: 8px 10px; min-width: 0; }
-  textarea { width: 100%; min-height: 96px; resize: vertical; line-height: 1.5; }
-  label.field { display: grid; gap: 4px; font-size: 13px; color: var(--t2); }
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--l2); border-radius: 999px; padding: 6px 12px; background: var(--bg); user-select: none; }
-  .chip input { margin: 0; accent-color: var(--ink); }
-  .chip:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+  .btn.primary { background: var(--accent); border-color: transparent; color: var(--on-accent); }
+  .btn.primary:hover { filter: brightness(1.06); background: var(--accent); }
+  .btn.quiet { background: none; border-color: transparent; color: var(--t2); padding: 0 10px; }
+  .btn.quiet:hover { background: var(--raised); color: var(--t1); }
+  .btn.sm { height: 30px; padding: 0 10px; font-size: 13px; }
+  .btn:disabled { opacity: .45; cursor: default; }
+  .icon-btn { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--t2); }
+  .icon-btn:hover:not(:disabled) { background: var(--raised); color: var(--t1); }
+  .icon-btn:disabled { opacity: .35; cursor: default; }
+  .icon-btn.mobile-only { display: none; }
+  input[type=text], input[type=number], input[type=date], select, textarea { background: var(--card); border: 1px solid var(--line2); border-radius: 8px; padding: 0 10px; height: 36px; min-width: 0; }
+  textarea { width: 100%; min-height: 96px; padding: 8px 10px; resize: vertical; line-height: 20px; height: auto; }
+  label.field { display: grid; gap: 6px; color: var(--t2); font-size: 13px; }
   .grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--line2); background: var(--card); user-select: none; cursor: pointer;
+    transition: border-color .15s var(--ease), background-color .15s var(--ease); }
+  .chip input { margin: 0; accent-color: var(--accent); }
+  .chip:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .tag { font: 12px/16px var(--mono); color: var(--t3); }
+  .notice { border-radius: 8px; padding: 10px 12px; background: var(--raised); color: var(--t2); }
 
-  /* setup */
-  .stepper { display: flex; gap: 8px; color: var(--t3); font-size: 13px; flex-wrap: wrap; }
-  .stepper span[aria-current] { color: var(--t1); font-weight: 500; }
-  .choice { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
-  .choice button { text-align: left; background: var(--bg); border: 1px solid var(--l2); border-radius: var(--r); padding: 16px; display: grid; gap: 4px; }
-  .choice button[aria-pressed="true"] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-  .choice b { font-weight: 500; }
+  /* subject list */
+  .subjects { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  .subject { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 12px; box-shadow: var(--shadow);
+    transition: border-color .15s var(--ease); }
+  .subject:hover { border-color: var(--line2); }
+  .subject .name { font: 400 20px/1.25 var(--serif); }
 
-  /* subjects */
-  .subjects { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
-  .subject { text-align: left; background: var(--bg); border: 1px solid var(--l1); border-radius: var(--r); padding: 16px; display: grid; gap: 8px; }
-  .subject:hover { border-color: var(--l2); }
-  .subject .name { font: 500 17px/1.3 var(--serif); }
-  .subject .meta { color: var(--t3); font-size: 13px; font-variant-numeric: tabular-nums; }
-  .ready { height: 4px; background: var(--l1); border-radius: 2px; overflow: hidden; }
-  .ready b { display: block; height: 100%; background: var(--ink); }
+  /* the moment: points toward passing */
+  .points { display: grid; gap: 16px; }
+  .points .big { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
+  .points .big b { font: 400 40px/1 var(--serif); }
+  .bar { position: relative; height: 40px; display: flex; gap: 4px; padding-top: 0; }
+  .seg { position: relative; height: 24px; border-radius: 6px; background: var(--raised); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
+  .seg b { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 6px 0 0 6px; }
+  .seg span { position: absolute; left: 8px; top: 4px; font-size: 12px; line-height: 16px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; right: 8px; }
+  .seg.lit span { color: var(--on-accent); }
+  .passline { position: absolute; top: -4px; height: 32px; width: 2px; background: var(--margin); border-radius: 1px; }
+  .passline i { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); font: 12px/16px var(--mono); font-style: normal; color: var(--margin); white-space: nowrap; }
+  .legend { display: grid; gap: 0; }
+  .legend .lrow { display: grid; grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 12px; align-items: center; height: 36px; border-top: 1px solid var(--line); }
+  .legend .lrow:first-child { border-top: 0; }
+  .legend .num { text-align: right; font: 13px/20px var(--mono); font-variant-numeric: tabular-nums; color: var(--t2); }
 
-  /* files */
-  .crumbs { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; color: var(--t3); font-size: 13px; }
-  .crumbs button { background: none; border: 0; padding: 2px 4px; border-radius: 4px; color: var(--t2); }
-  .crumbs button:hover { background: var(--bg3); }
-  .files { border: 1px solid var(--l1); border-radius: var(--r); overflow: hidden; background: var(--bg); }
-  .file { display: grid; grid-template-columns: 20px 24px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 0 12px; height: 40px; border-bottom: 1px solid var(--l1); }
-  .file:last-child { border-bottom: 0; }
-  .file:hover { background: var(--bg3); }
-  .file .n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; background: none; border: 0; padding: 0; }
-  .file .m { color: var(--t3); font: 12px/1 var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .file input { accent-color: var(--ink); margin: 0; }
-  .empty { padding: 32px 16px; text-align: center; color: var(--t3); display: grid; gap: 12px; justify-items: center; }
+  .next { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; }
+  .next p { font: 400 18px/1.4 var(--serif); }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+
+  /* lists of files and items */
+  .list { display: grid; }
+  .item { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 44px; padding: 8px 12px; border-radius: 10px; }
+  .item.sel { grid-template-columns: 20px 20px minmax(0, 1fr) auto; }
+  .item + .item { box-shadow: 0 -1px 0 var(--line); }
+  .item:hover { background: var(--raised); box-shadow: none; }
+  .item:hover + .item { box-shadow: none; }
+  .item .name { min-width: 0; display: grid; gap: 2px; text-align: left; }
+  .item .name b { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .name small { color: var(--t3); font-size: 12px; line-height: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .side { display: flex; align-items: center; gap: 12px; color: var(--t3); }
+  .item input[type=checkbox] { margin: 0; accent-color: var(--accent); }
+  .item .ic { color: var(--t3); display: grid; place-items: center; }
+  .group-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 4px; }
+  .empty { padding: 24px 12px; color: var(--t3); display: grid; gap: 12px; justify-items: start; }
+  .selbar { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px;
+    background: var(--card); border: 1px solid var(--line2); border-radius: 12px; box-shadow: var(--shadow); }
+
+  /* inbox: the drop zone */
+  .inbox { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 20px; border-radius: 14px;
+    border: 1.5px dashed var(--line2); background: var(--card); }
+  .inbox.full { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
+  .inbox .count { font: 400 32px/1 var(--serif); font-variant-numeric: tabular-nums; }
 
   /* index card: the signature */
-  .card { position: relative; background: var(--card); border: 1px solid var(--l1); border-radius: 12px; padding: 24px 24px 24px 48px;
-    box-shadow: 0 1px 2px rgba(20, 24, 32, .06), 0 8px 24px -12px rgba(20, 24, 32, .18); }
-  .card::before { content: ""; position: absolute; left: 28px; top: 0; bottom: 0; width: 1.5px; background: var(--margin); opacity: .65; }
-  .card .q { font: 400 20px/1.45 var(--serif); }
-  .card .a { font: 400 16px/1.6 var(--serif); color: var(--t1); }
-  .card .src { font: 12px/1.4 var(--mono); color: var(--t3); }
-  .flash { min-height: 280px; display: grid; align-content: center; gap: 16px; cursor: pointer; }
+  .card { position: relative; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 24px 24px 24px 52px; box-shadow: var(--shadow); }
+  .card::before { content: ""; position: absolute; left: 32px; top: 0; bottom: 0; width: 1.5px; background: var(--margin); opacity: .7; }
+  .card .q { font: 400 21px/1.45 var(--serif); }
+  .card .a { font: 400 16px/1.6 var(--serif); }
+  .card .src { font: 12px/16px var(--mono); color: var(--t3); }
+  .flash { min-height: 300px; display: grid; align-content: center; gap: 16px; cursor: pointer; }
   .flash.back { align-content: start; }
-  .counter { font: 12px/1 var(--mono); color: var(--t3); font-variant-numeric: tabular-nums; }
   .rate { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .rate .btn { display: grid; gap: 2px; justify-items: center; padding: 8px; }
-  .rate small { color: var(--t3); font: 11px/1 var(--mono); }
+  .rate .btn { height: 52px; flex-direction: column; gap: 2px; }
+  .rate small { color: var(--t3); font: 12px/16px var(--mono); }
+
+  /* sorting sheet */
+  .sheet { display: grid; }
+  .sheet .srow { display: grid; grid-template-columns: 20px minmax(0, 1fr) 96px 180px; gap: 12px; align-items: center; padding: 12px 12px 12px 16px; }
+  .sheet .srow + .srow { border-top: 1px solid var(--line); }
+  .sheet .srow.skip { opacity: .55; }
+  .sheet .srow input[type=text] { width: 100%; height: 32px; }
+  .sheet .srow select { height: 32px; width: 100%; }
+  .sheet .why { grid-column: 2 / -1; color: var(--t3); font-size: 13px; margin-top: -4px; }
+  .sheet .srow input[type=checkbox] { accent-color: var(--accent); margin: 0; }
 
   /* markdown */
   .md { display: grid; gap: 8px; }
-  .md h1, .md h2, .md h3 { font-family: var(--serif); font-weight: 500; }
-  .md h3 { font-size: 15px; margin: 4px 0 0; }
+  .md h2, .md h3 { font-family: var(--serif); font-weight: 400; }
+  .md h2 { font-size: 20px; line-height: 28px; margin-top: 8px; } .md h3 { font-size: 17px; line-height: 24px; margin-top: 4px; }
   .md ul, .md ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
-  .md pre { margin: 0; background: var(--bg2); border: 1px solid var(--l1); border-radius: 8px; padding: 12px; overflow-x: auto; font: 13px/1.5 var(--mono); }
-  .md code { font: 13px/1.4 var(--mono); background: var(--bg2); padding: 1px 4px; border-radius: 4px; }
+  .md pre { margin: 0; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; font: 13px/20px var(--mono); }
+  .md code { font: 13px/20px var(--mono); background: var(--raised); padding: 1px 4px; border-radius: 4px; }
   .md pre code { background: none; padding: 0; }
 
   /* test */
-  .qhead { display: flex; justify-content: space-between; gap: 12px; color: var(--t3); font-size: 13px; font-variant-numeric: tabular-nums; }
+  .qhead { display: flex; justify-content: space-between; gap: 12px; color: var(--t3); font: 12px/16px var(--mono); font-variant-numeric: tabular-nums; }
   .opts { display: grid; gap: 8px; }
-  .opt { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; background: var(--bg); border: 1px solid var(--l1); border-radius: 8px; padding: 10px 12px; font: 16px/1.45 var(--serif); }
-  .opt input { margin: 3px 0 0; accent-color: var(--ink); }
-  .opt:has(input:checked) { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-  .opt.right { border-color: var(--ok); background: var(--okbg); }
-  .opt.wrong { border-color: var(--bad); background: var(--badbg); }
-  .blank { width: 9em; border: 0; border-bottom: 1.5px solid var(--l2); border-radius: 0; background: transparent; padding: 0 2px; font: inherit; }
+  .opt { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 10px; align-items: start; background: var(--card); border: 1px solid var(--line2); border-radius: 10px; padding: 10px 12px; font: 16px/1.45 var(--serif); cursor: pointer; }
+  .opt input { margin: 4px 0 0; accent-color: var(--accent); }
+  .opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .blank { width: 9em; border: 0 !important; border-bottom: 1.5px solid var(--line2) !important; border-radius: 0 !important; background: transparent !important; padding: 0 2px !important; height: auto !important; font: inherit; }
   .match { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: center; font: 16px/1.4 var(--serif); }
   .order { display: grid; gap: 6px; }
-  .order div { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; background: var(--bg); border: 1px solid var(--l1); border-radius: 8px; padding: 6px 6px 6px 12px; font: 16px/1.4 var(--serif); }
-  .timer { font: 500 14px/1 var(--mono); font-variant-numeric: tabular-nums; }
+  .order div { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px; align-items: center; background: var(--card); border: 1px solid var(--line2); border-radius: 10px; padding: 4px 4px 4px 12px; font: 16px/1.4 var(--serif); }
+  .timer { font: 500 14px/20px var(--mono); font-variant-numeric: tabular-nums; }
   .timer.low { color: var(--bad); }
   .qnav { display: flex; flex-wrap: wrap; gap: 4px; }
-  .qnav button { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--l1); background: var(--bg); font: 12px/1 var(--mono); }
-  .qnav button.ans { border-color: var(--t3); background: var(--l1); color: var(--t1); }
-  .qnav button[aria-current] { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
-
-  /* results */
+  .qnav button { width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); font: 12px/1 var(--mono); color: var(--t2); }
+  .qnav button.ans { background: var(--raised); border-color: var(--line2); color: var(--t1); }
+  .qnav button[aria-current] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); color: var(--t1); }
   .score { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
-  .score b { font: 500 40px/1 var(--serif); }
-  .item { display: grid; gap: 4px; padding: 12px 0; border-bottom: 1px solid var(--l1); }
-  .item:last-child { border-bottom: 0; }
-  .pts { font: 13px/1 var(--mono); font-variant-numeric: tabular-nums; }
+  .score b { font: 400 48px/1 var(--serif); }
+  .pts { font: 13px/20px var(--mono); font-variant-numeric: tabular-nums; color: var(--t2); }
   .pts.full { color: var(--ok); } .pts.zero { color: var(--bad); }
 
   /* mind map */
-  .tree { list-style: none; margin: 0; padding-left: 20px; border-left: 1px solid var(--l1); display: grid; gap: 4px; }
+  .tree { list-style: none; margin: 0; padding-left: 20px; border-left: 1px solid var(--line2); display: grid; gap: 2px; }
   .tree.root { border-left: 0; padding-left: 0; }
-  .tree summary { cursor: pointer; padding: 4px 0; font: 16px/1.4 var(--serif); list-style: none; }
+  .tree summary { cursor: pointer; padding: 4px 0; font: 16px/1.45 var(--serif); list-style: none; }
   .tree summary::-webkit-details-marker { display: none; }
   .tree summary::before { content: "+"; display: inline-block; width: 16px; color: var(--t3); font-family: var(--mono); }
   .tree details[open] > summary::before { content: "−"; }
-  .tree .leaf { padding: 4px 0 4px 16px; font: 15px/1.4 var(--serif); color: var(--t2); }
+  .tree .leaf { padding: 4px 0 4px 16px; font: 15px/1.45 var(--serif); color: var(--t2); }
 
-  .notice { border-radius: 8px; padding: 10px 12px; background: var(--warnbg); color: var(--warn); }
-  .toast { position: fixed; left: 50%; bottom: calc(16px + var(--bottom, 0px)); transform: translateX(-50%); background: var(--t1); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 13px; box-shadow: 0 4px 16px rgba(0,0,0,.2); z-index: 10; max-width: calc(100% - 32px); }
-  .report { display: grid; gap: 8px; }
+  .toast { position: fixed; left: 50%; bottom: calc(16px + var(--bottom, 0px)); transform: translateX(-50%); background: var(--t1); color: var(--card); padding: 8px 14px; border-radius: 8px; font-size: 13px; z-index: 10; max-width: calc(100% - 32px); }
+  .skeleton { display: grid; gap: 12px; }
+  .skeleton i { display: block; height: 16px; border-radius: 4px; background: var(--raised); }
 
-  @media (max-width: 600px) {
-    .bar { padding: 8px 12px; gap: 8px; } .brand span { display: none; }
-    main { padding: 16px 12px 24px; }
-    .card { padding: 20px 16px 20px 36px; } .card::before { left: 20px; }
-    .card .q { font-size: 18px; }
+  /* mobile: the sidebar becomes a top bar with section tabs */
+  @media (max-width: 760px) {
+    .shell { grid-template-columns: 1fr; }
+    aside { display: none; }
+    .mobile-only { display: flex; }
+    .icon-btn.mobile-only { display: grid; }
+    .top { padding: 0 16px; height: 52px; gap: 8px; }
+    .top .crumb { flex: 1; overflow: hidden; white-space: nowrap; }
+    .top .crumb > :not(.keep) { display: none; }
+    .top .spacer { display: none; }
+    .hide-sm { display: none; }
+    .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 0 12px 8px; flex: none; }
+    .tabs .nav { width: auto; flex: none; height: 32px; }
+    .progress { margin: 0 16px 8px; }
+    .scroll { padding: 8px 16px 32px; }
+    h1 { font-size: 28px; }
+    .cols { grid-template-columns: 1fr; }
+    .legend .lrow { grid-template-columns: minmax(0, 1fr) 72px 64px; }
+    .next { grid-template-columns: 1fr; }
+    .inbox { grid-template-columns: 1fr; }
+    .card { padding: 20px 16px 20px 40px; } .card::before { left: 24px; }
     .rate { grid-template-columns: repeat(2, 1fr); }
     .match { grid-template-columns: 1fr; }
+    .sheet .srow { grid-template-columns: 20px minmax(0, 1fr); }
+    .sheet .srow > :nth-child(3), .sheet .srow > :nth-child(4) { grid-column: 2; }
   }
 </style>
 </head>
 <body>
-<div class="app" id="app">
-  <header class="bar">
-    <div class="brand"><i aria-hidden="true"></i><span>Studying</span></div>
-    <nav id="nav" aria-label="Sections"></nav>
-    <button class="icon-btn" id="full" title="Full screen" aria-label="Full screen"></button>
-  </header>
-  <section class="progress" id="progress" hidden aria-live="polite"></section>
-  <main><div class="wrap" id="view"></div></main>
+<div class="shell">
+  <aside id="side" aria-label="Navigation"></aside>
+  <main>
+    <div class="top" id="top"></div>
+    <nav class="tabs mobile-only" id="tabs" aria-label="Sections"></nav>
+    <section class="progress" id="progress" hidden aria-live="polite"></section>
+    <div class="scroll" id="scroll"><div class="page" id="view"></div></div>
+  </main>
 </div>
 <div class="toast" id="toast" hidden role="status"></div>
 <script type="module">
@@ -228,49 +302,74 @@ const { App } = window.__mcpApps;
 
 // ---------- icons (lucide, 16px, 1.5 stroke) ----------
 const ICON = {
-  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  home: '<path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1z"/>',
+  layers: '<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+  inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+  book: '<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>',
+  check: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>',
+  chart: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+  note: '<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M9 13h6"/><path d="M9 17h4"/>',
+  plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
   file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
+  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  cards: '<rect x="3" y="6" width="15" height="13" rx="2"/><path d="M7 3h12a2 2 0 0 1 2 2v10"/>',
+  map: '<circle cx="12" cy="12" r="2"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="5" r="2"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M6.5 6.5l4 4M17.5 6.5l-4 4M6.5 17.5l4-4M17.5 17.5l-4-4"/>',
+  test: '<path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m9 14 2 2 4-4"/>',
   max: '<path d="M15 3h6v6"/><path d="M9 21H3v-6"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/>',
   min: '<path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/>',
-  up: '<path d="m18 15-6-6-6 6"/>', down: '<path d="m6 9 6 6 6-6"/>',
+  up: '<path d="m18 15-6-6-6 6"/>', down: '<path d="m6 9 6 6 6-6"/>', back: '<path d="m15 18-6-6 6-6"/>',
+  refresh: '<path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/>',
+  ext: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
 };
-const icon = (n) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+const icon = (n) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n] ?? ICON.file}</svg>`;
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const $ = (id) => document.getElementById(id);
+const arr = (x) => (Array.isArray(x) ? x : []);
+const num = (x) => (Number.isFinite(Number(x)) ? Number(x) : 0);
 const store = { get(k, d) { try { const v = localStorage.getItem('studying:' + k); return v ? JSON.parse(v) : d; } catch { return d; } },
                 set(k, v) { try { localStorage.setItem('studying:' + k, JSON.stringify(v)); } catch {} } };
 
 // ---------- state ----------
 const newSession = () => { const a = new Uint8Array(12); crypto.getRandomValues(a); return Array.from(a, (b) => b.toString(16).padStart(2, '0')).join(''); };
 const S = {
-  session: newSession(), view: 'home', display: 'inline', modes: ['inline'],
+  session: newSession(), view: 'subjects', display: 'inline', modes: ['inline'],
   setup: { step: 0, storage: store.get('storage', ''), status: null },
-  subjects: null, subject: store.get('subject', ''), part: '',
-  files: null, path: 'Studying', selected: new Map(),
-  deck: null, idx: 0, flipped: false, srs: {},
+  subjects: null,            // [{name, parts, examDate, readiness, due}]
+  data: {},                  // subject name -> index from Claude (guide "subject")
+  subject: store.get('subject', ''), loading: '',
+  selected: new Map(),       // file id -> name, for "make from these"
+  makePart: '', makePreset: '',
+  proposal: null,
+  files: null, path: 'Studying',
+  back: 'overview',          // where a viewer returns to
+  deck: null, idx: 0, flipped: false, srs: {}, order: [],
   test: null, answers: {}, touched: new Set(), q: 0, started: 0, submitted: false,
   results: null, mindmap: null, doc: null,
-  progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null, order: [],
+  progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null,
 };
-const VIEWS = [['home', 'Home'], ['files', 'Files'], ['create', 'Create'], ['study', 'Study'], ['test', 'Test'], ['results', 'Results']];
+const SECTIONS = [['overview', 'Overview', 'home'], ['materials', 'Materials', 'layers'], ['study', 'Study', 'cards'], ['practice', 'Practice', 'test'], ['results', 'Results', 'chart'], ['notes', 'Notes', 'note']];
+const VIEWERS = ['deck', 'mindmap', 'doc', 'test', 'result'];
+const SUBJECT_VIEWS = [...SECTIONS.map((s) => s[0]), 'make', 'sort', 'files', ...VIEWERS];
+const cur = () => S.data[S.subject] ?? null;
 
 // ---------- connection with Claude ----------
-const app = new App({ name: 'Studying', version: '0.1.0' }, { availableDisplayModes: ['inline', 'fullscreen'] });
+const app = new App({ name: 'Studying', version: '0.2.0' }, { availableDisplayModes: ['inline', 'fullscreen'] });
 function ask(text) {
   const msg = `Studying: ${text} (session: ${S.session})`;
   keepPolling(10 * 60_000);
   const fail = () => { S.pollUntil = 0; toast('Could not send to Claude. Type your request in the chat instead.'); };
   app.sendMessage({ role: 'user', content: [{ type: 'text', text: msg }] }).then((r) => { if (r?.isError) fail(); }, fail);
 }
-function link(url) { const fail = () => toast('Open ' + url); app.openLink({ url }).then((r) => { if (r?.isError) fail(); }, fail); }
+function link(url) { if (!url) return; const fail = () => toast('Open ' + url); app.openLink({ url }).then((r) => { if (r?.isError) fail(); }, fail); }
 async function callTool(name, args) {
   const r = await app.callServerTool({ name, arguments: args });
   return r?.structuredContent ?? (() => { try { return JSON.parse(r?.content?.[0]?.text ?? '{}'); } catch { return {}; } })();
 }
 
 // mailbox: poll only while Claude is working on something this window asked for.
-// pollUntil is pushed forward by a request (10 min), by live progress (3 min) and by each
-// result (90 s, since one job can push several results), and pulled in when a job ends.
+// pollUntil moves forward on a request (10 min), on live progress (3 min) and on each result
+// (90 s, since one job can push several results), and is pulled in when a job ends.
 let pollTimer = null, pulling = false;
 function keepPolling(ms) { S.pollUntil = Math.max(S.pollUntil, Date.now() + ms); startPolling(); }
 function startPolling() { if (!pollTimer) { pollTimer = setInterval(pull, 2500); pull(); } }
@@ -299,31 +398,49 @@ async function pull() {
 }
 document.addEventListener('visibilitychange', () => { if (!document.hidden && pollTimer) pull(); });
 
-const arr = (x) => (Array.isArray(x) ? x : []);
-let pendingSubject = '';
+function setSubjects(list) {
+  S.subjects = arr(list).filter((x) => x && x.name).map((x) => ({ ...x, name: String(x.name), parts: arr(x.parts).map((p) => (typeof p === 'string' ? p : p?.name)).filter(Boolean) }));
+}
+function normIndex(p) {
+  const part = (x) => ({ ...x, name: String(x?.name ?? ''), materials: arr(x?.materials), generated: arr(x?.generated), results: arr(x?.results) });
+  return { ...p, name: String(p.name), parts: arr(p.parts).map((x) => (typeof x === 'string' ? part({ name: x }) : part(x))).filter((x) => x.name),
+    shared: { materials: arr(p.shared?.materials), generated: arr(p.shared?.generated) }, inbox: arr(p.inbox),
+    memory: { summary: p.memory?.summary ?? '', weakTopics: arr(p.memory?.weakTopics), strengths: arr(p.memory?.strengths) } };
+}
 function receive(m) {
   const p = m.payload;
   switch (m.kind) {
-    case 'setup_status': S.setup.status = p; if (p?.ok) { S.setup.step = 3; if (p.storage) store.set('storage', p.storage); if (p.subjects) S.subjects = arr(p.subjects); } go('setup'); break;
-    case 'subjects': S.subjects = arr(Array.isArray(p) ? p : p?.subjects);
-      if (S.view === 'setup' && S.setup.step === 4 && S.subjects.length) { go(S.subjects.some((x) => x.name === S.subject) ? 'subject' : 'home'); break; }
-      if (S.view === 'home' && S.subjects.some((x) => x.name === S.subject) && pendingSubject === S.subject) { pendingSubject = ''; go('subject'); break; }
+    case 'setup_status': S.setup.status = p; if (p?.ok) { S.setup.step = 3; if (p.storage) store.set('storage', p.storage); if (p.subjects) setSubjects(p.subjects); } go('setup'); break;
+    case 'subjects': setSubjects(Array.isArray(p) ? p : p?.subjects);
+      if (S.view === 'setup' && S.setup.step === 4 && S.subjects.length) S.view = 'subjects';
       render(); break;
+    case 'subject': {
+      if (!p?.name) break;
+      const ix = normIndex(p);
+      S.data[ix.name] = ix;
+      if (p.subjects) setSubjects(p.subjects);
+      if (!S.subjects) S.subjects = [];
+      if (!S.subjects.some((x) => x.name === ix.name)) S.subjects.push({ name: ix.name, parts: ix.parts.map((x) => x.name), examDate: ix.examDate });
+      const entering = S.loading === ix.name || !S.subject || S.view === 'subjects' || S.view === 'setup';
+      if (entering) { S.subject = ix.name; store.set('subject', ix.name); S.loading = ''; if (!SUBJECT_VIEWS.includes(S.view) || S.view === 'sort') S.view = 'overview'; }
+      render(); break;
+    }
+    case 'proposal': S.proposal = { ...p, items: arr(p?.items).map((x) => ({ ...x, include: x.to !== 'skip' })) }; if (p?.subject) S.subject = p.subject; go('sort'); break;
     case 'files': S.files = { ...p, items: arr(p?.items) }; S.path = p?.path ?? S.path; go('files'); break;
     case 'deck': openDeck(p); break;
     case 'test': openTest(p); break;
-    case 'mindmap': S.mindmap = p; S.doc = null; S.deck = null; go('study'); break;
-    case 'document': case 'plan': S.doc = { title: m.title ?? p?.title ?? 'Document', markdown: p?.markdown ?? String(p ?? '') }; S.mindmap = null; S.deck = null; go('study'); break;
-    case 'results': S.results = { ...p, items: arr(p?.items), weakTopics: arr(p?.weakTopics) }; go('results'); break;
+    case 'mindmap': S.mindmap = p; go('mindmap'); break;
+    case 'document': case 'plan': S.doc = { title: m.title ?? p?.title ?? 'Document', markdown: p?.markdown ?? String(p ?? '') }; go('doc'); break;
+    case 'results': S.results = { ...p, items: arr(p?.items), weakTopics: arr(p?.weakTopics) }; go('result'); break;
     case 'notice': toast(p?.text ?? String(p ?? '')); break;
   }
 }
 
 // progress bar + estimate from the pace of the steps so far
 function onProgress(p) {
-  if (p.ts && p.ts === S.progressTs) return; // already seen
+  if (p.ts && p.ts === S.progressTs) return;
   S.progressTs = p.ts;
-  if ((p.done || p.error) && Date.now() - (p.ts ?? 0) > 60_000) return; // an old finished job
+  if ((p.done || p.error) && Date.now() - (p.ts ?? 0) > 60_000) return;
   const prev = S.progress;
   if (p.done || p.error) S.pollUntil = Math.min(S.pollUntil, Date.now() + 30_000); else keepPolling(180_000);
   if (!prev || prev.job !== p.job || p.step < prev.step) S.stepTimes = [{ step: p.step, t: Date.now() }];
@@ -341,7 +458,7 @@ function eta() {
   const first = S.stepTimes[0], last = S.stepTimes[S.stepTimes.length - 1];
   let per = store.get('stats', {}).perStep ?? 0;
   if (first && last && last.step > first.step) per = (last.t - first.t) / (last.step - first.step);
-  if (!per) return 'Estimating…';
+  if (!per) return 'Estimating';
   const left = Math.max(0, (p.total - p.step) * per - (Date.now() - (last?.t ?? Date.now())) * 0.5);
   const s = Math.round(left / 1000);
   return s < 60 ? `about ${Math.max(5, s)} s left` : `about ${Math.round(s / 60)} min left`;
@@ -350,9 +467,9 @@ function drawProgress() {
   const el = $('progress'), p = S.progress;
   el.hidden = !p;
   if (!p) return;
-  const pct = p.done ? 100 : Math.min(98, Math.round(((p.step) / p.total) * 100));
-  const steps = p.steps?.length ? `<div class="steps">${p.steps.map((s, i) => `<span class="${i < p.step ? 'done' : i === p.step ? 'now' : ''}">${i + 1}. ${esc(s)}</span>`).join('')}</div>` : '';
-  el.innerHTML = `<div class="row"><span class="job">${esc(p.job)}${p.label && !p.done ? ` · <span class="muted">${esc(p.label)}</span>` : ''}</span>
+  const pct = p.done ? 100 : Math.min(98, Math.round((p.step / p.total) * 100));
+  const steps = p.steps?.length ? `<div class="steps">${p.steps.map((s, i) => `<span class="${i < p.step || p.done ? 'done' : i === p.step ? 'now' : ''}">${i + 1}. ${esc(s)}</span>`).join('')}</div>` : '';
+  el.innerHTML = `<div class="row1"><span class="job">${esc(p.job)}${p.label && !p.done ? ` <span class="muted">· ${esc(p.label)}</span>` : ''}</span>
     <span class="eta">${p.error ? 'Stopped' : p.done ? 'Done' : esc(eta())}</span></div>
     <div class="track"><b style="width:${pct}%"></b></div>${steps}${p.error ? `<p class="notice">${esc(p.error)}</p>` : ''}`;
 }
@@ -362,16 +479,15 @@ setInterval(() => { if (S.progress && !S.progress.done) drawProgress(); }, 5000)
 let lastCtx = '', connected = false;
 function tellClaude() {
   const parts = [`The Studying window is open (session: ${S.session}). View: ${S.view}.`];
-  if (S.subject) parts.push(`Subject: ${S.subject}${S.part ? ', part: ' + S.part : ''}.`);
-  if (S.view === 'files') parts.push(`Folder: ${S.path}.`);
-  if (S.view === 'study' && S.deck) parts.push(`Flashcards "${S.deck.title}", card ${S.idx + 1}/${S.order.length}.`);
+  if (S.subject && SUBJECT_VIEWS.includes(S.view)) parts.push(`Subject: ${S.subject}.`);
+  if (S.view === 'deck' && S.deck) parts.push(`Flashcards "${S.deck.title}", card ${S.idx + 1}/${S.order.length}.`);
   if (S.view === 'test' && S.test) parts.push(`Test "${S.test.title}", question ${S.q + 1}/${S.test.questions.length}${S.submitted ? ', submitted' : ''}.`);
   const t = parts.join(' ');
   if (t === lastCtx || !connected) return;
   try { app.updateModelContext({ content: [{ type: 'text', text: t }] }).then((r) => { if (!r?.isError) lastCtx = t; }, () => {}); } catch {}
 }
 
-// ---------- rendering helpers ----------
+// ---------- helpers ----------
 let toastT = null;
 function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (el.hidden = true), 4000); }
 function md(src) {
@@ -392,19 +508,31 @@ function md(src) {
   close();
   return `<div class="md">${out}</div>`;
 }
-const fmtSize = (n) => !n ? '' : n < 1024 ? `${n} B` : n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`;
-const fmtDate = (d) => { const x = new Date(d); return isNaN(x) ? '' : x.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); };
 
+const fmtSize = (n) => { n = num(n); return !n ? '' : n < 1024 ? `${n} B` : n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`; };
+const fmtDate = (d) => { const x = new Date(d); return !d || isNaN(x) ? '' : x.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); };
+const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
+const daysTo = (d) => (d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null);
+const KIND_ICON = { deck: 'cards', mindmap: 'map', test: 'test', document: 'note', script: 'book', slides: 'file', 'past-exam': 'test', notes: 'note', assignment: 'check', image: 'file', other: 'file' };
+const groups = (ix) => [...ix.parts.map((p) => ({ key: p.name, title: p.name, ...p })), { key: '_shared', title: 'Whole subject', ...ix.shared }];
+function loadSubject(name, why = 'open') {
+  S.subject = name; store.set('subject', name); S.loading = name;
+  if (!SUBJECT_VIEWS.includes(S.view)) S.view = 'overview';
+  render();
+  ask(`load the subject "${name}" (guide: subject). Read or rebuild its subject.json and push it (kind subject)${why === 'refresh' ? '. Rebuild it from the folders, files may have changed' : ''}.`);
+}
+
+// ---------- shell ----------
 let lastView = '';
-function go(view) { S.view = view; render(); }
+function go(view) { S.view = view; render(); document.getElementById('scroll').scrollTop = 0; }
 function render() {
-  $('nav').innerHTML = VIEWS.map(([v, l]) => `<button data-v="${v}" ${S.view === v || (v === 'home' && S.view === 'subject') ? 'aria-current="page"' : ''}>${l}</button>`).join('');
+  drawSide(); drawTop();
   const full = S.display === 'fullscreen';
-  $('full').innerHTML = icon(full ? 'min' : 'max'); $('full').title = full ? 'Exit full screen' : 'Full screen';
-  $('full').hidden = !S.modes.includes('fullscreen');
   document.body.classList.toggle('full', full);
-  const v = { setup: viewSetup, home: viewHome, subject: viewSubject, files: viewFiles, create: viewCreate, study: viewStudy, test: viewTest, results: viewResults }[S.view] ?? viewHome;
-  // keep what the user typed in forms when the same view is drawn again (host resize, a push...)
+  const views = { setup: viewSetup, subjects: viewSubjects, overview: viewOverview, materials: viewMaterials, study: viewStudy, practice: viewPractice,
+    results: viewResults, notes: viewNotes, make: viewMake, sort: viewSort, files: viewFiles, deck: viewDeck, mindmap: viewMindmap, doc: viewDoc, test: viewTest, result: viewResult };
+  let v = views[S.view] ?? viewSubjects;
+  if (SUBJECT_VIEWS.includes(S.view) && !VIEWERS.includes(S.view) && S.view !== 'files' && !cur()) v = viewLoading;
   const keep = S.view === lastView ? [...$('view').querySelectorAll('form input, form textarea, form select')].filter((el) => el.id || el.name)
     .map((el) => ({ id: el.id, name: el.name, value: el.value, checked: el.checked, box: el.type === 'checkbox' || el.type === 'radio' })) : [];
   const openForm = S.view === lastView && $('new-subject') && !$('new-subject').hidden;
@@ -416,165 +544,326 @@ function render() {
     if (k.box) el.checked = k.checked; else el.value = k.value;
   }
   if (openForm && $('new-subject')) $('new-subject').hidden = false;
+  if (S.view !== lastView) $('view').style.animation = 'none', $('view').offsetHeight, $('view').style.animation = '';
   lastView = S.view;
   drawProgress();
   tellClaude();
 }
+function navBtn(view, label, ic, extra = '') {
+  const active = S.view === view || (view === 'practice' && ['test', 'result'].includes(S.view)) || (view === 'study' && ['deck', 'mindmap', 'doc'].includes(S.view)) || (view === 'materials' && ['sort', 'files'].includes(S.view));
+  return `<button class="nav" data-act="goto" data-v="${view}" ${active ? 'aria-current="page"' : ''}>${icon(ic)}<span class="lbl">${esc(label)}</span>${extra}</button>`;
+}
+function sectionNav() {
+  const ix = cur();
+  const inbox = ix?.inbox.length ?? 0;
+  const due = ix ? groups(ix).flatMap((g) => g.generated).reduce((a, x) => a + num(x.due), 0) : 0;
+  return SECTIONS.map(([v, l, ic]) => navBtn(v, l, ic,
+    v === 'materials' && inbox ? `<span class="count hot">${inbox} new</span>` : v === 'study' && due ? `<span class="count hot">${due} due</span>` : '')).join('');
+}
+function drawSide() {
+  const subj = S.subjects ?? [];
+  const inSubject = S.subject && SUBJECT_VIEWS.includes(S.view);
+  $('side').innerHTML = `<div class="brand"><span class="mark" aria-hidden="true"></span>Studying</div>
+    <div class="navlabel"><span>Subjects</span><button data-act="new-subject" title="Add subject" aria-label="Add subject">${icon('plus')}</button></div>
+    ${subj.map((s) => `<button class="nav" data-act="pick-subject" data-s="${esc(s.name)}" ${s.name === S.subject && inSubject ? 'aria-current="true"' : ''}>${icon('book')}<span class="lbl">${esc(s.name)}</span></button>`).join('')}
+    ${!subj.length ? `<button class="nav" data-act="goto" data-v="subjects">${icon('book')}<span class="lbl">All subjects</span></button>` : ''}
+    ${inSubject ? `<div class="navlabel"><span>${esc(S.subject)}</span></div>${sectionNav()}` : ''}
+    <div class="side-foot">
+      <button class="nav" data-act="go-setup">${icon('gear')}<span class="lbl">Setup</span></button>
+      ${S.modes.includes('fullscreen') ? `<button class="nav" data-act="full">${icon(S.display === 'fullscreen' ? 'min' : 'max')}<span class="lbl">${S.display === 'fullscreen' ? 'Exit full screen' : 'Full screen'}</span></button>` : ''}
+    </div>`;
+  $('tabs').innerHTML = inSubject ? sectionNav() : '';
+  $('tabs').hidden = !inSubject;
+}
+function drawTop() {
+  const inSubject = S.subject && SUBJECT_VIEWS.includes(S.view);
+  const title = { setup: 'Setup', subjects: 'Subjects' }[S.view];
+  const sec = SECTIONS.find((s) => s[0] === S.view)?.[1];
+  const sub = { make: 'Make', sort: 'Sorting', files: 'Folder', deck: 'Flashcards', mindmap: 'Mind map', doc: 'Notes', test: 'Test', result: 'Result' }[S.view];
+  const parent = { deck: 'study', mindmap: 'study', doc: S.back, test: 'practice', result: 'results', make: S.back, sort: 'materials', files: 'materials' }[S.view];
+  $('top').innerHTML = `<button class="mobile-only icon-btn" data-act="goto" data-v="subjects" aria-label="All subjects"><span class="mark" aria-hidden="true"></span></button>
+    <div class="crumb">${inSubject
+      ? `<button class="keep" data-act="goto" data-v="overview" style="overflow:hidden;text-overflow:ellipsis">${esc(S.subject)}</button>${sec && S.view !== 'overview' ? `<span aria-hidden="true">/</span><span>${sec}</span>` : ''}
+         ${sub ? `<span aria-hidden="true">/</span>${parent && parent !== 'overview' ? `<button data-act="goto" data-v="${parent}">${esc(SECTIONS.find((s) => s[0] === parent)?.[1] ?? '')}</button><span aria-hidden="true">/</span>` : ''}<span>${sub}</span>` : ''}`
+      : `<span class="keep">${esc(title ?? '')}</span>`}</div>
+    <span class="spacer"></span>
+    ${inSubject ? `<button class="btn sm" data-act="refresh" title="Read the subject again from your storage">${icon('refresh')}<span class="hide-sm">Refresh</span></button>
+      <button class="btn sm primary" data-act="make" data-p="">${icon('plus')}<span>Make</span></button>` : ''}
+    ${S.modes.includes('fullscreen') ? `<button class="icon-btn mobile-only" data-act="full" aria-label="Full screen">${icon(S.display === 'fullscreen' ? 'min' : 'max')}</button>` : ''}`;
+}
 
 // ---------- setup ----------
 const STORAGES = [
-  ['Google Drive', 'Your Google Drive. Files appear in a Studying folder you can also open in Drive.'],
-  ['MEGA', 'Your MEGA cloud drive, end-to-end encrypted.'],
-  ['Other', 'Another storage that has a Claude connector. Tell Claude which one.'],
+  ['Google Drive', 'Files appear in a Studying folder you can also open in Drive'],
+  ['MEGA', 'Your MEGA cloud drive, end-to-end encrypted'],
+  ['Other', 'Another storage that has a Claude connector'],
 ];
 function viewSetup() {
   const st = S.setup, names = ['Welcome', 'Storage', 'Connect', 'Workspace', 'First subject'];
-  const head = `<div class="stepper">${names.map((n, i) => `<span ${i === st.step ? 'aria-current="step"' : ''}>${i + 1}. ${n}</span>`).join('<span aria-hidden="true">·</span>')}</div>`;
-  if (st.step === 0) return `${head}<h1>Study anything with Claude</h1>
-    <p class="sub">Bring your course materials. Claude turns them into summaries, mind maps, flashcards and practice exams, grades your answers and remembers what you still need to work on. Everything is kept in your own cloud storage.</p>
+  const head = `<p class="meta">Step ${Math.min(st.step, 4) + 1} of 5 · ${names[Math.min(st.step, 4)]}</p>`;
+  if (st.step === 0) return `<div class="head">${head}<h1>One place for every subject you study</h1>
+    <p class="sub">Drop your course documents into a subject. Claude sorts them, turns them into summaries, flashcards and practice exams, grades your answers and remembers what you still need. Everything stays in your own cloud storage.</p></div>
     <div class="row"><button class="btn primary" data-act="setup-next">Get started</button></div>`;
-  if (st.step === 1) return `${head}<h1>Where should your things live?</h1>
-    <p class="sub">Studying keeps nothing on its own server. Pick the storage Claude should use.</p>
-    <div class="choice">${STORAGES.map(([n, d]) => `<button data-act="pick-storage" data-s="${esc(n)}" aria-pressed="${st.storage === n}"><b>${esc(n)}</b><span class="muted">${esc(d)}</span></button>`).join('')}</div>
+  if (st.step === 1) return `<div class="head">${head}<h1>Where should your things live</h1>
+    <p class="sub">Studying keeps nothing on its own server</p></div>
+    <div class="list panel tight">${STORAGES.map(([n, d]) => `<label class="item" style="cursor:pointer"><input type="radio" name="storage" data-act="pick-storage" data-s="${esc(n)}" ${st.storage === n ? 'checked' : ''}>
+      <span class="name"><b>${esc(n)}</b><small>${esc(d)}</small></span><span></span></label>`).join('')}</div>
     <div class="row"><button class="btn quiet" data-act="setup-back">Back</button><button class="btn primary" data-act="setup-next" ${st.storage ? '' : 'disabled'}>Continue</button></div>`;
   if (st.step === 2) {
     const s = st.status;
-    return `${head}<h1>Connect ${esc(st.storage)}</h1>
+    return `<div class="head">${head}<h1>Connect ${esc(st.storage)}</h1></div>
     <ol class="sub stack" style="padding-left:20px;margin:0">
-      <li>Open Claude's connectors and connect <strong>${esc(st.storage)}</strong>. You sign in with ${esc(st.storage === 'Other' ? 'that service' : st.storage)} there; Studying never sees your password.</li>
-      <li>Come back here and check the connection. Claude will create a <strong>Studying</strong> folder for you.</li>
+      <li>Open Claude's connectors and connect <strong>${esc(st.storage)}</strong>. You sign in there; Studying never sees your password</li>
+      <li>Come back and check the connection. Claude creates a <strong>Studying</strong> folder for you</li>
     </ol>
-    ${s && !s.ok ? `<p class="notice">Claude could not reach ${esc(st.storage)} yet${s.reason === 'not_connected' ? ': the connector is not connected in this chat' : ''}. Connect it, then check again.</p>` : ''}
-    <div class="row"><button class="btn quiet" data-act="setup-back">Back</button><button class="btn" data-act="open-connectors">Open connectors</button>
+    ${s && !s.ok ? `<p class="notice">Claude could not reach ${esc(st.storage)} yet. Connect it, then check again</p>` : ''}
+    <div class="row"><button class="btn quiet" data-act="setup-back">Back</button><button class="btn" data-act="open-connectors">${icon('ext')}Open connectors</button>
     <button class="btn primary" data-act="check-storage">Check connection</button></div>`;
   }
-  if (st.step === 3) return `${head}<h1>Your workspace is ready</h1>
-    <p class="sub">Claude created the <strong>Studying</strong> folder in ${esc(st.storage)}, with a place for general rules and one folder per subject.</p>
+  if (st.step === 3) return `<div class="head">${head}<h1>Your workspace is ready</h1>
+    <p class="sub">Claude created the Studying folder in ${esc(st.storage)}, with a place for your rules and one folder per subject</p></div>
     <div class="row"><button class="btn primary" data-act="setup-next">Add your first subject</button></div>`;
-  return `${head}<h1>Add a subject</h1>${subjectForm()}`;
+  return `<div class="head">${head}<h1>Add a subject</h1></div>${subjectForm()}`;
 }
 function subjectForm() {
   return `<form class="panel" id="subject-form">
     <div class="grid2">
-      <label class="field">Subject name<input type="text" id="f-name" required placeholder="Software Design"></label>
+      <label class="field">Subject<input type="text" id="f-name" required placeholder="Software Design"></label>
       <label class="field">Exam date<input type="date" id="f-date"></label>
     </div>
-    <label class="field">Exam parts, comma separated<input type="text" id="f-parts" value="Oral, Written, Project"></label>
-    <label class="field">How is it graded? Anything Claude should know<textarea id="f-notes" placeholder="Two tests of 15 and 10 points; 16 points in total to pass. Paper exam, no notes."></textarea></label>
+    <label class="field">Exam parts, comma separated<input type="text" id="f-parts" placeholder="Oral 1, Oral 2, Project"></label>
+    <label class="field">How is it graded<textarea id="f-notes" placeholder="Two tests of 15 and 10 points and a project of 7; 15 points in total to pass"></textarea></label>
     <div class="row"><button class="btn primary" type="submit">Create subject</button></div>
   </form>`;
 }
 
-// ---------- home ----------
-function viewHome() {
-  if (S.subjects === null) return `<h1>Studying</h1>
-    <div class="panel"><p class="sub">Ask Claude to load your subjects from your storage, or set up Studying if this is your first time.</p>
-    <div class="row"><button class="btn primary" data-act="load-subjects">Load my subjects</button><button class="btn" data-act="go-setup">First-time setup</button></div></div>`;
-  const list = S.subjects.length ? `<div class="subjects">${S.subjects.map((s) => {
-    const days = s.examDate ? Math.ceil((new Date(s.examDate) - new Date()) / 86400000) : null;
-    const ready = Number(s.readiness ?? 0);
-    return `<button class="subject" data-act="pick-subject" data-s="${esc(s.name)}"><span class="name">${esc(s.name)}</span>
-      <span class="meta">${esc(arr(s.parts).join(' · '))}${days !== null ? ` · ${days >= 0 ? days + ' days to exam' : 'exam passed'}` : ''}</span>
-      <span class="ready" title="Readiness ${ready}%"><b style="width:${Math.max(0, Math.min(100, ready))}%"></b></span>
-      ${Number(s.due) > 0 ? `<span class="meta">${Number(s.due)} cards due today</span>` : ''}</button>`;
-  }).join('')}</div>` : `<div class="empty"><p>No subjects yet.</p></div>`;
-  return `<div class="row between"><h1>Your subjects</h1><button class="btn" data-act="new-subject">Add subject</button></div>${list}
+// ---------- subjects ----------
+function viewSubjects() {
+  if (S.subjects === null) return `<div class="head"><h1>Your subjects</h1><p class="sub">Load them from your storage, or set Studying up if this is your first time</p></div>
+    <div class="row"><button class="btn primary" data-act="load-subjects">Load my subjects</button><button class="btn" data-act="go-setup">First-time setup</button></div>
+    <div id="new-subject" hidden>${subjectForm()}</div>`;
+  return `<div class="row between"><h1>Your subjects</h1><button class="btn" data-act="new-subject">${icon('plus')}Add subject</button></div>
+    ${S.subjects.length ? `<div class="subjects">${S.subjects.map((s) => {
+      const d = daysTo(s.examDate);
+      return `<button class="subject" data-act="pick-subject" data-s="${esc(s.name)}"><span class="name">${esc(s.name)}</span>
+        <span class="muted">${esc(arr(s.parts).join(' · '))}</span>
+        <span class="meta">${d === null ? 'Exam date not set' : d >= 0 ? `${d} days to exam` : 'Exam passed'}${num(s.due) ? ` · ${num(s.due)} cards due` : ''}</span></button>`;
+    }).join('')}</div>` : `<div class="empty"><p>No subjects yet</p></div>`}
     <div id="new-subject" hidden>${subjectForm()}</div>`;
 }
-
-// ---------- one subject ----------
-function viewSubject() {
-  const s = (S.subjects ?? []).find((x) => x.name === S.subject);
-  if (!s) return viewHome();
-  const days = s.examDate ? Math.ceil((new Date(s.examDate) - new Date()) / 86400000) : null;
-  const parts = arr(s.parts);
-  return `<div class="crumbs"><button data-act="goto" data-v="home">Your subjects</button><span aria-hidden="true">/</span><span>${esc(s.name)}</span></div>
-    <div class="row between"><h1>${esc(s.name)}</h1>
-      <span class="muted">${days !== null ? (days >= 0 ? `${days} days to exam` : 'Exam passed') : 'Exam date not set'}</span></div>
-    <div class="row"><button class="btn primary" data-act="next-step">What should I do next</button>
-      <button class="btn" data-act="due-cards">Review due cards</button>
-      <button class="btn" data-act="mock-exam">Mock exam</button>
-      <button class="btn quiet" data-act="browse-subject">Open folder</button></div>
-    <div class="subjects">${parts.map((p) => `<div class="subject"><span class="name">${esc(p)}</span>
-      <div class="row"><button class="btn" data-act="part-files" data-p="${esc(p)}">Materials</button>
-      <button class="btn" data-act="part-generated" data-p="${esc(p)}">Generated</button>
-      <button class="btn primary" data-act="part-create" data-p="${esc(p)}">Create</button></div></div>`).join('')}</div>
-    ${parts.length ? '' : '<p class="muted">This subject has no parts yet.</p>'}
-    <p class="muted">Put your materials (scripts, slides, past exam questions) in each part's materials folder in your storage, or attach them in the chat and tell Claude which part they belong to.</p>`;
+function viewLoading() {
+  return `<div class="head"><h1>${esc(S.subject || 'Subject')}</h1><p class="sub">${S.loading ? 'Claude is reading this subject from your storage' : 'Not loaded yet'}</p></div>
+    <div class="panel skeleton"><i style="width:40%"></i><i style="width:90%"></i><i style="width:70%"></i></div>
+    ${S.loading ? '' : `<div class="row"><button class="btn primary" data-act="refresh">Load ${esc(S.subject)}</button></div>`}`;
 }
 
-// ---------- files ----------
-function viewFiles() {
-  const parts = S.path.split('/').filter(Boolean);
-  const crumbs = `<div class="crumbs">${parts.map((p, i) => `${i ? '<span aria-hidden="true">/</span>' : ''}<button data-act="crumb" data-p="${esc(parts.slice(0, i + 1).join('/'))}">${esc(p)}</button>`).join('')}</div>`;
-  const items = S.files?.items;
-  const body = !items ? `<div class="empty"><p>Ask Claude to list this folder.</p><button class="btn primary" data-act="list" data-p="${esc(S.path)}">List files</button></div>`
-    : !items.length ? `<div class="empty"><p>This folder is empty. Add files to it in your storage, or attach them in the chat and ask Claude to save them here.</p></div>`
-    : items.map((f) => {
-      const p = `${S.path}/${f.name}`, sel = S.selected.has(p);
-      return `<div class="file">${f.type === 'folder' ? '<span></span>' : `<input type="checkbox" data-act="select" data-p="${esc(p)}" data-id="${esc(f.id ?? '')}" ${sel ? 'checked' : ''} aria-label="Select ${esc(f.name)}">`}
-        <span class="muted">${icon(f.type === 'folder' ? 'folder' : 'file')}</span>
-        <button class="n" data-act="${f.type === 'folder' ? 'list' : 'open-file'}" data-p="${esc(p)}" data-id="${esc(f.id ?? '')}" data-name="${esc(f.name)}">${esc(f.name)}</button>
-        <span class="m">${esc(fmtSize(f.size))} ${esc(fmtDate(f.modified))}</span></div>`;
-    }).join('');
-  return `<div class="row between"><h1>Files</h1><div class="row">
-      ${S.selected.size ? `<span class="muted">${S.selected.size} selected</span><button class="btn primary" data-act="use-selected">Create from selected</button>` : ''}
-      <button class="btn quiet" data-act="list" data-p="${esc(S.path)}">Refresh</button></div></div>
-    ${crumbs}<div class="files">${body}</div>
-    <p class="muted">To add materials, put them in this folder in your storage, or attach them in the chat and say where to save them.</p>`;
+// ---------- overview ----------
+function pointsTrack(ix) {
+  const parts = ix.parts.filter((p) => num(p.points) > 0);
+  const total = num(ix.totalPoints) || parts.reduce((a, p) => a + num(p.points), 0);
+  if (!total) return '';
+  const best = parts.reduce((a, p) => a + Math.min(num(p.best), num(p.points)), 0);
+  const pass = num(ix.passPoints);
+  const has = parts.some((p) => p.best !== null && p.best !== undefined);
+  return `<section class="panel points">
+    <div class="row between"><h2>Points toward passing</h2><span class="meta">${pass ? `${pass} of ${total} to pass` : `${total} points`}</span></div>
+    <div class="big"><b>${has ? best : 0}</b><span class="muted">of ${total} from your best practice scores${pass && has ? ` · ${best >= pass ? 'above' : `${pass - best} below`} the pass line` : ''}</span></div>
+    <div class="bar">
+      ${parts.map((p) => { const w = (num(p.points) / total) * 100, f = Math.min(1, num(p.best) / num(p.points)) * 100;
+        return `<div class="seg ${f >= 55 ? 'lit' : ''}" style="width:calc(${w}% - 3px)" title="${esc(p.name)}: ${num(p.best)} of ${num(p.points)}">${f ? `<b style="width:${f}%"></b>` : ''}<span>${esc(p.name)}</span></div>`; }).join('')}
+      ${pass ? `<div class="passline" style="left:calc(${(pass / total) * 100}% - 1px)"><i>${pass} to pass</i></div>` : ''}
+    </div>
+    <div class="legend">${parts.map((p) => `<div class="lrow"><span>${esc(p.name)}</span><span class="num">${p.best == null ? '—' : num(p.best)} / ${num(p.points)}</span><span class="num">${num(p.readiness)}%<span class="hide-sm"> ready</span></span></div>`).join('')}</div>
+    ${has ? '' : '<p class="muted">Practice tests fill this in as you take them</p>'}
+  </section>`;
+}
+const NEXT_ACT = { sort: ['Sort the inbox', 'sort'], make: ['Make study material', 'make'], review: ['Review due cards', 'due-cards'], test: ['Take a practice test', 'mock-exam'], read: ['Open notes', 'next-step'] };
+function viewOverview() {
+  const ix = cur(), d = daysTo(ix.examDate);
+  const counts = groups(ix).map((g) => ({ title: g.title, m: g.materials.length, g: g.generated.length }));
+  const recent = groups(ix).flatMap((g) => g.generated.map((x) => ({ ...x, part: g.title }))).slice(-5).reverse();
+  const nx = ix.nextStep?.text ? ix.nextStep : ix.inbox.length ? { text: `${plural(ix.inbox.length, 'document is', 'documents are')} waiting in the inbox. Let Claude read and sort them`, action: 'sort' }
+    : counts.every((c) => !c.m) ? { text: 'Drop your course documents into the inbox. Claude reads them and files each one where it belongs', action: 'add' } : null;
+  const [label, act] = nx?.action === 'add' ? ['Open the inbox', 'open-inbox'] : NEXT_ACT[nx?.action] ?? ['Ask Claude what to do next', 'next-step'];
+  return `<div class="head"><h1>${esc(ix.name)}</h1>
+      <p class="meta">${d === null ? 'Exam date not set' : d >= 0 ? `${d} days to exam` : 'Exam passed'} · ${plural(ix.parts.length, 'part', 'parts')}${ix.totalPoints ? ` · ${num(ix.totalPoints)} points` : ''}</p></div>
+    ${nx ? `<section class="panel next"><div class="stack" style="gap:6px"><span class="meta">Next step</span><p>${esc(nx.text)}</p></div>
+      <button class="btn primary" data-act="${act}">${label}</button></section>` : ''}
+    ${pointsTrack(ix)}
+    <div class="cols">
+      <section class="panel"><div class="row between"><h2>Materials</h2><button class="btn sm quiet" data-act="goto" data-v="materials">Open</button></div>
+        <div class="legend">
+          <div class="lrow"><span>Inbox</span><span class="num">${ix.inbox.length ? `${ix.inbox.length} new` : 'empty'}</span><span class="num"></span></div>
+          ${counts.map((c) => `<div class="lrow"><span>${esc(c.title)}</span><span class="num">${plural(c.m, 'file', 'files')}</span><span class="num">${c.g} made</span></div>`).join('')}
+        </div></section>
+      <section class="panel"><div class="row between"><h2>Made for you</h2><button class="btn sm quiet" data-act="goto" data-v="study">Open</button></div>
+        ${recent.length ? `<div class="list">${recent.map(genRow).join('')}</div>` : '<p class="muted">Nothing yet. Make flashcards, a summary or a practice test from your materials</p>'}</section>
+    </div>
+    <form class="panel" id="ask-form"><label class="field">Ask about ${esc(ix.name)}<input type="text" id="ask-q" placeholder="What does the exam usually ask about system operations"></label>
+      <p class="muted">Claude searches every part of this subject, starting where the question belongs</p></form>`;
 }
 
-// ---------- create ----------
+// ---------- materials ----------
+function fileRow(f, selectable = true) {
+  const sel = S.selected.has(f.id);
+  return `<div class="item ${selectable ? 'sel' : ''}">${selectable ? `<input type="checkbox" data-act="select" data-id="${esc(f.id)}" data-n="${esc(f.name)}" ${sel ? 'checked' : ''} aria-label="Select ${esc(f.name)}">` : ''}
+    <span class="ic">${icon(KIND_ICON[f.kind] ?? 'file')}</span>
+    <button class="name" data-act="open-file" data-id="${esc(f.id)}" data-n="${esc(f.name)}"><b>${esc(f.name)}</b>${f.note ? `<small>${esc(f.note)}</small>` : ''}</button>
+    <span class="side"><span class="tag">${esc(f.kind ?? '')}</span><span class="meta">${esc(fmtSize(f.size))}</span></span></div>`;
+}
+function viewMaterials() {
+  const ix = cur(), n = ix.inbox.length;
+  return `<div class="head"><h1>Materials</h1><p class="sub">Everything for ${esc(ix.name)}, sorted by exam part</p></div>
+    <section class="inbox ${n ? 'full' : ''}">
+      <div class="stack" style="gap:6px">${n ? `<span class="count">${n}</span><p>${plural(n, 'new document', 'new documents')} in the inbox. Claude reads each one, proposes a name and where it belongs, and moves them once you approve</p>`
+        : `<h2>Inbox</h2><p class="sub">Drop every document for this subject here: scripts, slides, old exams, photos of notes. You do not have to sort anything</p>`}</div>
+      <div class="row">${n ? `<button class="btn primary" data-act="sort">Sort with Claude</button>` : ''}
+        ${ix.inboxUrl ? `<button class="btn" data-act="open-inbox">${icon('ext')}Open inbox in storage</button>` : ''}
+        ${n ? '' : `<button class="btn quiet" data-act="refresh">Check again</button>`}</div>
+    </section>
+    ${n ? `<div class="panel tight list">${ix.inbox.map((f) => fileRow(f, false)).join('')}</div>` : '<p class="muted">You can also attach files in the chat and say "put these in the inbox"</p>'}
+    ${groups(ix).map((g) => `<section class="section">
+      <div class="group-h"><h2>${esc(g.title)}</h2><span class="meta">${plural(g.materials.length, 'file', 'files')}${g.points ? ` · ${num(g.points)} points` : ''}</span></div>
+      ${g.materials.length ? `<div class="panel tight list">${g.materials.map((f) => fileRow(f)).join('')}</div>` : `<p class="muted" style="padding:0 4px">Nothing here yet</p>`}
+    </section>`).join('')}
+    ${S.selected.size ? `<div class="selbar"><span>${plural(S.selected.size, 'file', 'files')} selected</span><div class="row">
+      <button class="btn quiet" data-act="clear-sel">Clear</button><button class="btn primary" data-act="make" data-p="">Make from these</button></div></div>` : ''}`;
+}
+
+// ---------- study ----------
+function genRow(x) {
+  return `<div class="item"><span class="ic">${icon(KIND_ICON[x.kind] ?? 'note')}</span>
+    <button class="name" data-act="open-file" data-id="${esc(x.id)}" data-n="${esc(x.name)}"><b>${esc(x.name)}</b><small>${esc(x.part ?? '')}${x.part && x.kind ? ' · ' : ''}${esc(x.kind ?? '')}</small></button>
+    <span class="side">${num(x.due) ? `<span class="tag" style="color:var(--accent)">${num(x.due)} due</span>` : ''}${x.count ? `<span class="meta">${num(x.count)}</span>` : ''}</span></div>`;
+}
+function viewStudy() {
+  const ix = cur(), due = groups(ix).flatMap((g) => g.generated).reduce((a, x) => a + num(x.due), 0);
+  const gs = groups(ix).map((g) => ({ ...g, items: g.generated.filter((x) => x.kind !== 'test') }));
+  return `<div class="row between"><div class="head"><h1>Study</h1><p class="sub">Flashcards, mind maps and notes Claude made from your materials</p></div>
+      ${due ? `<button class="btn primary" data-act="due-cards">Review ${plural(due, 'due card', 'due cards')}</button>` : ''}</div>
+    ${gs.map((g) => `<section class="section"><div class="group-h"><h2>${esc(g.title)}</h2><button class="btn sm quiet" data-act="make" data-p="${esc(g.key)}">${icon('plus')}Make</button></div>
+      ${g.items.length ? `<div class="panel tight list">${g.items.map(genRow).join('')}</div>` : `<p class="muted" style="padding:0 4px">${g.materials.length ? 'Materials are here but nothing is made yet' : 'Add materials first'}</p>`}</section>`).join('')}`;
+}
+
+// ---------- practice ----------
+function viewPractice() {
+  const ix = cur();
+  return `<div class="head"><h1>Practice</h1><p class="sub">Tests in the format of the real exam, graded by Claude</p></div>
+    ${ix.parts.map((p) => { const tests = p.generated.filter((x) => x.kind === 'test');
+      return `<section class="section"><div class="group-h"><h2>${esc(p.name)}</h2><span class="meta">${p.format ? esc(p.format) : ''}${p.points ? ` · ${num(p.points)} points` : ''}</span></div>
+        <div class="panel"><div class="row between"><p class="sub">${tests.length ? plural(tests.length, 'test', 'tests') + ' ready' : 'No tests yet'}${p.best != null ? ` · best ${num(p.best)} of ${num(p.points)}` : ''}</p>
+          <div class="row"><button class="btn" data-act="make-test" data-p="${esc(p.name)}">Custom test</button><button class="btn primary" data-act="mock-exam" data-p="${esc(p.name)}">Mock exam</button></div></div>
+          ${tests.length ? `<div class="list">${tests.map(genRow).join('')}</div>` : ''}</div></section>`; }).join('')}`;
+}
+
+// ---------- results ----------
+function viewResults() {
+  const ix = cur();
+  const rows = ix.parts.flatMap((p) => p.results.map((r) => ({ ...r, part: p.name }))).sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  return `<div class="head"><h1>Results</h1><p class="sub">Every graded test, newest first</p></div>
+    ${rows.length ? `<div class="panel tight list">${rows.map((r) => `<div class="item"><span class="ic">${icon('test')}</span>
+      <button class="name" data-act="open-file" data-id="${esc(r.id)}" data-n="${esc(r.name)}"><b>${esc(r.name)}</b><small>${esc(r.part)} · ${esc(fmtDate(r.date))}</small></button>
+      <span class="pts ${num(r.score) >= num(r.total) ? 'full' : ''}">${num(r.score)} / ${num(r.total)}</span></div>`).join('')}</div>`
+      : '<div class="empty"><p>No graded tests yet</p><button class="btn" data-act="goto" data-v="practice">Go to practice</button></div>'}
+    ${ix.memory.weakTopics.length ? `<section class="panel"><h2>Work on these</h2><div class="chips">${ix.memory.weakTopics.map((t) => `<span class="chip">${esc(t)}</span>`).join('')}</div>
+      <div class="row"><button class="btn primary" data-act="weak">Practise weak topics</button></div></section>` : ''}`;
+}
+
+// ---------- notes ----------
+function viewNotes() {
+  const ix = cur(), m = ix.memory;
+  return `<div class="head"><h1>Notes</h1><p class="sub">What Claude knows about this subject and about how you are doing</p></div>
+    <section class="panel"><h2>Summary</h2><p class="sub">${esc(m.summary || 'Nothing yet. This fills in as you study and take tests')}</p></section>
+    <div class="cols">
+      <section class="panel"><h2>Strong</h2>${m.strengths.length ? `<ul class="sub" style="margin:0;padding-left:20px">${m.strengths.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="muted">Not known yet</p>'}</section>
+      <section class="panel"><h2>Weak</h2>${m.weakTopics.length ? `<ul class="sub" style="margin:0;padding-left:20px">${m.weakTopics.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="muted">Not known yet</p>'}</section>
+    </div>
+    <section class="panel"><h2>Exam parts</h2><div class="legend">${ix.parts.map((p) => `<div class="lrow"><span>${esc(p.name)}<span class="muted">${p.format ? ` · ${esc(p.format)}` : ''}</span></span><span class="num">${num(p.points) || ''}${p.points ? ' pts' : ''}</span><span class="num"></span></div>`).join('')}</div>
+      ${ix.passPoints ? `<p class="muted">${num(ix.passPoints)} points to pass</p>` : ''}</section>
+    <form class="panel" id="tell-form"><label class="field">Tell Claude something about this subject<textarea id="tell-t" placeholder="The professor said the second test is code on paper, about 4 tasks"></textarea></label>
+      <div class="row"><button class="btn" type="submit">Save to notes</button></div></form>`;
+}
+
+// ---------- make ----------
 const OUTPUTS = ['Summary', 'Mind map', 'Flashcards', 'Quiz', 'Practice test', 'Practice tasks', 'Study plan', 'Cheat sheet', 'Glossary', 'Past-exam analysis'];
-const QTYPES = [['single', 'Single choice'], ['multiple', 'Multiple choice'], ['truefalse', 'True / false'], ['fill', 'Fill in the blank'], ['matching', 'Matching'], ['ordering', 'Ordering'], ['open', 'Open answer'], ['practical', 'Practical task'], ['code', 'Code']];
-function viewCreate() {
-  const c = store.get('create', { outputs: ['Flashcards', 'Quiz'], types: ['single', 'multiple', 'fill', 'open'], count: 15, difficulty: 'Mixed', time: 60, points: 15, review: true });
-  const sel = [...S.selected.keys()];
-  return `<h1>Create study material</h1>
-  <form class="stack" id="create-form">
-    <div class="panel"><h2>From</h2>
-      <div class="grid2">
-        <label class="field">Subject<input type="text" id="c-subject" value="${esc(S.subject)}" placeholder="Subject name"></label>
-        <label class="field">Part<input type="text" id="c-part" value="${esc(S.part)}" placeholder="Oral"></label>
-      </div>
-      <div class="chips"><label class="chip"><input type="radio" name="scope" value="all" ${sel.length ? '' : 'checked'}> All materials of this part</label>
-        <label class="chip"><input type="radio" name="scope" value="selected" ${sel.length ? 'checked' : ''}> Selected files (${sel.length})</label></div>
-      ${sel.length ? `<p class="muted">${sel.map((p) => esc(p.split('/').pop())).join(', ')}</p>` : `<p class="muted">Select files in Files to use only some of them.</p>`}
-      <label class="field">Only these chapters, pages or topics (optional)<input type="text" id="c-focus" placeholder="pages 6–74, 84–91"></label>
-    </div>
-    <div class="panel"><h2>Make</h2>
-      <div class="chips">${OUTPUTS.map((o) => `<label class="chip"><input type="checkbox" name="out" value="${esc(o)}" ${c.outputs.includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div>
-    </div>
-    <div class="panel"><h2>Questions for quizzes and tests</h2>
+const QTYPES = [['single', 'Single choice'], ['multiple', 'Multiple choice'], ['truefalse', 'True or false'], ['fill', 'Fill in the blank'], ['matching', 'Matching'], ['ordering', 'Ordering'], ['open', 'Open answer'], ['practical', 'Practical task'], ['code', 'Code']];
+function viewMake() {
+  const ix = cur();
+  const c = store.get('create', { outputs: ['Summary', 'Flashcards'], types: ['single', 'multiple', 'fill', 'open'], count: 15, difficulty: 'Like the real exam', time: 45, points: 15, review: true });
+  const outs = S.makePreset === 'test' ? ['Practice test'] : c.outputs;
+  const part = S.makePart, sel = [...S.selected.entries()];
+  return `<div class="head"><h1>Make study material</h1><p class="sub">Claude reads the materials, makes what you pick, checks it with a second reviewer and saves it to your storage</p></div>
+  <form class="stack" id="make-form" style="gap:16px">
+    <section class="panel"><h2>From</h2>
+      <label class="field">Part<select id="m-part"><option value="">All of ${esc(ix.name)}</option>${ix.parts.map((p) => `<option ${p.name === part ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
+      ${sel.length ? `<label class="chip" style="justify-self:start"><input type="checkbox" id="m-only" checked> Only the ${plural(sel.length, 'selected file', 'selected files')}: ${esc(sel.map(([, n]) => n).join(', '))}</label>` : ''}
+      <label class="field">Only these chapters, pages or topics<input type="text" id="m-focus" placeholder="Optional, for example pages 6 to 74"></label>
+    </section>
+    <section class="panel"><h2>Make</h2>
+      <div class="chips">${OUTPUTS.map((o) => `<label class="chip"><input type="checkbox" name="out" value="${esc(o)}" ${outs.includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div>
+    </section>
+    <section class="panel"><div class="row between"><h2>Questions</h2><span class="muted">For quizzes and tests</span></div>
       <div class="chips">${QTYPES.map(([k, l]) => `<label class="chip"><input type="checkbox" name="qt" value="${k}" ${c.types.includes(k) ? 'checked' : ''}> ${l}</label>`).join('')}</div>
       <div class="grid2">
-        <label class="field">Number of questions<input type="number" id="c-count" min="1" max="100" value="${c.count}"></label>
-        <label class="field">Difficulty<select id="c-diff">${['Easy', 'Mixed', 'Hard', 'Like the real exam'].map((d) => `<option ${c.difficulty === d ? 'selected' : ''}>${d}</option>`).join('')}</select></label>
-        <label class="field">Time limit, minutes<input type="number" id="c-time" min="0" max="300" value="${c.time}"></label>
-        <label class="field">Total points<input type="number" id="c-points" min="0" max="1000" value="${c.points}"></label>
+        <label class="field">Questions<input type="number" id="m-count" min="1" max="100" value="${num(c.count)}"></label>
+        <label class="field">Difficulty<select id="m-diff">${['Easy', 'Mixed', 'Hard', 'Like the real exam'].map((d) => `<option ${c.difficulty === d ? 'selected' : ''}>${d}</option>`).join('')}</select></label>
+        <label class="field">Minutes<input type="number" id="m-time" min="0" max="300" value="${num(c.time)}"></label>
+        <label class="field">Points<input type="number" id="m-points" min="0" max="1000" value="${num(c.points)}"></label>
       </div>
-    </div>
-    <div class="panel"><label class="chip" style="justify-self:start"><input type="checkbox" id="c-review" ${c.review ? 'checked' : ''}> Have it checked by a second reviewer before I see it</label>
-      <label class="field">Anything else for Claude (optional)<textarea id="c-note" placeholder="Make the cards answer the whole exam question, with the official definitions."></textarea></label>
-      <div class="row"><button class="btn primary" type="submit">Create</button></div></div>
+    </section>
+    <section class="panel">
+      <label class="chip" style="justify-self:start"><input type="checkbox" id="m-review" ${c.review ? 'checked' : ''}> Check with a second reviewer before I see it</label>
+      <label class="field">Anything else for Claude<textarea id="m-note" placeholder="Optional, for example: answer each exam question in full, with the definitions from the script"></textarea></label>
+      <div class="row"><button class="btn primary" type="submit">Make it</button><button class="btn quiet" type="button" data-act="goto" data-v="${esc(S.back)}">Cancel</button></div>
+    </section>
   </form>`;
 }
 
-// ---------- study: flashcards, mind map, documents ----------
-function openDeck(d) {
-  S.deck = d && Array.isArray(d.cards) ? { ...d, cards: d.cards.filter((c) => c && typeof c === 'object') } : null; S.order = (S.deck?.cards ?? []).map((_, i) => i); S.mindmap = null; S.doc = null; S.idx = 0; S.flipped = false;
-  S.srs = store.get('srs:' + (d?.title ?? ''), {});
-  go('study');
+// ---------- sorting proposal ----------
+function viewSort() {
+  const p = S.proposal, ix = cur();
+  if (!p) return `<div class="head"><h1>Sorting</h1><p class="sub">No proposal yet</p></div><div class="row"><button class="btn primary" data-act="sort">Sort the inbox</button></div>`;
+  const dests = [...(ix?.parts ?? []).map((x) => [x.name, x.name]), ['_shared', 'Whole subject'], ['skip', 'Leave in inbox']];
+  const on = p.items.filter((x) => x.include && x.to !== 'skip').length;
+  return `<div class="head"><h1>Where your documents go</h1><p class="sub">${esc(p.summary ?? '')}</p></div>
+    <section class="card sheet" style="padding:8px 8px 8px 44px">
+      ${p.items.map((x, i) => `<div class="srow ${x.include && x.to !== 'skip' ? '' : 'skip'}">
+        <input type="checkbox" data-act="prop-inc" data-i="${i}" ${x.include ? 'checked' : ''} aria-label="Include ${esc(x.name)}">
+        <div class="stack" style="gap:2px;min-width:0"><span class="meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.name)}</span>
+          <input type="text" data-act="prop-name" data-i="${i}" value="${esc(x.newName ?? x.name)}" aria-label="New name"></div>
+        <span class="tag">${esc(x.kind ?? '')}</span>
+        <select data-act="prop-to" data-i="${i}" aria-label="Destination">${dests.map(([v, l]) => `<option value="${esc(v)}" ${x.to === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+        ${x.reason ? `<span class="why">${esc(x.reason)}</span>` : ''}
+      </div>`).join('')}
+    </section>
+    ${arr(p.learned).length ? `<section class="panel"><h2>Learned about the exam</h2><ul class="sub" style="margin:0;padding-left:20px">${arr(p.learned).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      <p class="muted">Saved to the subject notes when you apply</p></section>` : ''}
+    <div class="row"><button class="btn primary" data-act="apply-sort" ${on ? '' : 'disabled'}>Move ${plural(on, 'file', 'files')}</button><button class="btn quiet" data-act="goto" data-v="materials">Not now</button></div>`;
 }
-function viewStudy() {
-  if (S.mindmap) return viewMindmap();
-  if (S.doc) return `<div class="row between"><h1>${esc(S.doc.title)}</h1>${reportButton(S.doc.title, '')}</div><div class="panel">${md(S.doc.markdown)}</div>${reportBox()}`;
-  if (!S.deck) return `<h1>Study</h1><div class="empty"><p>Open a deck, a mind map or notes from Files, or ask Claude to make some in Create.</p>
-    <div class="row"><button class="btn primary" data-act="due-cards">Review due cards</button><button class="btn" data-act="goto" data-v="create">Create</button></div></div>`;
+
+// ---------- plain folder view (fallback) ----------
+function viewFiles() {
+  const items = S.files?.items;
+  return `<div class="head"><h1>${esc(S.path.split('/').pop())}</h1><p class="meta">${esc(S.path)}</p></div>
+    ${!items ? '<div class="empty"><p>Waiting for Claude</p></div>' : !items.length ? '<div class="empty"><p>This folder is empty</p></div>'
+      : `<div class="panel tight list">${items.map((f) => `<div class="item"><span class="ic">${icon(f.type === 'folder' ? 'folder' : 'file')}</span>
+        <button class="name" data-act="${f.type === 'folder' ? 'list' : 'open-file'}" data-p="${esc(S.path + '/' + f.name)}" data-id="${esc(f.id ?? '')}" data-n="${esc(f.name)}"><b>${esc(f.name)}</b></button>
+        <span class="meta">${esc(fmtSize(f.size))} ${esc(fmtDate(f.modified))}</span></div>`).join('')}</div>`}`;
+}
+
+// ---------- viewers ----------
+function openDeck(d) {
+  S.deck = d && Array.isArray(d.cards) ? { ...d, cards: d.cards.filter((c) => c && typeof c === 'object') } : null;
+  S.order = (S.deck?.cards ?? []).map((_, i) => i); S.idx = 0; S.flipped = false;
+  S.srs = store.get('srs:' + (d?.title ?? ''), {});
+  go('deck');
+}
+function viewDeck() {
+  if (!S.deck) return `<div class="empty"><p>No deck open</p></div>`;
   const cards = S.deck.cards, c = cards[S.order[S.idx]];
-  if (!c) return `<h1>${esc(S.deck.title)}</h1><div class="empty"><p>Deck finished.</p><div class="row"><button class="btn primary" data-act="save-srs">Save my progress</button><button class="btn" data-act="restart-deck">Start again</button></div></div>`;
+  if (!c) return `<div class="head"><h1>${esc(S.deck.title)}</h1><p class="sub">Deck finished</p></div><div class="row"><button class="btn primary" data-act="save-srs">Save my progress</button><button class="btn" data-act="restart-deck">Start again</button></div>`;
   const s = S.srs[c.id];
-  return `<div class="row between"><h1>${esc(S.deck.title)}</h1><span class="counter">${S.idx + 1} / ${S.order.length}</span></div>
+  return `<div class="row between"><h1>${esc(S.deck.title)}</h1><span class="meta">${S.idx + 1} / ${S.order.length}</span></div>
     <div class="card flash ${S.flipped ? 'back' : ''}" data-act="flip" role="button" tabindex="0" aria-label="${S.flipped ? 'Answer' : 'Question'}, press Space to flip">
       <div class="q">${esc(c.front)}</div>
       ${S.flipped ? `<div class="a">${md(c.back)}</div>${c.source ? `<div class="src">${esc(c.source)}</div>` : ''}` : `<div class="muted">Space or click to see the answer</div>`}
@@ -595,21 +884,26 @@ function sched(s, r) {
   return { interval, ease: Math.round(ease * 100) / 100, reps, due };
 }
 const next = (s, r) => { const d = sched(s, r).interval; return d === 0 ? '<1 min' : d === 1 ? '1 day' : `${d} days`; };
+
 function viewMindmap() {
+  if (!S.mindmap) return `<div class="empty"><p>No mind map open</p></div>`;
   const node = (n, depth) => {
-    const kids = n.children ?? [];
-    if (!kids.length) return `<li class="leaf">${esc(n.text)}</li>`;
+    const kids = arr(n?.children);
+    if (!kids.length) return `<li class="leaf">${esc(n?.text)}</li>`;
     return `<li><details ${depth < 1 ? 'open' : ''}><summary>${esc(n.text)}</summary><ul class="tree">${kids.map((k) => node(k, depth + 1)).join('')}</ul></details></li>`;
   };
   const root = S.mindmap.root ?? { text: S.mindmap.title, children: [] };
   return `<div class="row between"><h1>${esc(S.mindmap.title ?? root.text)}</h1><div class="row"><button class="btn quiet" data-act="tree-all" data-open="1">Expand all</button><button class="btn quiet" data-act="tree-all" data-open="0">Collapse</button></div></div>
-    <div class="panel"><ul class="tree root">${(root.children ?? []).map((k) => node(k, 0)).join('')}</ul></div>
-    <p class="muted">Ask Claude about any branch in the chat, for example: explain "${esc(root.children?.[0]?.text ?? 'this topic')}".</p>`;
+    <div class="panel"><ul class="tree root">${arr(root.children).map((k) => node(k, 0)).join('')}</ul></div>
+    <p class="muted">Ask Claude about any branch in the chat</p>`;
 }
-
-// ---------- test ----------
+function viewDoc() {
+  if (!S.doc) return `<div class="empty"><p>Nothing open</p></div>`;
+  return `<div class="row between"><h1>${esc(S.doc.title)}</h1>${reportButton(S.doc.title, '')}</div><section class="panel">${md(S.doc.markdown)}</section>${reportBox()}`;
+}
 function openTest(t) {
-  S.test = t && Array.isArray(t.questions) && t.questions.length ? { ...t, questions: t.questions.filter((q) => q && typeof q === 'object').map(fixQuestion) } : null; S.answers = {}; S.touched = new Set(); S.q = 0; S.started = Date.now(); S.submitted = false;
+  S.test = t && Array.isArray(t.questions) && t.questions.length ? { ...t, questions: t.questions.filter((q) => q && typeof q === 'object').map(fixQuestion) } : null;
+  S.answers = {}; S.touched = new Set(); S.q = 0; S.started = Date.now(); S.submitted = false;
   for (const q of S.test?.questions ?? []) if (q.type === 'ordering') S.answers[q.id] = shuffle(q.items.map((_, i) => i));
   go('test');
 }
@@ -622,14 +916,14 @@ function shuffle(a) { const b = a.slice(); for (let i = b.length - 1; i > 0; i--
 function timeLeft() { const lim = Number(S.test?.timeLimitMin) || 0; if (!lim) return null; return Math.max(0, lim * 60 - Math.floor((Date.now() - S.started) / 1000)); }
 function viewTest() {
   const t = S.test;
-  if (!t) return `<h1>Test</h1><div class="empty"><p>No test open. Ask Claude for a practice test in Create, or open one from Files.</p><div class="row"><button class="btn primary" data-act="goto" data-v="create">Create a test</button><button class="btn" data-act="mock-exam">Mock exam</button></div></div>`;
+  if (!t) return `<h1>Test</h1><div class="empty"><p>No test open. Ask Claude for a practice test in Create, or open one from Files.</p><div class="row"><button class="btn primary" data-act="goto" data-v="practice">Go to practice</button></div></div>`;
   const q = t.questions[S.q], left = timeLeft();
   const answered = (x) => { const a = S.answers[x.id]; if (x.type === 'ordering') return S.touched.has(x.id); return a !== undefined && a !== '' && !(Array.isArray(a) && !a.length && x.type !== 'ordering') && !(typeof a === 'object' && !Array.isArray(a) && !Object.values(a).some((v) => v !== '' && v !== undefined)); };
   return `<div class="row between"><h1>${esc(t.title)}</h1>
       <div class="row">${left !== null ? `<span class="timer ${left < 300 ? 'low' : ''}" id="timer">${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}</span>` : ''}
       <button class="btn primary" data-act="submit-test" ${S.submitted ? 'disabled' : ''}>${S.submitted ? 'Sent for grading' : 'Submit for grading'}</button></div></div>
     <div class="qnav">${t.questions.map((x, i) => `<button data-act="goto-q" data-i="${i}" class="${answered(x) ? 'ans' : ''}" ${i === S.q ? 'aria-current="true"' : ''}>${i + 1}</button>`).join('')}</div>
-    <div class="card stack"><div class="qhead"><span>Question ${S.q + 1} of ${t.questions.length}</span><span>${esc(Number(q.points ?? 1))} ${Number(q.points ?? 1) === 1 ? 'point' : 'points'}</span></div>
+    <div class="card stack" style="gap:16px"><div class="qhead"><span>Question ${S.q + 1} of ${t.questions.length}</span><span>${esc(Number(q.points ?? 1))} ${Number(q.points ?? 1) === 1 ? 'point' : 'points'}</span></div>
       ${questionBody(q)}</div>
     <div class="row between"><div class="row"><button class="btn quiet" data-act="prev-q" ${S.q ? '' : 'disabled'}>Previous</button>
       <button class="btn" data-act="next-q" ${S.q < t.questions.length - 1 ? '' : 'disabled'}>Next</button></div>${reportButton(t.title, q.id)}</div>${reportBox()}`;
@@ -676,6 +970,7 @@ function autoScore(q, a) {
     default: return null;
   }
 }
+
 function submitTest() {
   const t = S.test; if (!t || S.submitted) return;
   const items = t.questions.map((q) => ({ id: q.id, type: q.type, answer: S.answers[q.id] ?? null, auto: autoScore(q, S.answers[q.id]), max: Number(q.points ?? 1) }));
@@ -684,46 +979,44 @@ function submitTest() {
   S.results = { pending: true, test: t.title, autoScore: auto.reduce((s, i) => s + i.auto, 0), autoMax: auto.reduce((s, i) => s + i.max, 0), manualCount: manual.length,
     items: t.questions.map((q, n) => ({ id: q.id, n: n + 1, prompt: String(q.prompt ?? '').replace(/\[\[\w+\]\]/g, '___'), points: items[n].auto, max: items[n].max, pending: items[n].auto === null })) };
   const mins = Math.round((Date.now() - S.started) / 60000);
-  ask(`grade my test "${t.title}" (${mins} min). Objective questions are auto-scored in the window: ${S.results.autoScore}/${S.results.autoMax}. ` +
-    `Grade the ${manual.length} open/practical/code answers with the grading guide, check the auto-scores, save the result, update memory and push results. ` +
+  ask(`grade my test "${t.title}"${S.subject ? ` in "${S.subject}"` : ''} (${mins} min). Objective questions are auto-scored in the window: ${S.results.autoScore}/${S.results.autoMax}. ` +
+    `Grade the ${manual.length} open/practical/code answers with the grading guide, check the auto-scores, save the result, update memory, push results and then the refreshed subject. ` +
     `Answers JSON: ${JSON.stringify(items)}`);
-  go('results');
+  go('result');
 }
-
-// ---------- results ----------
-function viewResults() {
+function viewResult() {
   const r = S.results;
-  if (!r) return `<h1>Results</h1><div class="empty"><p>Finish a test to see your results here.</p></div>`;
-  const score = r.score ?? r.autoScore, total = r.total ?? (r.pending ? r.autoMax : r.total);
-  const items = (r.items ?? []).map((i, n) => {
-    const cls = i.pending ? '' : i.points >= i.max ? 'full' : i.points === 0 ? 'zero' : '';
-    return `<div class="item"><div class="row between"><span>${esc(i.n ?? n + 1)}. ${esc(i.prompt ?? i.id)}</span>
-      <span class="pts ${cls}">${i.pending ? 'waiting for Claude' : `${esc(Number(i.points))} / ${esc(Number(i.max))}`}</span></div>${i.feedback ? `<p class="muted">${esc(i.feedback)}</p>` : ''}</div>`;
+  if (!r) return `<div class="empty"><p>No result open</p></div>`;
+  const score = r.score ?? r.autoScore, total = r.total ?? r.autoMax;
+  const items = arr(r.items).map((i, n) => {
+    const cls = i.pending ? '' : num(i.points) >= num(i.max) ? 'full' : num(i.points) === 0 ? 'zero' : '';
+    return `<div class="item" style="grid-template-columns:minmax(0,1fr) auto"><div class="name"><b style="white-space:normal">${esc(i.n ?? n + 1)}. ${esc(i.prompt ?? i.id)}</b>${i.feedback ? `<small style="white-space:normal">${esc(i.feedback)}</small>` : ''}</div>
+      <span class="pts ${cls}">${i.pending ? 'grading' : `${num(i.points)} / ${num(i.max)}`}</span></div>`;
   }).join('');
-  return `<h1>${esc(r.test ?? 'Results')}</h1>
-    <div class="panel"><div class="score"><b>${esc(score ?? 0)}</b><span class="muted">/ ${esc(total ?? '')} points${r.pending ? ' so far' : ''}</span>${r.grade ? `<span class="muted"> · ${esc(r.grade)}</span>` : ''}</div>
-    ${r.pending ? `<p class="muted">Claude is grading ${esc(Number(r.manualCount))} answer${Number(r.manualCount) === 1 ? '' : 's'}. If you solved anything on paper, attach a photo in the chat now.</p>` : ''}
-    ${r.weakTopics?.length ? `<p>Work on: ${r.weakTopics.map(esc).join(', ')}</p><div class="row"><button class="btn primary" data-act="weak">Practise these</button></div>` : ''}</div>
-    <div class="panel">${items}</div>`;
+  return `<div class="head"><h1>${esc(r.test ?? 'Result')}</h1></div>
+    <section class="panel"><div class="score"><b>${esc(num(score))}</b><span class="muted">of ${esc(num(total))} points${r.pending ? ' so far' : ''}${r.grade ? ` · ${esc(r.grade)}` : ''}</span></div>
+    ${r.pending ? `<p class="muted">Claude is grading ${plural(num(r.manualCount), 'answer', 'answers')}. If you solved anything on paper, attach a photo in the chat now</p>` : ''}
+    ${arr(r.weakTopics).length ? `<p>Work on: ${arr(r.weakTopics).map(esc).join(', ')}</p><div class="row"><button class="btn primary" data-act="weak">Practise these</button></div>` : ''}</section>
+    <section class="panel tight list">${items}</section>`;
 }
 
 // ---------- mistakes ----------
 function reportButton(title, id) { return `<button class="btn quiet" data-act="report" data-t="${esc(title)}" data-id="${esc(id)}">Report a mistake</button>`; }
 function reportBox() {
   if (!S.report) return '';
-  return `<form class="panel report" id="report-form"><label class="field">What is wrong?<textarea id="r-note" required placeholder="The answer uses a different definition than the script, page 14."></textarea></label>
+  return `<form class="panel" id="report-form"><label class="field">What is wrong<textarea id="r-note" required placeholder="The answer uses a different definition than the script, page 14"></textarea></label>
     <div class="row"><button class="btn primary" type="submit">Send to Claude</button><button class="btn quiet" type="button" data-act="report-cancel">Cancel</button></div></form>`;
 }
 
 // ---------- events ----------
+const where = () => (S.subject ? ` in "${S.subject}"` : '');
 document.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-act]'), nav = e.target.closest('#nav button');
-  if (nav) return go(nav.dataset.v);
-  if (e.target.closest('#full')) return toggleFull();
-  if (!el) return;
+  const el = e.target.closest('[data-act]');
+  if (!el || el.matches('input[type=checkbox][data-act^="prop"], select, input[type=text]')) return;
   const d = el.dataset;
   switch (d.act) {
-    case 'goto': return go(d.v);
+    case 'goto': return go(d.v || 'overview');
+    case 'full': return toggleFull();
     case 'go-setup': S.setup.step = 0; return go('setup');
     case 'setup-next': S.setup.step++; return render();
     case 'setup-back': S.setup.step = Math.max(0, S.setup.step - 1); return render();
@@ -731,25 +1024,30 @@ document.addEventListener('click', (e) => {
     case 'open-connectors': return link('https://claude.ai/customize/connectors');
     case 'check-storage': toast('Asked Claude to check ' + S.setup.storage);
       return ask(`setup. storage=${S.setup.storage}. Read the setup guide, check that this storage connector works, create the Studying workspace if it is missing, then push setup_status and subjects.`);
-    case 'load-subjects': return ask('list my subjects from the Studying workspace (Studying/Subjects) and push them (kind subjects) with parts, exam date, readiness and cards due today. If there is no workspace, push setup_status with ok false.');
-    case 'new-subject': { const b = $('new-subject'); if (b) b.hidden = !b.hidden; return; }
-    case 'pick-subject': S.subject = d.s; S.part = ''; store.set('subject', d.s); return go('subject');
-    case 'part-files': case 'part-generated': {
-      S.part = d.p; S.path = `Studying/Subjects/${S.subject}/${d.p}/${d.act === 'part-files' ? 'materials' : 'generated'}`; S.files = null; go('files');
-      return ask(`list files in "${S.path}" and push them (kind files).`);
+    case 'load-subjects': return ask('list my subjects from the Studying workspace and push them (kind subjects) with parts, exam date, readiness and cards due today. If there is no workspace, push setup_status with ok false.');
+    case 'new-subject': { if (S.view !== 'subjects') go('subjects'); const b = $('new-subject'); if (b) { b.hidden = !b.hidden; $('f-name')?.focus(); } return; }
+    case 'pick-subject': S.selected.clear(); if (S.data[d.s]) { S.subject = d.s; store.set('subject', d.s); return go('overview'); } return loadSubject(d.s);
+    case 'refresh': return loadSubject(S.subject, 'refresh');
+    case 'open-inbox': { const u = cur()?.inboxUrl; if (u) return link(u); return go('materials'); }
+    case 'sort': toast('Claude is reading the inbox');
+      return ask(`sort the inbox of "${S.subject}" (guide: intake). Read every file in _inbox, then push a proposal (kind proposal). Do not move anything yet.`);
+    case 'apply-sort': {
+      const p = S.proposal, plan = p.items.filter((x) => x.include && x.to !== 'skip').map((x) => ({ id: x.id, name: x.name, newName: x.newName ?? x.name, to: x.to }));
+      toast('Claude is moving the files');
+      ask(`apply sorting in "${S.subject}" (guide: intake, step 5). Approved plan JSON: ${JSON.stringify(plan)}. Learned facts to save: ${JSON.stringify(arr(p.learned))}. Then push the refreshed subject.`);
+      S.proposal = null; return go('materials');
     }
-    case 'part-create': S.part = d.p; return go('create');
-    case 'next-step': return ask(`what should I study next in "${S.subject}"? Use memory.md, the study plan and what is due, then push it as a document (kind plan).`);
-    case 'due-cards': return ask(`collect the flashcards that are due today${S.subject ? ` in "${S.subject}"` : ''} (from *.progress.json) into one deck and push it.`);
-    case 'mock-exam': return ask(`make a mock exam${S.subject ? ` for "${S.subject}"` : ''} in the real exam format from subject.md and part.md (question types, points, time). Review it first, then push it (kind test).`);
-    case 'browse-subject': S.path = `Studying/Subjects/${S.subject}`; S.files = null; go('files'); return ask(`list files in "${S.path}" and push them (kind files).`);
-    case 'crumb': case 'list': S.path = d.p; S.files = null; go('files'); return ask(`list files in "${d.p}" and push them (kind files).`);
-    case 'open-file': return ask(`open the file "${d.p}"${d.id ? ` (id ${d.id})` : ''} and push it to the window: decks, tests and mind maps as their kind, anything else as a document with a readable summary of its content.`);
-    case 'select': if (el.checked) S.selected.set(d.p, d.id); else S.selected.delete(d.p); return render();
-    case 'use-selected': {
-      const m = S.path.match(/^Studying\/Subjects\/([^/]+)(?:\/([^/]+))?/); if (m) { S.subject = m[1]; if (m[2]) S.part = m[2]; }
-      return go('create');
-    }
+    case 'make': S.back = SECTIONS.some((s) => s[0] === S.view) ? S.view : 'overview'; S.makePart = d.p && d.p !== '_shared' ? d.p : ''; S.makePreset = ''; return go('make');
+    case 'make-test': S.back = 'practice'; S.makePart = d.p ?? ''; S.makePreset = 'test'; return go('make');
+    case 'clear-sel': S.selected.clear(); return render();
+    case 'select': if (el.checked) S.selected.set(d.id, d.n); else S.selected.delete(d.id); return render();
+    case 'open-file': S.back = SECTIONS.some((s) => s[0] === S.view) ? S.view : S.back;
+      return ask(`open "${d.n}"${d.id ? ` (id ${d.id})` : ''}${where()} and push it: decks, tests and mind maps as their kind, results as results, anything else as a document with a readable version of its content.`);
+    case 'list': S.path = d.p; S.files = null; go('files'); return ask(`list files in "${d.p}" and push them (kind files).`);
+    case 'next-step': S.back = 'overview'; return ask(`what should I study next${where()}? Use memory.md, results and what is due, then push it as a document (kind plan).`);
+    case 'due-cards': return ask(`collect the flashcards that are due today${where()} (from *.progress.json) into one deck and push it.`);
+    case 'mock-exam': return ask(`make a mock exam${where()}${d.p ? ` for the part "${d.p}"` : ''} in the real exam format from subject.md and part.md (question types, points, time). Review it first, then push it (kind test).`);
+    case 'weak': return ask(`make a practice quiz on my weak topics${where()}: ${arr(S.results?.weakTopics ?? cur()?.memory.weakTopics).join(', ')}. Review it, then push it (kind test).`);
     case 'flip': S.flipped = !S.flipped; return render();
     case 'rate': { const i = S.order[S.idx], c = S.deck.cards[i]; S.srs[c.id] = sched(S.srs[c.id], d.r); store.set('srs:' + S.deck.title, S.srs);
       if (d.r === 'again') S.order.push(i); S.idx++; S.flipped = false; return render(); }
@@ -757,7 +1055,7 @@ document.addEventListener('click', (e) => {
     case 'next-card': S.idx++; S.flipped = false; return render();
     case 'restart-deck': S.order = S.deck.cards.map((_, i) => i); S.idx = 0; S.flipped = false; return render();
     case 'save-srs': toast('Sent to Claude to save');
-      return ask(`save my flashcard progress for deck "${S.deck?.title}" to its .progress.json and update memory.md. Progress JSON: ${JSON.stringify(S.srs)}`);
+      return ask(`save my flashcard progress for deck "${S.deck?.title}"${where()} to its .progress.json and update memory.md. Progress JSON: ${JSON.stringify(S.srs)}`);
     case 'export-csv': return exportCsv();
     case 'tree-all': document.querySelectorAll('.tree details').forEach((x) => (x.open = d.open === '1')); return;
     case 'goto-q': S.q = Number(d.i); return render();
@@ -765,14 +1063,18 @@ document.addEventListener('click', (e) => {
     case 'next-q': S.q = Math.min(S.test.questions.length - 1, S.q + 1); return render();
     case 'move': { const q = S.test.questions[S.q], a = S.answers[q.id], i = Number(d.pos), j = i + Number(d.d); [a[i], a[j]] = [a[j], a[i]]; S.touched.add(q.id); return render(); }
     case 'submit-test': return submitTest();
-    case 'weak': return ask(`make a practice quiz on my weak topics: ${(S.results?.weakTopics ?? []).join(', ')}. Review it, then push it (kind test).`);
     case 'report': S.report = { title: d.t, id: d.id }; render(); $('r-note')?.focus(); return;
     case 'report-cancel': S.report = null; return render();
   }
 });
 document.addEventListener('change', (e) => {
-  const el = e.target.closest('[data-act]'); if (!el || !S.test) return;
-  const q = S.test.questions[S.q], d = el.dataset;
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  const d = el.dataset;
+  if (d.act === 'pick-storage') { S.setup.storage = d.s; store.set('storage', d.s); return render(); }
+  if (d.act === 'prop-inc') { S.proposal.items[d.i].include = el.checked; return render(); }
+  if (d.act === 'prop-to') { const x = S.proposal.items[d.i]; x.to = el.value; x.include = el.value !== 'skip'; return render(); }
+  if (!S.test || S.view !== 'test') return;
+  const q = S.test.questions[S.q];
   if (d.act === 'ans-single') S.answers[q.id] = q.type === 'truefalse' ? Number(d.i) === 0 : Number(d.i);
   else if (d.act === 'ans-multi') { const s = new Set(S.answers[q.id] ?? []); el.checked ? s.add(Number(d.i)) : s.delete(Number(d.i)); S.answers[q.id] = [...s]; }
   else if (d.act === 'ans-match') { S.answers[q.id] = { ...(S.answers[q.id] ?? {}) }; S.answers[q.id][d.i] = el.value === '' ? '' : Number(el.value); }
@@ -780,49 +1082,63 @@ document.addEventListener('change', (e) => {
   render();
 });
 document.addEventListener('input', (e) => {
-  const el = e.target.closest('[data-act]'); if (!el || !S.test) return;
+  const el = e.target.closest('[data-act]'); if (!el) return;
+  if (el.dataset.act === 'prop-name') { S.proposal.items[el.dataset.i].newName = el.value; return; }
+  if (!S.test) return;
   const q = S.test.questions[S.q];
   if (el.dataset.act === 'ans-text') S.answers[q.id] = el.value;
   if (el.dataset.act === 'ans-fill') S.answers[q.id] = { ...(S.answers[q.id] ?? {}), [el.dataset.k]: el.value };
 });
 document.addEventListener('submit', (e) => {
   e.preventDefault();
-  if (e.target.id === 'subject-form') {
-    const v = (id) => $(id).value.trim();
-    const name = v('f-name'); if (!name) return;
-    S.subject = name; store.set('subject', name); pendingSubject = name;
-    toast('Asked Claude to create ' + name);
-    return ask(`create a new subject "${name}". Parts: ${v('f-parts') || 'none given'}. Exam date: ${v('f-date') || 'unknown'}. Notes: ${v('f-notes') || 'none'}. ` +
-      'Create the folders and subject.md (storage-layout guide), then push subjects.');
+  const id = e.target.id, val = (x) => ($(x)?.value ?? '').trim();
+  if (id === 'subject-form') {
+    const name = val('f-name'); if (!name) return;
+    S.subject = name; store.set('subject', name); S.loading = name;
+    toast('Claude is creating ' + name);
+    S.view = 'overview'; render();
+    return ask(`create a new subject "${name}". Parts: ${val('f-parts') || 'none given'}. Exam date: ${val('f-date') || 'unknown'}. Grading: ${val('f-notes') || 'not given'}. ` +
+      'Create the folders (parts, _inbox, _shared), subject.md, memory.md and subject.json (guides: storage-layout, subject), then push subjects and the subject.');
   }
-  if (e.target.id === 'create-form') {
-    const f = e.target, val = (id) => $(id).value.trim();
+  if (id === 'ask-form') {
+    const q = val('ask-q'); if (!q) return; $('ask-q').value = '';
+    return ask(`ask about "${S.subject}": ${q}. Answer in the chat; search the right part first, then the other parts and _shared, and cite file and page.`);
+  }
+  if (id === 'tell-form') {
+    const t = val('tell-t'); if (!t) return; $('tell-t').value = '';
+    toast('Saved to notes');
+    return ask(`note for "${S.subject}": "${t}". Add it to subject.md or memory.md (whichever fits), then push the refreshed subject.`);
+  }
+  if (id === 'make-form') {
+    const f = e.target;
     const outputs = [...f.querySelectorAll('input[name=out]:checked')].map((x) => x.value);
     const types = [...f.querySelectorAll('input[name=qt]:checked')].map((x) => x.value);
     if (!outputs.length) return toast('Choose at least one thing to make');
-    const c = { outputs, types, count: Number(val('c-count')) || 15, difficulty: $('c-diff').value, time: Number(val('c-time')) || 0, points: Number(val('c-points')) || 0, review: $('c-review').checked };
-    store.set('create', c);
-    S.subject = val('c-subject') || S.subject; S.part = val('c-part') || S.part;
-    const scope = f.querySelector('input[name=scope]:checked')?.value === 'selected' && S.selected.size
-      ? `these files: ${[...S.selected.entries()].map(([p, id]) => `"${p}"${id ? ` (id ${id})` : ''}`).join(', ')}` : 'all materials of this part';
+    const c = { outputs, types, count: num(val('m-count')) || 15, difficulty: $('m-diff').value, time: num(val('m-time')), points: num(val('m-points')), review: $('m-review').checked };
+    if (S.makePreset !== 'test') store.set('create', c);
+    const part = $('m-part').value;
+    const only = $('m-only')?.checked && S.selected.size;
     const testy = outputs.some((o) => /Quiz|test/.test(o));
     const job = {
-      subject: S.subject, part: S.part, from: scope, focus: val('c-focus') || null, make: outputs,
+      subject: S.subject, part: part || 'whole subject',
+      from: only ? [...S.selected.entries()].map(([fid, n]) => ({ id: fid, name: n })) : (part ? `all materials of "${part}", plus _shared; look in the other parts when something is missing` : 'all materials of the subject'),
+      focus: val('m-focus') || null, make: outputs,
       questions: testy ? { types, count: c.count, difficulty: c.difficulty, timeLimitMin: c.time, totalPoints: c.points } : undefined,
-      review: c.review, note: val('c-note') || null,
+      review: c.review, note: val('m-note') || null,
     };
-    toast('Sent to Claude');
-    return ask(`create study material. Follow the overview, generation${testy ? ', question-types' : ''}, review and formats guides. ` +
-      'Report each step with study_progress, save everything in the part\'s generated/ folder, then push each result. Job: ' + JSON.stringify(job));
+    S.selected.clear(); toast('Claude is on it');
+    go(S.back || 'overview');
+    return ask(`make study material (guides: generation${testy ? ', question-types' : ''}, review, formats). ` +
+      'Report each step with study_progress, save to the part\'s generated/ folder (or _shared/generated), push each result and then the refreshed subject. Job: ' + JSON.stringify(job));
   }
-  if (e.target.id === 'report-form') {
-    const note = $('r-note').value.trim(); if (!note) return;
+  if (id === 'report-form') {
+    const note = val('r-note'); if (!note) return;
     const r = S.report; S.report = null; render(); toast('Sent to Claude');
-    return ask(`report a mistake in "${r.title}"${r.id ? `, item ${r.id}` : ''}: "${note}". Fix it, push the corrected item and follow the fixer guide.`);
+    return ask(`report a mistake in "${r.title}"${r.id ? `, item ${r.id}` : ''}${where()}: "${note}". Fix it, push the corrected item and follow the fixer guide.`);
   }
 });
 document.addEventListener('keydown', (e) => {
-  if (S.view !== 'study' || !S.deck || e.target.closest('input, textarea, select')) return;
+  if (S.view !== 'deck' || !S.deck || e.target.closest('input, textarea, select')) return;
   if (e.code === 'Space') { e.preventDefault(); S.flipped = !S.flipped; render(); }
   else if (e.key === 'ArrowRight') { S.idx++; S.flipped = false; render(); }
   else if (e.key === 'ArrowLeft') { S.idx = Math.max(0, S.idx - 1); S.flipped = false; render(); }
@@ -830,7 +1146,7 @@ document.addEventListener('keydown', (e) => {
 setInterval(() => {
   if (!S.test || S.submitted) return;
   const left = timeLeft(), el = $('timer'); if (left === null) return;
-  if (left === 0) { toast('Time is up. Your answers were submitted.'); return submitTest(); }
+  if (left === 0) { toast('Time is up. Your answers were submitted'); return submitTest(); }
   if (!el) return;
   el.textContent = `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}`; el.classList.toggle('low', left < 300);
 }, 1000);
@@ -840,7 +1156,7 @@ function exportCsv() {
   const csv = 'front,back,source\n' + S.deck.cards.map((c) => [c.front, c.back, c.source].map(q).join(',')).join('\n');
   const name = (S.deck.title || 'deck').replace(/[^\w-]+/g, '-') + '.csv';
   app.downloadFile({ contents: [{ type: 'resource', resource: { uri: `file:///${name}`, mimeType: 'text/csv', text: csv } }] })
-    .catch(() => toast('Your Claude app does not allow downloads from here. Ask Claude to save the CSV to your storage.'));
+    .then((r) => { if (r?.isError) throw 0; }).catch(() => toast('Downloads are not allowed here. Ask Claude to save the CSV to your storage'));
 }
 
 // ---------- display ----------
@@ -864,19 +1180,19 @@ function hostContext(ctx) {
 app.onhostcontextchanged = (ctx) => { hostContext({ ...app.getHostContext(), ...ctx }); render(); };
 app.ontoolinput = ({ arguments: a }) => {
   if (a?.session && /^[A-Za-z0-9_-]{12,64}$/.test(a.session)) S.session = a.session;
-  if (a?.view) S.view = { document: 'study', mindmap: 'study', deck: 'study', plan: 'study' }[a.view] ?? a.view;
-  if (a?.data?.kind) receive({ kind: a.data.kind, title: a.data.title, payload: a.data.payload });
+  if (a?.view) S.view = { document: 'doc', home: 'subjects', subject: 'overview' }[a.view] ?? a.view;
+  for (const m of [].concat(a?.data ?? [])) if (m?.kind) receive({ kind: m.kind, title: m.title, payload: m.payload });
   render();
 };
 // test hook: lets a page without a host feed messages in (used by tests and local previews)
-window.__studying = { receive: (m) => receive(m), go };
+window.__studying = { receive: (m) => receive(m), go, S };
+if (S.subject) S.view = 'overview';
 render();
 await app.connect();
 connected = true;
 hostContext(app.getHostContext());
 render();
 if (S.modes.includes('fullscreen') && S.display !== 'fullscreen') toggleFull();
-// pick up anything Claude pushed to this session before the window opened
 startPolling();
 </script>
 </body>
