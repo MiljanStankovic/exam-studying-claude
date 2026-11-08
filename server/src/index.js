@@ -15,7 +15,10 @@ import PRIVACY_HTML from './privacy.html';
 import { GUIDES, GUIDE_TOPICS } from './guides.js';
 
 const VERSION = '0.1.0';
-const WINDOW_URI = `ui://studying/window-${VERSION}.html`;
+// the window's address changes whenever its content changes, so apps that cache windows by
+// address (the Claude desktop and mobile apps do) always load the current one
+const hash = (str) => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(36); };
+const WINDOW_URI = `ui://studying/window-${VERSION}-${hash(WINDOW_HTML)}.html`;
 const WINDOW_MIME = 'text/html;profile=mcp-app';
 const SESSION_RE = /^[A-Za-z0-9_-]{12,64}$/;
 const KINDS = ['files', 'subjects', 'deck', 'test', 'mindmap', 'document', 'results', 'setup_status', 'notice', 'plan'];
@@ -247,7 +250,7 @@ async function handle(env, origin, msg) {
     case 'prompts/list': return ok({ prompts: [] });
     case 'resources/read':
       // any older window version maps to the current one, so a cached tool list never breaks
-      if (!/^ui:\/\/studying\/window(-[\w.]+)?\.html$/.test(String(params.uri ?? '')))
+      if (!/^ui:\/\/studying\/window(-[\w.-]+)?\.html$/.test(String(params.uri ?? '')))
         return { jsonrpc: '2.0', id, error: { code: -32002, message: 'Resource not found' } };
       return ok({ contents: [{ uri: params.uri, mimeType: WINDOW_MIME, text: WINDOW_HTML, _meta: { ui: { prefersBorder: false } } }] });
     default:
