@@ -282,6 +282,9 @@ mastery under 70 or tested once; "good" = mastery 70+ in at least two tests or c
 "weak" = mastery under 50 after a test.
 
 Each subject.json write must keep every field you are not changing.
+Storage without in-place edits (the Google Drive connector can create files and change their
+metadata but not their content): to change a file, create the new version in the same folder,
+then move the old one to the trash (recoverable). Never leave two copies with the same name.
 readiness per part: your honest estimate from results, card progress and coverage of the
 part's scope; 0 when nothing is known. nextStep is the single most useful thing to do now:
 "sort" when the inbox has files, "make" when a part has materials but nothing generated,

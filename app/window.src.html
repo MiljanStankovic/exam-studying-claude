@@ -10,11 +10,11 @@
      Character patient, exact, quietly encouraging
      World     a student's desk: a binder with a divider per exam part, index cards, a ruled margin
      Moments   the points track toward passing, and the index card itself
-     Signature the red margin line of an index card (cards, questions, the sorting sheet) */
+     Signature the red margin line of an index card (cards, questions, the sorting sheet)
+     Structure subjects -> one subject (hub) -> one exam part; everything else opens over it */
   :root {
     color-scheme: light dark;
     --bg: var(--color-background-secondary, #f7f7f6);
-    --side: var(--color-background-tertiary, #f0efed);
     --card: var(--color-background-primary, #ffffff);
     --raised: #f1f1f0;
     --t1: var(--color-text-primary, #191919);
@@ -25,25 +25,27 @@
     --accent: #2f5597;
     --on-accent: #ffffff;
     --accent-soft: rgba(47, 85, 151, .10);
-    --ok: #237a4b; --bad: #c0362c; --warn: #8a6212;
+    --ok: #237a4b; --bad: #c0362c;
     --paper: #fffef9;
     --margin: #c8463b;
+    --scrim: rgba(20, 20, 20, .32);
     --font: var(--font-sans, "Inter", system-ui, -apple-system, "Segoe UI", sans-serif);
     --serif: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
     --mono: var(--font-mono, ui-monospace, "SF Mono", Menlo, Consolas, monospace);
     --ease: cubic-bezier(.22, 1, .36, 1);
     --shadow: 0 1px 2px rgba(0, 0, 0, .05), 0 8px 24px rgba(0, 0, 0, .06);
+    --lift: 0 24px 64px rgba(0, 0, 0, .18);
   }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-    --bg: var(--color-background-secondary, #141415); --side: var(--color-background-tertiary, #0f0f10); --card: var(--color-background-primary, #19191b);
+    --bg: var(--color-background-secondary, #141415); --card: var(--color-background-primary, #19191b);
     --raised: #232325; --t1: var(--color-text-primary, #ededed); --t2: var(--color-text-secondary, #a1a1a6); --t3: var(--color-text-tertiary, #85858b);
     --line: rgba(237, 237, 237, .08); --line2: rgba(237, 237, 237, .16);
     --accent: #9fb9e6; --on-accent: #0e1420; --accent-soft: rgba(159, 185, 230, .12);
-    --ok: #4cc38a; --bad: #e5484d; --warn: #d9b45a; --paper: #1e1e20; --margin: #d9675c; --shadow: none; } }
+    --ok: #4cc38a; --bad: #e5484d; --paper: #1e1e20; --margin: #d9675c; --shadow: none; --scrim: rgba(0, 0, 0, .6); --lift: 0 24px 64px rgba(0, 0, 0, .5); } }
   :root[data-theme="dark"] {
     --raised: #232325; --line: rgba(237, 237, 237, .08); --line2: rgba(237, 237, 237, .16);
     --accent: #9fb9e6; --on-accent: #0e1420; --accent-soft: rgba(159, 185, 230, .12);
-    --ok: #4cc38a; --bad: #e5484d; --warn: #d9b45a; --paper: #1e1e20; --margin: #d9675c; --shadow: none; }
+    --ok: #4cc38a; --bad: #e5484d; --paper: #1e1e20; --margin: #d9675c; --shadow: none; --scrim: rgba(0, 0, 0, .6); --lift: 0 24px 64px rgba(0, 0, 0, .5); }
 
   * { box-sizing: border-box; }
   html, body { margin: 0; color: var(--t1); font: 14px/20px var(--font); background: transparent; }
@@ -55,39 +57,37 @@
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
   svg.i { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
-  /* shell */
-  .shell { display: grid; grid-template-columns: 248px minmax(0, 1fr); min-height: 600px; height: var(--h, auto);
-    padding-top: var(--top, 0px); padding-bottom: var(--bottom, 0px); background: var(--bg); border-radius: 12px; overflow: hidden; }
-  body.full .shell { height: 100vh; border-radius: 0; }
-  aside { background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 12px 8px; gap: 4px; min-height: 0; overflow-y: auto; }
-  .brand { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 8px; font-weight: 500; font-size: 15px; }
+  /* app frame */
+  .app { position: relative; display: flex; flex-direction: column; min-height: 640px; height: var(--h, auto); background: var(--bg); border-radius: 12px; overflow: hidden;
+    padding-top: var(--top, 0px); padding-bottom: var(--bottom, 0px); }
+  body.full .app { height: 100vh; border-radius: 0; }
+  .top { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 24px; flex: none; border-bottom: 1px solid var(--line); background: var(--card); position: relative; z-index: 3; }
   .mark { width: 16px; height: 20px; border: 1.5px solid var(--t2); border-radius: 3px; position: relative; flex: none; }
   .mark::before { content: ""; position: absolute; left: 3px; top: -1.5px; bottom: -1.5px; width: 1.5px; background: var(--margin); }
-  .navlabel { padding: 0 8px; margin: 20px 0 4px; color: var(--t3); font-size: 12px; line-height: 16px; display: flex; justify-content: space-between; align-items: center; }
-  .navlabel button { color: var(--t3); border-radius: 4px; padding: 0 4px; }
-  .navlabel button:hover { color: var(--t1); }
-  .nav { display: flex; align-items: center; gap: 10px; height: 34px; padding: 0 8px; border-radius: 8px; color: var(--t2); width: 100%; text-align: left;
-    transition: background-color .15s var(--ease), color .15s var(--ease); }
-  .nav:hover { background: var(--raised); color: var(--t1); }
-  .nav[aria-current] { background: var(--card); color: var(--t1); box-shadow: inset 0 0 0 1px var(--line); }
-  .nav .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .nav .count { font: 12px/16px var(--mono); color: var(--t3); font-variant-numeric: tabular-nums; }
-  .nav .count.hot { color: var(--accent); }
-  .side-foot { margin-top: auto; padding-top: 12px; display: grid; gap: 2px; }
+  .home { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 8px; border-radius: 8px; font-weight: 500; font-size: 15px; }
+  .home:hover { background: var(--raised); }
+  .crumbs { display: flex; align-items: center; gap: 4px; min-width: 0; color: var(--t3); }
+  .crumbs .sep { padding: 0 2px; }
+  .switch { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px; border-radius: 8px; color: var(--t1); font-weight: 500; min-width: 0; max-width: 320px; }
+  .switch span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .switch:hover, .crumbs button:hover { background: var(--raised); }
+  .crumbs button.part { height: 36px; padding: 0 10px; border-radius: 8px; color: var(--t1); }
+  .spacer { flex: 1; }
+  .menu { position: absolute; top: 52px; left: 64px; width: 300px; background: var(--card); border: 1px solid var(--line2); border-radius: 12px; box-shadow: var(--lift); padding: 6px; z-index: 5;
+    animation: pop .18s var(--ease) both; display: grid; gap: 2px; }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
+  .menu button { display: flex; align-items: center; gap: 10px; height: 36px; padding: 0 10px; border-radius: 8px; text-align: left; width: 100%; }
+  .menu button:hover { background: var(--raised); }
+  .menu button[aria-current] { background: var(--raised); }
+  .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
+  .menu .meta { margin-left: auto; }
 
-  main { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
-  .top { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 32px; flex: none; }
-  .top .crumb { color: var(--t3); display: flex; gap: 6px; align-items: center; min-width: 0; }
-  .top .crumb button { color: var(--t2); }
-  .top .crumb button:hover { color: var(--t1); }
-  .top .spacer { flex: 1; }
-  .mobile-only { display: none; }
-  .scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 32px 48px; }
-  .page { max-width: 1040px; display: grid; gap: 32px; animation: rise .4s var(--ease) both; }
+  .scroll { flex: 1; min-height: 0; overflow-y: auto; }
+  .page { max-width: 1080px; margin: 0 auto; padding: 32px 24px 64px; display: grid; gap: 24px; animation: rise .4s var(--ease) both; }
   @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 
   /* progress */
-  .progress { margin: 0 32px 8px; padding: 12px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 8px; flex: none; }
+  .progress { margin: 16px auto 0; width: calc(100% - 48px); max-width: 1032px; padding: 12px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; display: grid; gap: 8px; }
   .progress .row1 { display: flex; justify-content: space-between; gap: 12px; }
   .progress .job { font-weight: 500; }
   .progress .eta { color: var(--t3); font: 12px/20px var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -97,9 +97,9 @@
   .steps .now { color: var(--t1); } .steps .done { color: var(--t2); }
 
   /* type */
-  h1 { font: 400 32px/1.15 var(--serif); margin: 0; letter-spacing: -.005em; text-wrap: balance; }
+  h1 { font: 400 34px/1.15 var(--serif); margin: 0; letter-spacing: -.005em; text-wrap: balance; }
   h2 { font: 500 15px/20px var(--font); margin: 0; }
-  h3 { font: 500 14px/20px var(--font); margin: 0; }
+  h3 { font: 500 13px/16px var(--font); margin: 0; color: var(--t2); }
   p { margin: 0; }
   .sub { color: var(--t2); max-width: 64ch; }
   .muted { color: var(--t3); }
@@ -108,8 +108,8 @@
   .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .between { justify-content: space-between; }
   .stack { display: grid; gap: 12px; }
-  .section { display: grid; gap: 12px; }
-  .section > .row.between { min-height: 32px; }
+  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+  .cols.wide { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 
   /* surfaces and controls */
   .panel { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; align-content: start; min-width: 0; box-shadow: var(--shadow); }
@@ -125,10 +125,10 @@
   .btn.quiet:hover { background: var(--raised); color: var(--t1); }
   .btn.sm { height: 30px; padding: 0 10px; font-size: 13px; }
   .btn:disabled { opacity: .45; cursor: default; }
-  .icon-btn { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: var(--t2); }
+  .btn .n { font: 12px/16px var(--mono); color: var(--accent); }
+  .icon-btn { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; color: var(--t2); flex: none; }
   .icon-btn:hover:not(:disabled) { background: var(--raised); color: var(--t1); }
   .icon-btn:disabled { opacity: .35; cursor: default; }
-  .icon-btn.mobile-only { display: none; }
   input[type=text], input[type=number], input[type=date], select, textarea { background: var(--card); border: 1px solid var(--line2); border-radius: 8px; padding: 0 10px; height: 36px; min-width: 0; }
   textarea { width: 100%; min-height: 96px; padding: 8px 10px; resize: vertical; line-height: 20px; height: auto; }
   label.field { display: grid; gap: 6px; color: var(--t2); font-size: 13px; }
@@ -139,61 +139,52 @@
   .chip input { margin: 0; accent-color: var(--accent); }
   .chip:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
   .tag { font: 12px/16px var(--mono); color: var(--t3); }
-  .notice { border-radius: 8px; padding: 10px 12px; background: var(--raised); color: var(--t2); }
+  .notice { border-radius: 10px; padding: 12px 16px; background: var(--card); border: 1px solid var(--line2); display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 
-  /* subject list */
-  .subjects { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+  /* status dots */
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line2); flex: none; display: inline-block; }
+  .dot.done, .dot.good { background: var(--ok); } .dot.studying, .dot.learning { background: var(--accent); }
+  .dot.ready { background: var(--ok); opacity: .55; } .dot.weak { background: var(--bad); }
+  .status { display: inline-flex; align-items: center; gap: 6px; color: var(--t2); font-size: 13px; }
+
+  /* subject cards on the home page */
+  .subjects { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
   .subject { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 12px; box-shadow: var(--shadow);
     transition: border-color .15s var(--ease); }
   .subject:hover { border-color: var(--line2); }
-  .subject .name { font: 400 20px/1.25 var(--serif); }
+  .subject .name { font: 400 22px/1.25 var(--serif); }
+  .subject.add { place-content: center; justify-items: center; color: var(--t2); border-style: dashed; box-shadow: none; min-height: 140px; }
 
   /* the moment: points toward passing */
   .points { display: grid; gap: 16px; }
-  .points .big { display: flex; align-items: baseline; gap: 8px; font-variant-numeric: tabular-nums; }
-  .points .big b { font: 400 40px/1 var(--serif); }
-  .bar { position: relative; height: 40px; display: flex; gap: 4px; padding-top: 0; }
-  .seg { position: relative; height: 24px; border-radius: 6px; background: var(--raised); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
-  .seg b { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 6px 0 0 6px; }
-  .seg span { position: absolute; left: 8px; top: 4px; font-size: 12px; line-height: 16px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; right: 8px; }
-  .seg.lit span { color: var(--on-accent); }
-  .passline { position: absolute; top: -4px; height: 32px; width: 2px; background: var(--margin); border-radius: 1px; }
-  .passline i { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); font: 12px/16px var(--mono); font-style: normal; color: var(--margin); white-space: nowrap; }
-  .legend { display: grid; gap: 0; }
-  .legend .lrow { display: grid; grid-template-columns: minmax(0, 1fr) 96px 96px; gap: 12px; align-items: center; height: 36px; border-top: 1px solid var(--line); }
-  .legend .lrow:first-child { border-top: 0; }
-  .legend .num { text-align: right; font: 13px/20px var(--mono); font-variant-numeric: tabular-nums; color: var(--t2); }
-
-  .next { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; }
-  .next p { font: 400 18px/1.4 var(--serif); }
-  .cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
-
-  /* status dots and the per-part dashboard */
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--line2); flex: none; }
-  .dot.done { background: var(--ok); } .dot.studying { background: var(--accent); } .dot.ready { background: var(--ok); opacity: .55; }
-  .dot.good { background: var(--ok); } .dot.learning { background: var(--accent); } .dot.weak { background: var(--bad); }
-  .nav .dot { margin: 0 4px; }
-  .plan .lrow { grid-template-columns: minmax(0, 1fr) 120px 104px 88px; }
-  .status { display: inline-flex; align-items: center; gap: 6px; color: var(--t2); font-size: 13px; }
+  .points .big { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+  .points .big b { font: 400 44px/1 var(--serif); }
+  .bar { position: relative; height: 44px; display: flex; gap: 4px; }
+  .seg { position: relative; height: 28px; border-radius: 6px; background: var(--raised); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
   .seg i { position: absolute; inset: 0 auto 0 0; background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); border-radius: 6px 0 0 6px; }
-  .seg b { z-index: 1; }
-  .seg span { z-index: 2; }
-  .topics { display: grid; }
-  .topic { display: grid; grid-template-columns: 12px minmax(0, 1fr) 160px 64px auto; gap: 12px; align-items: center; min-height: 48px; padding: 8px 12px; }
-  .topic + .topic { border-top: 1px solid var(--line); }
-  .topic .nm { display: grid; gap: 2px; min-width: 0; }
-  .topic .nm small { color: var(--t3); font-size: 12px; line-height: 16px; }
-  .mastery { height: 6px; border-radius: 3px; background: var(--raised); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
-  .mastery b { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
-  .mastery.weak b { background: var(--bad); } .mastery.good b { background: var(--ok); }
-  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; display: grid; gap: 8px; box-shadow: var(--shadow); }
-  .stat b { font: 400 28px/1 var(--serif); font-variant-numeric: tabular-nums; }
-  .stat span { color: var(--t3); font-size: 13px; }
+  .seg b { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 6px 0 0 6px; z-index: 1; }
+  .seg span { position: absolute; left: 8px; right: 8px; top: 6px; font-size: 12px; line-height: 16px; color: var(--t2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; z-index: 2; }
+  .seg.lit span { color: var(--on-accent); }
+  .passline { position: absolute; top: -4px; height: 36px; width: 2px; background: var(--margin); border-radius: 1px; z-index: 3; }
+  .passline i { position: absolute; top: 38px; left: 50%; transform: translateX(-50%); font: 12px/16px var(--mono); font-style: normal; color: var(--margin); white-space: nowrap; }
+  .next { display: grid; gap: 12px; align-content: space-between; }
+  .next p { font: 400 19px/1.4 var(--serif); }
 
-  /* lists of files and items */
+  /* exam part cards on the subject page */
+  .parts { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .partcard { text-align: left; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 16px; box-shadow: var(--shadow); align-content: start;
+    transition: border-color .15s var(--ease); }
+  .partcard:hover { border-color: var(--line2); }
+  .partcard .name { font: 400 22px/1.25 var(--serif); }
+  .partcard .score { display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+  .partcard .score b { font: 400 28px/1 var(--serif); }
+  .tdots { display: flex; flex-wrap: wrap; gap: 4px; }
+  .tdots .dot { width: 10px; height: 10px; border-radius: 3px; }
+  .partcard .foot { display: flex; justify-content: space-between; color: var(--t3); font: 12px/16px var(--mono); }
+
+  /* lists */
   .list { display: grid; }
-  .item { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 44px; padding: 8px 12px; border-radius: 10px; }
+  .item { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; gap: 12px; align-items: center; min-height: 44px; padding: 8px 12px; border-radius: 10px; width: 100%; text-align: left; }
   .item.sel { grid-template-columns: 20px 20px minmax(0, 1fr) auto; }
   .item + .item { box-shadow: 0 -1px 0 var(--line); }
   .item:hover { background: var(--raised); box-shadow: none; }
@@ -204,16 +195,39 @@
   .item .side { display: flex; align-items: center; gap: 12px; color: var(--t3); }
   .item input[type=checkbox] { margin: 0; accent-color: var(--accent); }
   .item .ic { color: var(--t3); display: grid; place-items: center; }
-  .group-h { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 0 4px; }
-  .empty { padding: 24px 12px; color: var(--t3); display: grid; gap: 12px; justify-items: start; }
-  .selbar { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px 10px 16px;
-    background: var(--card); border: 1px solid var(--line2); border-radius: 12px; box-shadow: var(--shadow); }
+  .empty { padding: 16px 12px; color: var(--t3); display: grid; gap: 12px; justify-items: start; }
+  .panel > .empty { padding: 0; }
 
-  /* inbox: the drop zone */
-  .inbox { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 20px; border-radius: 14px;
-    border: 1.5px dashed var(--line2); background: var(--card); }
+  /* topics on the part page */
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 20px; display: grid; gap: 8px; box-shadow: var(--shadow); }
+  .stat b { font: 400 28px/1 var(--serif); font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--t3); font-size: 13px; }
+  .topics { display: grid; }
+  .topic { display: grid; grid-template-columns: 12px minmax(0, 1fr) 160px 48px auto; gap: 12px; align-items: center; min-height: 48px; padding: 8px 12px; }
+  .topic + .topic { border-top: 1px solid var(--line); }
+  .topic .nm { display: grid; gap: 2px; min-width: 0; }
+  .topic .nm small { color: var(--t3); font-size: 12px; line-height: 16px; }
+  .mastery { height: 6px; border-radius: 3px; background: var(--raised); overflow: hidden; box-shadow: inset 0 0 0 1px var(--line); }
+  .mastery b { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
+  .mastery.weak b { background: var(--bad); } .mastery.good b { background: var(--ok); }
+
+  /* inbox strip */
+  .inbox { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 20px; border-radius: 14px; border: 1.5px dashed var(--line2); background: var(--card); }
   .inbox.full { border-style: solid; border-color: var(--accent); background: var(--accent-soft); }
   .inbox .count { font: 400 32px/1 var(--serif); font-variant-numeric: tabular-nums; }
+
+  /* overlays: everything that is not a place opens over the place */
+  .overlay { position: absolute; inset: 0; z-index: 10; background: var(--scrim); display: grid; place-items: center; padding: 24px; animation: fade .2s var(--ease) both; }
+  @keyframes fade { from { opacity: 0; } }
+  .modal { width: min(880px, 100%); max-height: 100%; display: flex; flex-direction: column; background: var(--bg); border-radius: 18px; box-shadow: var(--lift); overflow: hidden;
+    animation: rise .3s var(--ease) both; border: 1px solid var(--line); }
+  .modal.narrow { width: min(560px, 100%); }
+  .modal header { display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 12px 0 24px; border-bottom: 1px solid var(--line); background: var(--card); flex: none; }
+  .modal header .t { flex: 1; min-width: 0; display: grid; }
+  .modal header .t b { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .modal header .t small { color: var(--t3); font-size: 12px; line-height: 16px; }
+  .mbody { overflow-y: auto; padding: 24px; display: grid; gap: 20px; align-content: start; }
 
   /* index card: the signature */
   .card { position: relative; background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 24px 24px 24px 52px; box-shadow: var(--shadow); }
@@ -228,7 +242,7 @@
   .rate small { color: var(--t3); font: 12px/16px var(--mono); }
 
   /* sorting sheet */
-  .sheet { display: grid; }
+  .sheet { display: grid; padding: 8px 8px 8px 44px; }
   .sheet .srow { display: grid; grid-template-columns: 20px minmax(0, 1fr) 96px 180px; gap: 12px; align-items: center; padding: 12px 12px 12px 16px; }
   .sheet .srow + .srow { border-top: 1px solid var(--line); }
   .sheet .srow.skip { opacity: .55; }
@@ -239,7 +253,7 @@
 
   /* markdown */
   .md { display: grid; gap: 8px; }
-  .md h2, .md h3 { font-family: var(--serif); font-weight: 400; }
+  .md h2, .md h3 { font-family: var(--serif); font-weight: 400; color: var(--t1); }
   .md h2 { font-size: 20px; line-height: 28px; margin-top: 8px; } .md h3 { font-size: 17px; line-height: 24px; margin-top: 4px; }
   .md ul, .md ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
   .md pre { margin: 0; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; font: 13px/20px var(--mono); }
@@ -256,6 +270,7 @@
   .match { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; align-items: center; font: 16px/1.4 var(--serif); }
   .order { display: grid; gap: 6px; }
   .order div { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px; align-items: center; background: var(--card); border: 1px solid var(--line2); border-radius: 10px; padding: 4px 4px 4px 12px; font: 16px/1.4 var(--serif); }
+  .order .icon-btn { width: 32px; height: 32px; }
   .timer { font: 500 14px/20px var(--mono); font-variant-numeric: tabular-nums; }
   .timer.low { color: var(--bad); }
   .qnav { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -276,52 +291,43 @@
   .tree details[open] > summary::before { content: "−"; }
   .tree .leaf { padding: 4px 0 4px 16px; font: 15px/1.45 var(--serif); color: var(--t2); }
 
-  .toast { position: fixed; left: 50%; bottom: calc(16px + var(--bottom, 0px)); transform: translateX(-50%); background: var(--t1); color: var(--card); padding: 8px 14px; border-radius: 8px; font-size: 13px; z-index: 10; max-width: calc(100% - 32px); }
+  .toast { position: fixed; left: 50%; bottom: calc(16px + var(--bottom, 0px)); transform: translateX(-50%); background: var(--t1); color: var(--card); padding: 8px 14px; border-radius: 8px; font-size: 13px; z-index: 20; max-width: calc(100% - 32px); }
   .skeleton { display: grid; gap: 12px; }
   .skeleton i { display: block; height: 16px; border-radius: 4px; background: var(--raised); }
 
-  /* mobile: the sidebar becomes a top bar with section tabs */
   @media (max-width: 760px) {
-    .shell { grid-template-columns: 1fr; }
-    aside { display: none; }
-    .mobile-only { display: flex; }
-    .icon-btn.mobile-only { display: grid; }
-    .top { padding: 0 16px; height: 52px; gap: 8px; }
-    .top .crumb { flex: 1; overflow: hidden; white-space: nowrap; }
-    .top .crumb > :not(.keep) { display: none; }
-    .top .spacer { display: none; }
-    .hide-sm { display: none; }
-    .tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; padding: 0 12px 8px; flex: none; }
-    .tabs .nav { width: auto; flex: none; height: 32px; }
-    .progress { margin: 0 16px 8px; }
-    .scroll { padding: 8px 16px 32px; }
+    .top { padding: 0 8px; }
+    .home .lbl, .hide-sm { display: none; }
+    .switch { max-width: 160px; padding: 0 6px; }
+    .menu { left: 8px; right: 8px; width: auto; }
+    .page { padding: 20px 16px 40px; gap: 20px; }
+    .progress { width: calc(100% - 32px); }
     h1 { font-size: 28px; }
-    .cols { grid-template-columns: 1fr; }
-    .legend .lrow { grid-template-columns: minmax(0, 1fr) 72px 64px; }
-    .plan .lrow { grid-template-columns: minmax(0, 1fr) 72px 64px; }
-    .plan .lrow > :nth-child(2) { display: none; }
+    .cols, .cols.wide { grid-template-columns: 1fr; }
     .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    .topic { grid-template-columns: 12px minmax(0, 1fr) 64px; }
+    .topic { grid-template-columns: 12px minmax(0, 1fr) 48px; }
     .topic .mastery, .topic .act { display: none; }
-    .next { grid-template-columns: 1fr; }
     .inbox { grid-template-columns: 1fr; }
+    .overlay { padding: 0; }
+    .modal, .modal.narrow { width: 100%; height: 100%; max-height: none; border-radius: 0; border: 0; }
+    .mbody { padding: 16px; }
     .card { padding: 20px 16px 20px 40px; } .card::before { left: 24px; }
     .rate { grid-template-columns: repeat(2, 1fr); }
     .match { grid-template-columns: 1fr; }
+    .sheet { padding-left: 32px; }
     .sheet .srow { grid-template-columns: 20px minmax(0, 1fr); }
     .sheet .srow > :nth-child(3), .sheet .srow > :nth-child(4) { grid-column: 2; }
   }
 </style>
 </head>
 <body>
-<div class="shell">
-  <aside id="side" aria-label="Navigation"></aside>
-  <main>
-    <div class="top" id="top"></div>
-    <nav class="tabs mobile-only" id="tabs" aria-label="Sections"></nav>
+<div class="app" id="app">
+  <header class="top" id="top"></header>
+  <div class="scroll" id="scroll">
     <section class="progress" id="progress" hidden aria-live="polite"></section>
-    <div class="scroll" id="scroll"><div class="page" id="view"></div></div>
-  </main>
+    <div class="page" id="view"></div>
+  </div>
+  <div id="layer"></div>
 </div>
 <div class="toast" id="toast" hidden role="status"></div>
 <script type="module">
@@ -350,6 +356,10 @@ const ICON = {
   ext: '<path d="M15 3h6v6"/><path d="M10 14 21 3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>',
   gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
 };
+
+ICON.x = '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>';
+ICON.chev = '<path d="m6 9 6 6 6-6"/>';
+ICON.brain = '<path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/>';
 const icon = (n) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n] ?? ICON.file}</svg>`;
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const $ = (id) => document.getElementById(id);
@@ -359,30 +369,24 @@ const store = { get(k, d) { try { const v = localStorage.getItem('studying:' + k
                 set(k, v) { try { localStorage.setItem('studying:' + k, JSON.stringify(v)); } catch {} } };
 
 // ---------- state ----------
+// Places: subjects (home), subject (hub), part (one exam part), setup.
+// Everything else is a modal over the current place: deck, test, result, mindmap, doc, make,
+// sort, inbox, notes, editpart, files, newsubject.
 const newSession = () => { const a = new Uint8Array(12); crypto.getRandomValues(a); return Array.from(a, (b) => b.toString(16).padStart(2, '0')).join(''); };
 const S = {
-  session: newSession(), view: 'subjects', display: 'inline', modes: ['inline'],
+  session: newSession(), view: 'subjects', modal: null, menu: false, display: 'inline', modes: ['inline'],
   setup: { step: 0, storage: store.get('storage', ''), status: null },
-  subjects: null,            // [{name, parts, examDate, readiness, due}]
-  data: {},                  // subject name -> index from Claude (guide "subject")
-  subject: store.get('subject', ''), loading: '', part: '', editPart: false,
-  selected: new Map(),       // file id -> name, for "make from these"
-  makePart: '', makePreset: '',
-  proposal: null,
-  files: null, path: 'Studying',
-  back: 'overview',          // where a viewer returns to
+  subjects: null, data: {}, subject: store.get('subject', ''), part: '', loading: '',
+  selected: new Map(), makePart: '', makePreset: '', proposal: null, files: null, path: 'Studying',
   deck: null, idx: 0, flipped: false, srs: {}, order: [],
   test: null, answers: {}, touched: new Set(), q: 0, started: 0, submitted: false,
   results: null, mindmap: null, doc: null,
   progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null,
 };
-const SECTIONS = [['overview', 'Overview', 'home'], ['materials', 'Materials', 'layers'], ['study', 'Study', 'cards'], ['practice', 'Practice', 'test'], ['results', 'Results', 'chart'], ['notes', 'Notes', 'note']];
-const VIEWERS = ['deck', 'mindmap', 'doc', 'test', 'result'];
-const SUBJECT_VIEWS = [...SECTIONS.map((s) => s[0]), 'part', 'make', 'sort', 'files', ...VIEWERS];
 const STATUS = ['not started', 'studying', 'ready', 'done'];
-const partOf = (name) => cur()?.parts.find((p) => p.name === name);
-const dot = (st) => `<span class="dot ${esc(String(st).replace(/\s/g, '-'))}" aria-hidden="true"></span>`;
 const cur = () => S.data[S.subject] ?? null;
+const partOf = (name) => cur()?.parts.find((p) => p.name === name);
+const dot = (st) => `<span class="dot ${esc(String(st ?? '').replace(/\s/g, '-'))}" aria-hidden="true"></span>`;
 
 // ---------- connection with Claude ----------
 const app = new App({ name: 'Studying', version: '0.2.0' }, { availableDisplayModes: ['inline', 'fullscreen'] });
@@ -440,10 +444,11 @@ function normIndex(p) {
     shared: { materials: arr(p.shared?.materials), generated: arr(p.shared?.generated) }, inbox: arr(p.inbox),
     memory: { summary: p.memory?.summary ?? '', weakTopics: arr(p.memory?.weakTopics), strengths: arr(p.memory?.strengths) } };
 }
+
 function receive(m) {
   const p = m.payload;
   switch (m.kind) {
-    case 'setup_status': S.setup.status = p; if (p?.ok) { S.setup.step = 3; if (p.storage) store.set('storage', p.storage); if (p.subjects) setSubjects(p.subjects); } go('setup'); break;
+    case 'setup_status': S.setup.status = p; if (p?.ok) { S.setup.step = 3; if (p.storage) store.set('storage', p.storage); if (p.subjects) setSubjects(p.subjects); } S.modal = null; go('setup'); break;
     case 'subjects': setSubjects(Array.isArray(p) ? p : p?.subjects);
       if (S.view === 'setup' && S.setup.step === 4 && S.subjects.length) S.view = 'subjects';
       render(); break;
@@ -454,17 +459,20 @@ function receive(m) {
       if (p.subjects) setSubjects(p.subjects);
       if (!S.subjects) S.subjects = [];
       if (!S.subjects.some((x) => x.name === ix.name)) S.subjects.push({ name: ix.name, parts: ix.parts.map((x) => x.name), examDate: ix.examDate });
-      const entering = S.loading === ix.name || !S.subject || S.view === 'subjects' || S.view === 'setup';
-      if (entering) { S.subject = ix.name; store.set('subject', ix.name); S.loading = ''; if (!SUBJECT_VIEWS.includes(S.view) || S.view === 'sort') S.view = 'overview'; }
+      if (S.loading === ix.name || !S.subject || S.view === 'subjects' || S.view === 'setup') {
+        S.subject = ix.name; store.set('subject', ix.name); S.loading = '';
+        if (S.view !== 'part') S.view = 'subject';
+      }
+      if (S.modal?.type === 'sort') S.modal = null;
       render(); break;
     }
-    case 'proposal': S.proposal = { ...p, items: arr(p?.items).map((x) => ({ ...x, include: x.to !== 'skip' })) }; if (p?.subject) S.subject = p.subject; go('sort'); break;
-    case 'files': S.files = { ...p, items: arr(p?.items) }; S.path = p?.path ?? S.path; go('files'); break;
+    case 'proposal': S.proposal = { ...p, items: arr(p?.items).map((x) => ({ ...x, include: x.to !== 'skip' })) }; if (p?.subject) S.subject = p.subject; openModal('sort'); break;
+    case 'files': S.files = { ...p, items: arr(p?.items) }; S.path = p?.path ?? S.path; openModal('files'); break;
     case 'deck': openDeck(p); break;
     case 'test': openTest(p); break;
-    case 'mindmap': S.mindmap = p; go('mindmap'); break;
-    case 'document': case 'plan': S.doc = { title: m.title ?? p?.title ?? 'Document', markdown: p?.markdown ?? String(p ?? '') }; go('doc'); break;
-    case 'results': S.results = { ...p, items: arr(p?.items), weakTopics: arr(p?.weakTopics) }; go('result'); break;
+    case 'mindmap': S.mindmap = p; openModal('mindmap'); break;
+    case 'document': case 'plan': S.doc = { title: m.title ?? p?.title ?? 'Notes', markdown: p?.markdown ?? String(p ?? '') }; openModal('doc'); break;
+    case 'results': S.results = { ...p, items: arr(p?.items), weakTopics: arr(p?.weakTopics), topics: arr(p?.topics) }; openModal('result'); break;
     case 'notice': toast(p?.text ?? String(p ?? '')); break;
   }
 }
@@ -511,10 +519,11 @@ setInterval(() => { if (S.progress && !S.progress.done) drawProgress(); }, 5000)
 // what Claude sees about the window
 let lastCtx = '', connected = false;
 function tellClaude() {
-  const parts = [`The Studying window is open (session: ${S.session}). View: ${S.view}.`];
-  if (S.subject && SUBJECT_VIEWS.includes(S.view)) parts.push(`Subject: ${S.subject}.`);
-  if (S.view === 'deck' && S.deck) parts.push(`Flashcards "${S.deck.title}", card ${S.idx + 1}/${S.order.length}.`);
-  if (S.view === 'test' && S.test) parts.push(`Test "${S.test.title}", question ${S.q + 1}/${S.test.questions.length}${S.submitted ? ', submitted' : ''}.`);
+  const parts = [`The Studying window is open (session: ${S.session}).`];
+  if (S.subject && ['subject', 'part'].includes(S.view)) parts.push(`Subject: ${S.subject}${S.view === 'part' ? `, part: ${S.part}` : ''}.`);
+  if (S.modal) parts.push(`Open over it: ${S.modal.type}.`);
+  if (S.modal?.type === 'deck' && S.deck) parts.push(`Flashcards "${S.deck.title}", card ${S.idx + 1}/${S.order.length}.`);
+  if (S.modal?.type === 'test' && S.test) parts.push(`Test "${S.test.title}", question ${S.q + 1}/${S.test.questions.length}${S.submitted ? ', submitted' : ''}.`);
   const t = parts.join(' ');
   if (t === lastCtx || !connected) return;
   try { app.updateModelContext({ content: [{ type: 'text', text: t }] }).then((r) => { if (!r?.isError) lastCtx = t; }, () => {}); } catch {}
@@ -544,86 +553,70 @@ function md(src) {
 
 const fmtSize = (n) => { n = num(n); return !n ? '' : n < 1024 ? `${n} B` : n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`; };
 const fmtDate = (d) => { const x = new Date(d); return !d || isNaN(x) ? '' : x.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }); };
+const fmtLong = (d) => { const x = new Date(d); return !d || isNaN(x) ? '' : x.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'long' }); };
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 const daysTo = (d) => (d ? Math.ceil((new Date(d) - new Date()) / 86400000) : null);
-const KIND_ICON = { deck: 'cards', mindmap: 'map', test: 'test', document: 'note', script: 'book', slides: 'file', 'past-exam': 'test', notes: 'note', assignment: 'check', image: 'file', other: 'file' };
-const groups = (ix) => [...ix.parts.map((p) => ({ key: p.name, title: p.name, ...p })), { key: '_shared', title: 'Whole subject', ...ix.shared }];
+const when = (d) => { const n = daysTo(d); return n === null ? 'date not set' : n > 1 ? `in ${n} days` : n === 1 ? 'tomorrow' : n === 0 ? 'today' : 'passed'; };
+const KIND_ICON = { deck: 'cards', mindmap: 'map', test: 'test', document: 'note', script: 'book', slides: 'file', 'past-exam': 'test', notes: 'note', assignment: 'check', image: 'file', other: 'file', result: 'chart' };
+const KIND_LABEL = { deck: 'Flashcards', mindmap: 'Mind map', test: 'Test', document: 'Notes' };
 function loadSubject(name, why = 'open') {
-  S.subject = name; store.set('subject', name); S.loading = name;
-  if (!SUBJECT_VIEWS.includes(S.view)) S.view = 'overview';
+  S.subject = name; store.set('subject', name); S.loading = name; S.view = 'subject'; S.modal = null;
   render();
   ask(`load the subject "${name}" (guide: subject). Read or rebuild its subject.json and push it (kind subject)${why === 'refresh' ? '. Rebuild it from the folders, files may have changed' : ''}.`);
 }
+function openModal(type, extra = {}) { S.modal = { type, ...extra }; S.menu = false; render(); }
+function closeModal() { S.modal = null; S.report = null; render(); }
 
-// ---------- shell ----------
-let lastView = '';
-function go(view) { S.view = view; render(); document.getElementById('scroll').scrollTop = 0; }
-function render() {
-  drawSide(); drawTop();
-  const full = S.display === 'fullscreen';
-  document.body.classList.toggle('full', full);
-  const views = { setup: viewSetup, subjects: viewSubjects, overview: viewOverview, materials: viewMaterials, study: viewStudy, practice: viewPractice,
-    results: viewResults, notes: viewNotes, part: viewPart, make: viewMake, sort: viewSort, files: viewFiles, deck: viewDeck, mindmap: viewMindmap, doc: viewDoc, test: viewTest, result: viewResult };
-  let v = views[S.view] ?? viewSubjects;
-  if (SUBJECT_VIEWS.includes(S.view) && !VIEWERS.includes(S.view) && S.view !== 'files' && !cur()) v = viewLoading;
-  const keep = S.view === lastView ? [...$('view').querySelectorAll('form input, form textarea, form select')].filter((el) => el.id || el.name)
-    .map((el) => ({ id: el.id, name: el.name, value: el.value, checked: el.checked, box: el.type === 'checkbox' || el.type === 'radio' })) : [];
-  const openForm = S.view === lastView && $('new-subject') && !$('new-subject').hidden;
-  try { $('view').innerHTML = v(); }
-  catch (e) { console.error(e); $('view').innerHTML = `<h1>Something here could not be shown</h1><p class="sub">Ask Claude to check the file and send it again.</p>`; }
+// ---------- rendering ----------
+let lastKey = '';
+function go(view) { S.view = view; S.menu = false; render(); $('scroll').scrollTop = 0; }
+function keepForms(root) {
+  return [...root.querySelectorAll('form input, form textarea, form select')].filter((el) => el.id || el.name)
+    .map((el) => ({ id: el.id, name: el.name, value: el.value, checked: el.checked, box: el.type === 'checkbox' || el.type === 'radio' }));
+}
+function restoreForms(root, keep) {
   for (const k of keep) {
-    const el = k.id ? document.getElementById(k.id) : $('view').querySelector(`[name="${CSS.escape(k.name)}"][value="${CSS.escape(k.value)}"]`);
+    const el = k.id ? document.getElementById(k.id) : root.querySelector(`[name="${CSS.escape(k.name)}"][value="${CSS.escape(k.value)}"]`);
     if (!el) continue;
     if (k.box) el.checked = k.checked; else el.value = k.value;
   }
-  if (openForm && $('new-subject')) $('new-subject').hidden = false;
-  if (S.view !== lastView) $('view').style.animation = 'none', $('view').offsetHeight, $('view').style.animation = '';
-  lastView = S.view;
+}
+function render() {
+  document.body.classList.toggle('full', S.display === 'fullscreen');
+  drawTop();
+  const key = S.view + '|' + (S.modal?.type ?? '');
+  const same = key === lastKey;
+  const keep = same ? keepForms(document.body) : [];
+  const pages = { setup: viewSetup, subjects: viewSubjects, subject: viewSubject, part: viewPart };
+  let v = pages[S.view] ?? viewSubjects;
+  if ((S.view === 'subject' || S.view === 'part') && !cur()) v = viewLoading;
+  try { $('view').innerHTML = v(); } catch (e) { console.error(e); $('view').innerHTML = `<h1>Something here could not be shown</h1><p class="sub">Ask Claude to check the file and send it again</p>`; }
+  $('layer').innerHTML = S.modal ? modalHtml() : '';
+  restoreForms(document.body, keep);
+  if (!same && S.view !== lastKey.split('|')[0]) { const el = $('view'); el.style.animation = 'none'; void el.offsetHeight; el.style.animation = ''; }
+  lastKey = key;
   drawProgress();
   tellClaude();
 }
-function navBtn(view, label, ic, extra = '') {
-  const active = S.view === view || (view === 'practice' && ['test', 'result'].includes(S.view)) || (view === 'study' && ['deck', 'mindmap', 'doc'].includes(S.view)) || (view === 'materials' && ['sort', 'files'].includes(S.view));
-  return `<button class="nav" data-act="goto" data-v="${view}" ${active ? 'aria-current="page"' : ''}>${icon(ic)}<span class="lbl">${esc(label)}</span>${extra}</button>`;
-}
-function sectionNav() {
-  const ix = cur();
-  const parts = (ix?.parts ?? []).map((p) => `<button class="nav" data-act="open-part" data-p="${esc(p.name)}" ${S.view === 'part' && S.part === p.name ? 'aria-current="page"' : ''}>${dot(p.status)}<span class="lbl">${esc(p.name)}</span><span class="count">${p.status === 'done' && p.score != null ? `${num(p.score)}/${num(p.points)}` : p.date ? esc(fmtDate(p.date)) : ''}</span></button>`).join('');
-  const inbox = ix?.inbox.length ?? 0;
-  const due = ix ? groups(ix).flatMap((g) => g.generated).reduce((a, x) => a + num(x.due), 0) : 0;
-  return SECTIONS.map(([v, l, ic]) => navBtn(v, l, ic,
-    v === 'materials' && inbox ? `<span class="count hot">${inbox} new</span>` : v === 'study' && due ? `<span class="count hot">${due} due</span>` : '') + (v === 'overview' ? parts : '')).join('');
-}
-function drawSide() {
-  const subj = S.subjects ?? [];
-  const inSubject = S.subject && SUBJECT_VIEWS.includes(S.view);
-  $('side').innerHTML = `<div class="brand"><span class="mark" aria-hidden="true"></span>Studying</div>
-    <div class="navlabel"><span>Subjects</span><button data-act="new-subject" title="Add subject" aria-label="Add subject">${icon('plus')}</button></div>
-    ${subj.map((s) => `<button class="nav" data-act="pick-subject" data-s="${esc(s.name)}" ${s.name === S.subject && inSubject ? 'aria-current="true"' : ''}>${icon('book')}<span class="lbl">${esc(s.name)}</span></button>`).join('')}
-    ${!subj.length ? `<button class="nav" data-act="goto" data-v="subjects">${icon('book')}<span class="lbl">All subjects</span></button>` : ''}
-    ${inSubject ? `<div class="navlabel"><span>${esc(S.subject)}</span></div>${sectionNav()}` : ''}
-    <div class="side-foot">
-      <button class="nav" data-act="go-setup">${icon('gear')}<span class="lbl">Setup</span></button>
-      ${S.modes.includes('fullscreen') ? `<button class="nav" data-act="full">${icon(S.display === 'fullscreen' ? 'min' : 'max')}<span class="lbl">${S.display === 'fullscreen' ? 'Exit full screen' : 'Full screen'}</span></button>` : ''}
-    </div>`;
-  $('tabs').innerHTML = inSubject ? sectionNav() : '';
-  $('tabs').hidden = !inSubject;
-}
+
+// ---------- top bar ----------
 function drawTop() {
-  const inSubject = S.subject && SUBJECT_VIEWS.includes(S.view);
-  const title = { setup: 'Setup', subjects: 'Subjects' }[S.view];
-  const sec = SECTIONS.find((s) => s[0] === S.view)?.[1];
-  const sub = { part: S.part, make: 'Make', sort: 'Sorting', files: 'Folder', deck: 'Flashcards', mindmap: 'Mind map', doc: 'Notes', test: 'Test', result: 'Result' }[S.view];
-  const parent = { deck: 'study', mindmap: 'study', doc: S.back, test: 'practice', result: 'results', make: S.back, sort: 'materials', files: 'materials' }[S.view];
-  $('top').innerHTML = `<button class="mobile-only icon-btn" data-act="goto" data-v="subjects" aria-label="All subjects"><span class="mark" aria-hidden="true"></span></button>
-    <div class="crumb">${inSubject
-      ? `<button class="keep" data-act="goto" data-v="overview" style="overflow:hidden;text-overflow:ellipsis">${esc(S.subject)}</button>${sec && S.view !== 'overview' ? `<span aria-hidden="true">/</span><span>${sec}</span>` : ''}
-         ${sub ? `<span aria-hidden="true">/</span>${parent && parent !== 'overview' ? `<button data-act="goto" data-v="${parent}">${esc(SECTIONS.find((s) => s[0] === parent)?.[1] ?? '')}</button><span aria-hidden="true">/</span>` : ''}<span>${sub}</span>` : ''}`
-      : `<span class="keep">${esc(title ?? '')}</span>`}</div>
+  const ix = cur(), inSubject = ['subject', 'part'].includes(S.view) && S.subject;
+  const inbox = ix?.inbox.length ?? 0;
+  $('top').innerHTML = `<button class="home" data-act="home" title="All subjects"><span class="mark" aria-hidden="true"></span><span class="lbl">Studying</span></button>
+    ${inSubject ? `<div class="crumbs"><span class="sep" aria-hidden="true">/</span>
+      <button class="switch" data-act="menu" aria-haspopup="menu" aria-expanded="${S.menu}"><span>${esc(S.subject)}</span>${icon('chev')}</button>
+      ${S.view === 'part' ? `<span class="sep" aria-hidden="true">/</span><button class="part" data-act="open-part" data-p="${esc(S.part)}">${esc(S.part)}</button>` : ''}</div>` : ''}
     <span class="spacer"></span>
-    ${inSubject ? `<button class="btn sm" data-act="refresh" title="Read the subject again from your storage">${icon('refresh')}<span class="hide-sm">Refresh</span></button>
-      <button class="btn sm primary" data-act="make" data-p="">${icon('plus')}<span>Make</span></button>` : ''}
-    ${S.modes.includes('fullscreen') ? `<button class="icon-btn mobile-only" data-act="full" aria-label="Full screen">${icon(S.display === 'fullscreen' ? 'min' : 'max')}</button>` : ''}`;
+    ${inSubject && ix ? `<button class="btn quiet" data-act="inbox" title="Documents waiting to be sorted">${icon('inbox')}<span class="hide-sm">Inbox</span>${inbox ? `<span class="n">${inbox}</span>` : ''}</button>
+      <button class="icon-btn" data-act="refresh" title="Read this subject again from your storage" aria-label="Refresh">${icon('refresh')}</button>
+      <button class="btn primary" data-act="make" data-p="${S.view === 'part' ? esc(S.part) : ''}">${icon('plus')}<span class="hide-sm">Make</span></button>` : ''}
+    ${S.modes.includes('fullscreen') ? `<button class="icon-btn" data-act="full" aria-label="${S.display === 'fullscreen' ? 'Exit full screen' : 'Full screen'}" title="${S.display === 'fullscreen' ? 'Exit full screen' : 'Full screen'}">${icon(S.display === 'fullscreen' ? 'min' : 'max')}</button>` : ''}
+    ${S.menu ? `<div class="menu" role="menu">
+      ${(S.subjects ?? []).map((s) => `<button role="menuitem" data-act="pick-subject" data-s="${esc(s.name)}" ${s.name === S.subject ? 'aria-current="true"' : ''}>${icon('book')}<span>${esc(s.name)}</span></button>`).join('')}
+      <hr><button role="menuitem" data-act="home">${icon('home')}<span>All subjects</span></button>
+      <button role="menuitem" data-act="new-subject">${icon('plus')}<span>Add subject</span></button>
+      <button role="menuitem" data-act="go-setup">${icon('gear')}<span>Setup</span></button></div>` : ''}`;
 }
 
 // ---------- setup ----------
@@ -638,8 +631,7 @@ function viewSetup() {
   if (st.step === 0) return `<div class="head">${head}<h1>One place for every subject you study</h1>
     <p class="sub">Drop your course documents into a subject. Claude sorts them, turns them into summaries, flashcards and practice exams, grades your answers and remembers what you still need. Everything stays in your own cloud storage.</p></div>
     <div class="row"><button class="btn primary" data-act="setup-next">Get started</button></div>`;
-  if (st.step === 1) return `<div class="head">${head}<h1>Where should your things live</h1>
-    <p class="sub">Studying keeps nothing on its own server</p></div>
+  if (st.step === 1) return `<div class="head">${head}<h1>Where should your things live</h1><p class="sub">Studying keeps nothing on its own server</p></div>
     <div class="list panel tight">${STORAGES.map(([n, d]) => `<label class="item" style="cursor:pointer"><input type="radio" name="storage" data-act="pick-storage" data-s="${esc(n)}" ${st.storage === n ? 'checked' : ''}>
       <span class="name"><b>${esc(n)}</b><small>${esc(d)}</small></span><span></span></label>`).join('')}</div>
     <div class="row"><button class="btn quiet" data-act="setup-back">Back</button><button class="btn primary" data-act="setup-next" ${st.storage ? '' : 'disabled'}>Continue</button></div>`;
@@ -650,40 +642,40 @@ function viewSetup() {
       <li>Open Claude's connectors and connect <strong>${esc(st.storage)}</strong>. You sign in there; Studying never sees your password</li>
       <li>Come back and check the connection. Claude creates a <strong>Studying</strong> folder for you</li>
     </ol>
-    ${s && !s.ok ? `<p class="notice">Claude could not reach ${esc(st.storage)} yet. Connect it, then check again</p>` : ''}
+    ${s && !s.ok ? `<div class="notice">Claude could not reach ${esc(st.storage)} yet. Connect it, then check again</div>` : ''}
     <div class="row"><button class="btn quiet" data-act="setup-back">Back</button><button class="btn" data-act="open-connectors">${icon('ext')}Open connectors</button>
     <button class="btn primary" data-act="check-storage">Check connection</button></div>`;
   }
   if (st.step === 3) return `<div class="head">${head}<h1>Your workspace is ready</h1>
     <p class="sub">Claude created the Studying folder in ${esc(st.storage)}, with a place for your rules and one folder per subject</p></div>
     <div class="row"><button class="btn primary" data-act="setup-next">Add your first subject</button></div>`;
-  return `<div class="head">${head}<h1>Add a subject</h1></div>${subjectForm()}`;
+  return `<div class="head">${head}<h1>Add a subject</h1></div><div class="panel">${subjectForm()}</div>`;
 }
 function subjectForm() {
-  return `<form class="panel" id="subject-form">
+  return `<form class="stack" id="subject-form" style="gap:16px">
     <div class="grid2">
       <label class="field">Subject<input type="text" id="f-name" required placeholder="Software Design"></label>
-      <label class="field">Exam date<input type="date" id="f-date"></label>
+      <label class="field">Exam parts, comma separated<input type="text" id="f-parts" placeholder="Oral 1, Oral 2, Project"></label>
     </div>
-    <label class="field">Exam parts, comma separated<input type="text" id="f-parts" placeholder="Oral 1, Oral 2, Project"></label>
-    <label class="field">How is it graded<textarea id="f-notes" placeholder="Two tests of 15 and 10 points and a project of 7; 15 points in total to pass"></textarea></label>
+    <label class="field">How is it graded<textarea id="f-notes" placeholder="Two tests of 15 and 10 points and a project of 7; 15 points in total to pass. Dates if you know them"></textarea></label>
     <div class="row"><button class="btn primary" type="submit">Create subject</button></div>
   </form>`;
 }
 
-// ---------- subjects ----------
+// ---------- home: all subjects ----------
 function viewSubjects() {
   if (S.subjects === null) return `<div class="head"><h1>Your subjects</h1><p class="sub">Load them from your storage, or set Studying up if this is your first time</p></div>
-    <div class="row"><button class="btn primary" data-act="load-subjects">Load my subjects</button><button class="btn" data-act="go-setup">First-time setup</button></div>
-    <div id="new-subject" hidden>${subjectForm()}</div>`;
-  return `<div class="row between"><h1>Your subjects</h1><button class="btn" data-act="new-subject">${icon('plus')}Add subject</button></div>
-    ${S.subjects.length ? `<div class="subjects">${S.subjects.map((s) => {
-      const d = daysTo(s.examDate);
+    <div class="row"><button class="btn primary" data-act="load-subjects">Load my subjects</button><button class="btn" data-act="go-setup">First-time setup</button></div>`;
+  return `<div class="head"><h1>Your subjects</h1></div>
+    <div class="subjects">${S.subjects.map((s) => {
+      const ix = S.data[s.name];
+      const earned = ix ? ix.parts.reduce((a, p) => a + (p.status === 'done' && p.score != null ? num(p.score) : 0), 0) : null;
+      const nextPart = ix?.parts.filter((p) => p.status !== 'done' && p.date && daysTo(p.date) >= 0).sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
       return `<button class="subject" data-act="pick-subject" data-s="${esc(s.name)}"><span class="name">${esc(s.name)}</span>
         <span class="muted">${esc(arr(s.parts).join(' · '))}</span>
-        <span class="meta">${d === null ? 'Exam date not set' : d >= 0 ? `${d} days to exam` : 'Exam passed'}${num(s.due) ? ` · ${num(s.due)} cards due` : ''}</span></button>`;
-    }).join('')}</div>` : `<div class="empty"><p>No subjects yet</p></div>`}
-    <div id="new-subject" hidden>${subjectForm()}</div>`;
+        <span class="meta">${ix ? `${earned} of ${num(ix.totalPoints)} points${ix.passPoints ? `, ${num(ix.passPoints)} to pass` : ''}` : ''}${nextPart ? ` · ${esc(nextPart.name)} ${when(nextPart.date)}` : ''}${ix?.inbox.length ? ` · ${ix.inbox.length} to sort` : ''}</span></button>`;
+    }).join('')}
+    <button class="subject add" data-act="new-subject">${icon('plus')}<span>Add a subject</span></button></div>`;
 }
 function viewLoading() {
   return `<div class="head"><h1>${esc(S.subject || 'Subject')}</h1><p class="sub">${S.loading ? 'Claude is reading this subject from your storage' : 'Not loaded yet'}</p></div>
@@ -691,85 +683,99 @@ function viewLoading() {
     ${S.loading ? '' : `<div class="row"><button class="btn primary" data-act="refresh">Load ${esc(S.subject)}</button></div>`}`;
 }
 
-// ---------- overview ----------
+// ---------- the subject: one page with everything ----------
+function earnedOf(ix) { return ix.parts.reduce((a, p) => a + (p.status === 'done' && p.score != null ? Math.min(num(p.score), num(p.points)) : 0), 0); }
 function pointsTrack(ix) {
   const parts = ix.parts.filter((p) => num(p.points) > 0);
   const total = num(ix.totalPoints) || parts.reduce((a, p) => a + num(p.points), 0);
   if (!total) return '';
-  const pass = num(ix.passPoints);
-  const earned = parts.reduce((a, p) => a + (p.status === 'done' && p.score != null ? Math.min(num(p.score), num(p.points)) : 0), 0);
+  const pass = num(ix.passPoints), earned = earnedOf(ix);
   const practice = parts.reduce((a, p) => a + (p.status !== 'done' && p.best != null ? Math.min(num(p.best), num(p.points)) : 0), 0);
-  const need = Math.max(0, pass - earned);
-  const line = !pass ? '' : earned >= pass ? 'You have passed' : `${need} more to pass${practice ? `, practice scores suggest ${practice} more` : ''}`;
+  const line = !pass ? '' : earned >= pass ? 'passed' : `${pass - earned} more needed to pass${practice ? `, your practice scores would add ${practice}` : ''}`;
   return `<section class="panel points">
-    <div class="row between"><h2>Points</h2><span class="meta">${pass ? `${pass} of ${total} to pass` : `${total} points`}</span></div>
+    <div class="row between"><h2>Points</h2><span class="meta">${pass ? `${pass} of ${total} to pass` : `${total} in total`}</span></div>
     <div class="big"><b>${earned}</b><span class="muted">of ${total} earned${line ? ` · ${line}` : ''}</span></div>
     <div class="bar">
       ${parts.map((p) => { const w = (num(p.points) / total) * 100, done = p.status === 'done' && p.score != null;
         const f = done ? Math.min(1, num(p.score) / num(p.points)) * 100 : 0, pr = !done && p.best != null ? Math.min(1, num(p.best) / num(p.points)) * 100 : 0;
-        return `<div class="seg ${f >= 55 ? 'lit' : ''}" style="width:calc(${w}% - 3px)" title="${esc(p.name)}">${pr ? `<i style="width:${pr}%"></i>` : ''}${f ? `<b style="width:${f}%"></b>` : ''}<span>${esc(p.name)}</span></div>`; }).join('')}
+        return `<div class="seg ${f >= 55 ? 'lit' : ''}" style="width:calc(${w}% - 3px)" title="${esc(p.name)}">${pr ? `<i style="width:${pr}%"></i>` : ''}${f ? `<b style="width:${f}%"></b>` : ''}<span>${esc(p.name)} · ${num(p.points)}</span></div>`; }).join('')}
       ${pass ? `<div class="passline" style="left:calc(${(pass / total) * 100}% - 1px)"><i>${pass} to pass</i></div>` : ''}
     </div>
     <p class="muted">Solid is earned on the real exam, outlined is your best practice score</p>
   </section>`;
 }
-function examPlan(ix) {
-  return `<section class="panel"><div class="row between"><h2>Exam parts</h2><span class="meta">click a part for its dashboard</span></div>
-    <div class="legend plan">${ix.parts.map((p) => `<button class="lrow" data-act="open-part" data-p="${esc(p.name)}" style="text-align:left;width:100%">
-      <span class="status" style="color:var(--t1)">${dot(p.status)}${esc(p.name)}</span>
-      <span class="num">${p.date ? esc(new Date(p.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })) : 'date not set'}</span>
-      <span class="num">${esc(p.status)}</span>
-      <span class="num">${p.status === 'done' && p.score != null ? `${num(p.score)} / ${num(p.points)}` : p.best != null ? `best ${num(p.best)}` : `— / ${num(p.points)}`}</span></button>`).join('')}</div></section>`;
+function nextStep(ix) {
+  if (ix.inbox.length) return { text: `${plural(ix.inbox.length, 'document is', 'documents are')} waiting in the inbox. Claude reads them and files each one where it belongs`, label: 'Sort the inbox', act: 'sort' };
+  if (ix.nextStep?.text) {
+    const m = { make: ['Make study material', 'make'], review: ['Review due cards', 'due-cards'], test: ['Take a mock exam', 'mock-exam'], read: ['Show me', 'next-step'], sort: ['Sort the inbox', 'sort'], add: ['Add documents', 'inbox'] }[ix.nextStep.action] ?? ['Ask Claude', 'next-step'];
+    return { text: ix.nextStep.text, label: m[0], act: m[1] };
+  }
+  const empty = groupsOf(ix).every((g) => !g.materials.length);
+  if (empty) return { text: 'Add your course documents. Claude reads them and files each one under the right exam part', label: 'Add documents', act: 'inbox' };
+  return { text: 'Ask Claude what to study next, based on your dates, results and what is due', label: 'What next', act: 'next-step' };
 }
-const NEXT_ACT = { sort: ['Sort the inbox', 'sort'], make: ['Make study material', 'make'], review: ['Review due cards', 'due-cards'], test: ['Take a practice test', 'mock-exam'], read: ['Open notes', 'next-step'] };
-function viewOverview() {
-  const ix = cur(), d = daysTo(ix.examDate);
-  const counts = groups(ix).map((g) => ({ title: g.title, m: g.materials.length, g: g.generated.length }));
-  const recent = groups(ix).flatMap((g) => g.generated.map((x) => ({ ...x, part: g.title }))).slice(-5).reverse();
-  const nx = ix.nextStep?.text ? ix.nextStep : ix.inbox.length ? { text: `${plural(ix.inbox.length, 'document is', 'documents are')} waiting in the inbox. Let Claude read and sort them`, action: 'sort' }
-    : counts.every((c) => !c.m) ? { text: 'Drop your course documents into the inbox. Claude reads them and files each one where it belongs', action: 'add' } : null;
-  const [label, act] = nx?.action === 'add' ? ['Open the inbox', 'open-inbox'] : NEXT_ACT[nx?.action] ?? ['Ask Claude what to do next', 'next-step'];
-  return `<div class="head"><h1>${esc(ix.name)}</h1>
-      <p class="meta">${d === null ? 'Exam date not set' : d >= 0 ? `${d} days to exam` : 'Exam passed'} · ${plural(ix.parts.length, 'part', 'parts')}${ix.totalPoints ? ` · ${num(ix.totalPoints)} points` : ''}</p></div>
-    ${nx ? `<section class="panel next"><div class="stack" style="gap:6px"><span class="meta">Next step</span><p>${esc(nx.text)}</p></div>
-      <button class="btn primary" data-act="${act}">${label}</button></section>` : ''}
-    ${pointsTrack(ix)}
-    ${examPlan(ix)}
+const groupsOf = (ix) => [...ix.parts.map((p) => ({ key: p.name, title: p.name, ...p })), { key: '_shared', title: 'Whole subject', ...ix.shared, topics: [] }];
+function partCard(p) {
+  const done = p.status === 'done' && p.score != null;
+  const tests = p.generated.filter((x) => x.kind === 'test').length, decks = p.generated.filter((x) => x.kind !== 'test').length;
+  const due = p.generated.reduce((a, x) => a + num(x.due), 0);
+  return `<button class="partcard" data-act="open-part" data-p="${esc(p.name)}">
+    <div class="stack" style="gap:4px"><span class="status">${dot(p.status)}${esc(p.status)}</span><span class="name">${esc(p.name)}</span>
+      <span class="meta">${done ? 'finished' : p.date ? `${esc(fmtDate(p.date))} · ${when(p.date)}` : 'date not set'}</span></div>
+    <div class="score"><b>${done ? num(p.score) : p.best != null ? num(p.best) : '—'}</b><span class="muted">/ ${num(p.points)} ${done ? 'earned' : p.best != null ? 'best practice' : 'points'}</span>${due ? `<span class="tag" style="color:var(--accent);margin-left:auto">${due} due</span>` : ''}</div>
+    ${p.topics.length ? `<div class="tdots" title="Topics: green good, blue learning, red weak, grey not started">${p.topics.map((t) => `<span class="dot ${esc(t.status.replace(/\s/g, '-'))}" title="${esc(t.name)}"></span>`).join('')}</div>` : ''}
+    <div class="foot"><span>${plural(p.materials.length, 'file', 'files')}</span><span>${decks ? `${decks} to study · ` : ''}${plural(tests, 'test', 'tests')}</span></div>
+  </button>`;
+}
+function itemRow(x) {
+  return `<button class="item" data-act="open-file" data-id="${esc(x.id)}" data-n="${esc(x.name)}"><span class="ic">${icon(KIND_ICON[x.kind] ?? 'note')}</span>
+    <span class="name"><b>${esc(x.name)}</b><small>${esc([x.part, KIND_LABEL[x.kind] ?? x.kind].filter(Boolean).join(' · '))}</small></span>
+    <span class="side">${num(x.due) ? `<span class="tag" style="color:var(--accent)">${num(x.due)} due</span>` : ''}${x.score != null && x.total ? `<span class="pts">${num(x.score)} / ${num(x.total)}</span>` : x.count ? `<span class="meta">${num(x.count)}</span>` : ''}</span></button>`;
+}
+function resumeBanner() {
+  return S.test && !S.submitted && S.modal?.type !== 'test' ? `<div class="notice"><span>Test in progress: ${esc(S.test.title)}</span><button class="btn sm primary" data-act="resume-test">Resume</button></div>` : '';
+}
+function viewSubject() {
+  const ix = cur(), nx = nextStep(ix);
+  const dates = ix.parts.filter((p) => p.status !== 'done' && p.date).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+  const recent = [...groupsOf(ix).flatMap((g) => g.generated.map((x) => ({ ...x, part: g.title }))), ...ix.parts.flatMap((p) => p.results.map((r) => ({ ...r, kind: 'result', part: p.name })))].slice(-6).reverse();
+  return `${resumeBanner()}
+    <div class="head"><h1>${esc(ix.name)}</h1>
+      <p class="meta">${dates.length ? dates.map((p) => `${esc(p.name)} ${esc(fmtDate(p.date))}`).join(' · ') : 'No exam dates set'} · ${plural(ix.parts.length, 'part', 'parts')}</p></div>
+    <div class="cols wide">${pointsTrack(ix)}
+      <section class="panel next"><div class="stack" style="gap:8px"><span class="meta">Next step</span><p>${esc(nx.text)}</p></div>
+        <div><button class="btn primary" data-act="${nx.act}">${esc(nx.label)}</button></div></section></div>
+    <section class="stack"><h2>Exam parts</h2>
+      <div class="parts">${ix.parts.map(partCard).join('')}</div></section>
     <div class="cols">
-      <section class="panel"><div class="row between"><h2>Materials</h2><button class="btn sm quiet" data-act="goto" data-v="materials">Open</button></div>
-        <div class="legend">
-          <div class="lrow"><span>Inbox</span><span class="num">${ix.inbox.length ? `${ix.inbox.length} new` : 'empty'}</span><span class="num"></span></div>
-          ${counts.map((c) => `<div class="lrow"><span>${esc(c.title)}</span><span class="num">${plural(c.m, 'file', 'files')}</span><span class="num">${c.g} made</span></div>`).join('')}
-        </div></section>
-      <section class="panel"><div class="row between"><h2>Made for you</h2><button class="btn sm quiet" data-act="goto" data-v="study">Open</button></div>
-        ${recent.length ? `<div class="list">${recent.map(genRow).join('')}</div>` : '<p class="muted">Nothing yet. Make flashcards, a summary or a practice test from your materials</p>'}</section>
-    </div>
-    <form class="panel" id="ask-form"><label class="field">Ask about ${esc(ix.name)}<input type="text" id="ask-q" placeholder="What does the exam usually ask about system operations"></label>
-      <p class="muted">Claude searches every part of this subject, starting where the question belongs</p></form>`;
+      <section class="panel"><div class="row between"><h2>Recent</h2>${ix.memory.weakTopics.length ? `<button class="btn sm quiet" data-act="weak">Practise weak topics</button>` : ''}</div>
+        ${recent.length ? `<div class="list">${recent.map(itemRow).join('')}</div>` : '<p class="muted">Nothing made yet. Use Make for flashcards, a summary or a practice test</p>'}</section>
+      <section class="stack" style="gap:16px">
+        <form class="panel" id="ask-form"><label class="field">Ask about ${esc(ix.name)}<input type="text" id="ask-q" placeholder="What does the exam usually ask about contracts"></label>
+          <p class="muted">Claude searches every part of this subject and cites the page</p></form>
+        <div class="row"><button class="btn" data-act="notes">${icon('brain')}What Claude knows</button><button class="btn quiet" data-act="all-files">${icon('folder')}All materials</button></div>
+      </section>
+    </div>`;
 }
 
-// ---------- one exam part: its own dashboard ----------
+// ---------- one exam part ----------
 function viewPart() {
   const ix = cur(), p = partOf(S.part);
-  if (!p) return viewOverview();
-  const done = p.status === 'done' && p.score != null, d = daysTo(p.date);
+  if (!p) return viewSubject();
+  const done = p.status === 'done' && p.score != null;
   const tests = p.generated.filter((x) => x.kind === 'test'), study = p.generated.filter((x) => x.kind !== 'test');
   const counts = { good: 0, learning: 0, weak: 0, 'not started': 0 };
   for (const t of p.topics) counts[t.status in counts ? t.status : 'not started']++;
-  const covered = p.topics.length ? Math.round(((p.topics.length - counts['not started']) / p.topics.length) * 100) : 0;
-  return `<div class="row between"><div class="head"><h1>${esc(p.name)}</h1>
-      <p class="meta">${p.format ? esc(p.format) + ' · ' : ''}${num(p.points)} points · ${p.date ? `${esc(new Date(p.date).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }))}${d !== null && d >= 0 ? ` · in ${d} days` : ''}` : 'date not set'}</p></div>
-      <button class="btn" data-act="edit-part">${S.editPart ? 'Close' : 'Edit date and score'}</button></div>
-    ${S.editPart ? `<form class="panel" id="part-form"><div class="grid2">
-      <label class="field">Exam date<input type="date" id="p-date" value="${esc(p.date ?? '')}"></label>
-      <label class="field">Status<select id="p-status">${STATUS.map((x) => `<option ${p.status === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
-      <label class="field">Points earned<input type="number" id="p-score" min="0" max="${num(p.points)}" step="0.5" value="${p.score ?? ''}" placeholder="when it is done"></label>
-      <label class="field">Format<input type="text" id="p-format" value="${esc(p.format ?? '')}" placeholder="theory test, code on paper"></label></div>
-      <div class="row"><button class="btn primary" type="submit">Save</button></div></form>` : ''}
+  const covered = p.topics.length ? Math.round(((p.topics.length - counts['not started']) / p.topics.length) * 100) : null;
+  const due = study.reduce((a, x) => a + num(x.due), 0);
+  return `${resumeBanner()}
+    <div class="row between" style="align-items:flex-end"><div class="head"><h1>${esc(p.name)}</h1>
+      <p class="meta">${p.format ? esc(p.format) + ' · ' : ''}${num(p.points)} points · ${p.date ? `${esc(fmtLong(p.date))} · ${when(p.date)}` : 'date not set'}</p></div>
+      <button class="btn" data-act="edit-part">Date and score</button></div>
     <div class="stats">
       <div class="stat"><span>Status</span><b style="font-size:20px;line-height:28px" class="status">${dot(p.status)}${esc(p.status)}</b></div>
       <div class="stat"><span>${done ? 'Earned' : 'Best practice'}</span><b>${done ? num(p.score) : p.best != null ? num(p.best) : '—'}<span class="muted" style="font:14px var(--font)"> / ${num(p.points)}</span></b></div>
-      <div class="stat"><span>Topics covered</span><b>${p.topics.length ? `${covered}%` : '—'}</b></div>
+      <div class="stat"><span>Topics covered</span><b>${covered === null ? '—' : `${covered}%`}</b></div>
       <div class="stat"><span>Tests taken</span><b>${p.results.length}</b></div>
     </div>
     <section class="panel tight">
@@ -779,23 +785,20 @@ function viewPart() {
           <div class="mastery ${esc(t.status)}" title="Mastery ${num(t.mastery)}%"><b style="width:${Math.max(0, Math.min(100, num(t.mastery)))}%"></b></div>
           <span class="meta" style="text-align:right">${num(t.mastery)}%</span>
           <button class="btn sm quiet act" data-act="topic-quiz" data-t="${esc(t.name)}">Practise</button></div>`).join('')}</div>`
-        : `<div class="empty"><p>No topic map yet. Claude builds one from this part's materials: the areas the exam covers, so every card and test question is filed under its topic</p>
-          <button class="btn" data-act="build-topics" ${p.materials.length || ix.shared.materials.length ? '' : 'disabled'}>Build the topic map</button></div>`}
+        : `<div class="empty" style="padding:4px 16px 16px"><p>${done ? 'This part is done' : 'No topic map yet. Claude builds one from the materials: the areas this part of the exam covers. Every card and test question is then filed under its topic, so you see what is covered and what is not'}</p>
+          ${done ? '' : `<button class="btn" data-act="build-topics" ${p.materials.length || ix.shared.materials.length ? '' : 'disabled'}>Build the topic map</button>`}</div>`}
     </section>
     <div class="cols">
-      <section class="panel"><div class="row between"><h2>Tests</h2><button class="btn sm primary" data-act="mock-exam" data-p="${esc(p.name)}">Mock exam</button></div>
-        ${tests.length ? `<div class="list">${tests.map(genRow).join('')}</div>` : '<p class="muted">No tests yet</p>'}
-        ${p.results.length ? `<h3>Results</h3><div class="list">${p.results.slice().reverse().map((r) => `<div class="item"><span class="ic">${icon('chart')}</span>
-          <button class="name" data-act="open-file" data-id="${esc(r.id)}" data-n="${esc(r.name)}"><b>${esc(r.name)}</b><small>${esc(fmtDate(r.date))}</small></button>
-          <span class="pts">${num(r.score)} / ${num(r.total)}</span></div>`).join('')}</div>` : ''}</section>
-      <section class="panel"><div class="row between"><h2>Study</h2><button class="btn sm" data-act="make" data-p="${esc(p.name)}">${icon('plus')}Make</button></div>
-        ${study.length ? `<div class="list">${study.map(genRow).join('')}</div>` : '<p class="muted">No flashcards or notes yet</p>'}</section>
+      <section class="panel"><div class="row between"><h2>Study</h2><div class="row">${due ? `<button class="btn sm primary" data-act="due-cards" data-p="${esc(p.name)}">Review ${due} due</button>` : ''}<button class="btn sm" data-act="make" data-p="${esc(p.name)}">${icon('plus')}Make</button></div></div>
+        ${study.length ? `<div class="list">${study.map(itemRow).join('')}</div>` : '<p class="muted">No flashcards, mind maps or notes yet</p>'}</section>
+      <section class="panel"><div class="row between"><h2>Tests</h2><div class="row"><button class="btn sm" data-act="make-test" data-p="${esc(p.name)}">Custom</button><button class="btn sm primary" data-act="mock-exam" data-p="${esc(p.name)}">Mock exam</button></div></div>
+        ${tests.length ? `<div class="list">${tests.map(itemRow).join('')}</div>` : '<p class="muted">No tests yet</p>'}
+        ${p.results.length ? `<h3>Results</h3><div class="list">${p.results.slice().reverse().map((r) => itemRow({ ...r, kind: 'result', part: fmtDate(r.date) })).join('')}</div>` : ''}</section>
     </div>
-    <section class="section"><div class="group-h"><h2>Materials</h2><span class="meta">${plural(p.materials.length, 'file', 'files')}</span></div>
-      ${p.materials.length ? `<div class="panel tight list">${p.materials.map((f) => fileRow(f)).join('')}</div>` : '<p class="muted" style="padding:0 4px">Nothing filed here yet. Drop documents in the inbox and Claude sorts them</p>'}</section>`;
+    <section class="panel tight"><div class="row between" style="padding:16px 16px 8px"><h2>Materials</h2><span class="meta">${plural(p.materials.length, 'file', 'files')}</span></div>
+      ${p.materials.length ? `<div class="list">${p.materials.map((f) => fileRow(f)).join('')}</div>` : '<div class="empty" style="padding:4px 16px 16px"><p>Nothing filed here yet</p><button class="btn" data-act="inbox">Add documents</button></div>'}
+      ${selBar()}</section>`;
 }
-
-// ---------- materials ----------
 function fileRow(f, selectable = true) {
   const sel = S.selected.has(f.id);
   return `<div class="item ${selectable ? 'sel' : ''}">${selectable ? `<input type="checkbox" data-act="select" data-id="${esc(f.id)}" data-n="${esc(f.name)}" ${sel ? 'checked' : ''} aria-label="Select ${esc(f.name)}">` : ''}
@@ -803,166 +806,57 @@ function fileRow(f, selectable = true) {
     <button class="name" data-act="open-file" data-id="${esc(f.id)}" data-n="${esc(f.name)}"><b>${esc(f.name)}</b>${f.note ? `<small>${esc(f.note)}</small>` : ''}</button>
     <span class="side"><span class="tag">${esc(f.kind ?? '')}</span><span class="meta">${esc(fmtSize(f.size))}</span></span></div>`;
 }
-function viewMaterials() {
-  const ix = cur(), n = ix.inbox.length;
-  return `<div class="head"><h1>Materials</h1><p class="sub">Everything for ${esc(ix.name)}, sorted by exam part</p></div>
-    <section class="inbox ${n ? 'full' : ''}">
-      <div class="stack" style="gap:6px">${n ? `<span class="count">${n}</span><p>${plural(n, 'new document', 'new documents')} in the inbox. Claude reads each one, proposes a name and where it belongs, and moves them once you approve</p>`
-        : `<h2>Inbox</h2><p class="sub">Drop every document for this subject here: scripts, slides, old exams, photos of notes. You do not have to sort anything</p>`}</div>
-      <div class="row">${n ? `<button class="btn primary" data-act="sort">Sort with Claude</button>` : ''}
-        ${ix.inboxUrl ? `<button class="btn" data-act="open-inbox">${icon('ext')}Open inbox in storage</button>` : ''}
-        ${n ? '' : `<button class="btn quiet" data-act="refresh">Check again</button>`}</div>
-    </section>
-    ${n ? `<div class="panel tight list">${ix.inbox.map((f) => fileRow(f, false)).join('')}</div>` : '<p class="muted">You can also attach files in the chat and say "put these in the inbox"</p>'}
-    ${groups(ix).map((g) => `<section class="section">
-      <div class="group-h"><h2>${esc(g.title)}</h2><span class="meta">${plural(g.materials.length, 'file', 'files')}${g.points ? ` · ${num(g.points)} points` : ''}</span></div>
-      ${g.materials.length ? `<div class="panel tight list">${g.materials.map((f) => fileRow(f)).join('')}</div>` : `<p class="muted" style="padding:0 4px">Nothing here yet</p>`}
-    </section>`).join('')}
-    ${S.selected.size ? `<div class="selbar"><span>${plural(S.selected.size, 'file', 'files')} selected</span><div class="row">
-      <button class="btn quiet" data-act="clear-sel">Clear</button><button class="btn primary" data-act="make" data-p="">Make from these</button></div></div>` : ''}`;
+function selBar() {
+  return S.selected.size ? `<div class="notice" style="margin:8px;border-color:var(--accent)"><span>${plural(S.selected.size, 'file', 'files')} selected</span><div class="row">
+    <button class="btn sm quiet" data-act="clear-sel">Clear</button><button class="btn sm primary" data-act="make" data-p="${S.view === 'part' ? esc(S.part) : ''}">Make from these</button></div></div>` : '';
 }
 
-// ---------- study ----------
-function genRow(x) {
-  return `<div class="item"><span class="ic">${icon(KIND_ICON[x.kind] ?? 'note')}</span>
-    <button class="name" data-act="open-file" data-id="${esc(x.id)}" data-n="${esc(x.name)}"><b>${esc(x.name)}</b><small>${esc(x.part ?? '')}${x.part && x.kind ? ' · ' : ''}${esc(x.kind ?? '')}</small></button>
-    <span class="side">${num(x.due) ? `<span class="tag" style="color:var(--accent)">${num(x.due)} due</span>` : ''}${x.count ? `<span class="meta">${num(x.count)}</span>` : ''}</span></div>`;
+// ---------- modals ----------
+function modalHtml() {
+  const m = S.modal, ix = cur();
+  const defs = {
+    deck: () => [S.deck?.title ?? 'Flashcards', S.deck ? `${S.idx + 1} of ${S.order.length}` : '', mDeck()],
+    test: () => [S.test?.title ?? 'Test', S.test ? `${S.test.questions.length} questions${S.test.timeLimitMin ? ` · ${num(S.test.timeLimitMin)} min` : ''}` : '', viewTest()],
+    result: () => [S.results?.test ?? 'Result', 'Graded by Claude', mResult()],
+    mindmap: () => [S.mindmap?.title ?? 'Mind map', '', mMindmap()],
+    doc: () => [S.doc?.title ?? 'Notes', '', `<section class="panel">${md(S.doc?.markdown)}</section><div class="row">${reportButton(S.doc?.title, '')}</div>${reportBox()}`],
+    make: () => ['Make study material', S.subject, mMake()],
+    sort: () => ['Where your documents go', S.subject, mSort()],
+    inbox: () => ['Inbox', S.subject, mInbox()],
+    notes: () => ['What Claude knows', S.subject, mNotes()],
+    editpart: () => [`${S.part}: date and score`, S.subject, mEditPart(), true],
+    files: () => [S.path.split('/').pop(), S.path, mFiles()],
+    allfiles: () => ['All materials', S.subject, mAllFiles()],
+    newsubject: () => ['Add a subject', '', subjectForm(), true],
+  };
+  const [title, sub, body, narrow] = (defs[m.type] ?? (() => ['', '', '']))();
+  return `<div class="overlay" data-act="scrim"><div class="modal ${narrow ? 'narrow' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
+    <header><div class="t"><b>${esc(title)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</div>
+            <button class="icon-btn" data-act="close" aria-label="Close">${icon('x')}</button></header>
+    <div class="mbody">${body}</div></div></div>`;
 }
-function viewStudy() {
-  const ix = cur(), due = groups(ix).flatMap((g) => g.generated).reduce((a, x) => a + num(x.due), 0);
-  const gs = groups(ix).map((g) => ({ ...g, items: g.generated.filter((x) => x.kind !== 'test') }));
-  return `<div class="row between"><div class="head"><h1>Study</h1><p class="sub">Flashcards, mind maps and notes Claude made from your materials</p></div>
-      ${due ? `<button class="btn primary" data-act="due-cards">Review ${plural(due, 'due card', 'due cards')}</button>` : ''}</div>
-    ${gs.map((g) => `<section class="section"><div class="group-h"><h2>${esc(g.title)}</h2><button class="btn sm quiet" data-act="make" data-p="${esc(g.key)}">${icon('plus')}Make</button></div>
-      ${g.items.length ? `<div class="panel tight list">${g.items.map(genRow).join('')}</div>` : `<p class="muted" style="padding:0 4px">${g.materials.length ? 'Materials are here but nothing is made yet' : 'Add materials first'}</p>`}</section>`).join('')}`;
-}
+function timerHtml() { const left = timeLeft(); return left === null ? '' : `<span class="timer ${left < 300 ? 'low' : ''}" id="timer">${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}</span>`; }
 
-// ---------- practice ----------
-function viewPractice() {
-  const ix = cur();
-  return `<div class="head"><h1>Practice</h1><p class="sub">Tests in the format of the real exam, graded by Claude</p></div>
-    ${ix.parts.map((p) => { const tests = p.generated.filter((x) => x.kind === 'test');
-      return `<section class="section"><div class="group-h"><h2>${esc(p.name)}</h2><span class="meta">${p.format ? esc(p.format) : ''}${p.points ? ` · ${num(p.points)} points` : ''}</span></div>
-        <div class="panel"><div class="row between"><p class="sub">${tests.length ? plural(tests.length, 'test', 'tests') + ' ready' : 'No tests yet'}${p.best != null ? ` · best ${num(p.best)} of ${num(p.points)}` : ''}</p>
-          <div class="row"><button class="btn" data-act="make-test" data-p="${esc(p.name)}">Custom test</button><button class="btn primary" data-act="mock-exam" data-p="${esc(p.name)}">Mock exam</button></div></div>
-          ${tests.length ? `<div class="list">${tests.map(genRow).join('')}</div>` : ''}</div></section>`; }).join('')}`;
-}
-
-// ---------- results ----------
-function viewResults() {
-  const ix = cur();
-  const rows = ix.parts.flatMap((p) => p.results.map((r) => ({ ...r, part: p.name }))).sort((a, b) => String(b.date).localeCompare(String(a.date)));
-  return `<div class="head"><h1>Results</h1><p class="sub">Every graded test, newest first</p></div>
-    ${rows.length ? `<div class="panel tight list">${rows.map((r) => `<div class="item"><span class="ic">${icon('test')}</span>
-      <button class="name" data-act="open-file" data-id="${esc(r.id)}" data-n="${esc(r.name)}"><b>${esc(r.name)}</b><small>${esc(r.part)} · ${esc(fmtDate(r.date))}</small></button>
-      <span class="pts ${num(r.score) >= num(r.total) ? 'full' : ''}">${num(r.score)} / ${num(r.total)}</span></div>`).join('')}</div>`
-      : '<div class="empty"><p>No graded tests yet</p><button class="btn" data-act="goto" data-v="practice">Go to practice</button></div>'}
-    ${ix.memory.weakTopics.length ? `<section class="panel"><h2>Work on these</h2><div class="chips">${ix.memory.weakTopics.map((t) => `<span class="chip">${esc(t)}</span>`).join('')}</div>
-      <div class="row"><button class="btn primary" data-act="weak">Practise weak topics</button></div></section>` : ''}`;
-}
-
-// ---------- notes ----------
-function viewNotes() {
-  const ix = cur(), m = ix.memory;
-  return `<div class="head"><h1>Notes</h1><p class="sub">What Claude knows about this subject and about how you are doing</p></div>
-    <section class="panel"><h2>Summary</h2><p class="sub">${esc(m.summary || 'Nothing yet. This fills in as you study and take tests')}</p></section>
-    <div class="cols">
-      <section class="panel"><h2>Strong</h2>${m.strengths.length ? `<ul class="sub" style="margin:0;padding-left:20px">${m.strengths.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="muted">Not known yet</p>'}</section>
-      <section class="panel"><h2>Weak</h2>${m.weakTopics.length ? `<ul class="sub" style="margin:0;padding-left:20px">${m.weakTopics.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="muted">Not known yet</p>'}</section>
-    </div>
-    <section class="panel"><h2>Exam parts</h2><div class="legend">${ix.parts.map((p) => `<div class="lrow"><span>${esc(p.name)}<span class="muted">${p.format ? ` · ${esc(p.format)}` : ''}</span></span><span class="num">${num(p.points) || ''}${p.points ? ' pts' : ''}</span><span class="num"></span></div>`).join('')}</div>
-      ${ix.passPoints ? `<p class="muted">${num(ix.passPoints)} points to pass</p>` : ''}</section>
-    <form class="panel" id="tell-form"><label class="field">Tell Claude something about this subject<textarea id="tell-t" placeholder="The professor said the second test is code on paper, about 4 tasks"></textarea></label>
-      <div class="row"><button class="btn" type="submit">Save to notes</button></div></form>`;
-}
-
-// ---------- make ----------
-const OUTPUTS = ['Summary', 'Mind map', 'Flashcards', 'Quiz', 'Practice test', 'Practice tasks', 'Study plan', 'Cheat sheet', 'Glossary', 'Past-exam analysis'];
-const QTYPES = [['single', 'Single choice'], ['multiple', 'Multiple choice'], ['truefalse', 'True or false'], ['fill', 'Fill in the blank'], ['matching', 'Matching'], ['ordering', 'Ordering'], ['open', 'Open answer'], ['practical', 'Practical task'], ['code', 'Code']];
-function viewMake() {
-  const ix = cur();
-  const c = store.get('create', { outputs: ['Summary', 'Flashcards'], types: ['single', 'multiple', 'fill', 'open'], count: 15, difficulty: 'Like the real exam', time: 45, points: 15, review: true });
-  const outs = S.makePreset === 'test' ? ['Practice test'] : c.outputs;
-  const part = S.makePart, sel = [...S.selected.entries()];
-  return `<div class="head"><h1>Make study material</h1><p class="sub">Claude reads the materials, makes what you pick, checks it with a second reviewer and saves it to your storage</p></div>
-  <form class="stack" id="make-form" style="gap:16px">
-    <section class="panel"><h2>From</h2>
-      <label class="field">Part<select id="m-part"><option value="">All of ${esc(ix.name)}</option>${ix.parts.map((p) => `<option ${p.name === part ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
-      ${sel.length ? `<label class="chip" style="justify-self:start"><input type="checkbox" id="m-only" checked> Only the ${plural(sel.length, 'selected file', 'selected files')}: ${esc(sel.map(([, n]) => n).join(', '))}</label>` : ''}
-      <label class="field">Only these chapters, pages or topics<input type="text" id="m-focus" placeholder="Optional, for example pages 6 to 74"></label>
-    </section>
-    <section class="panel"><h2>Make</h2>
-      <div class="chips">${OUTPUTS.map((o) => `<label class="chip"><input type="checkbox" name="out" value="${esc(o)}" ${outs.includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div>
-    </section>
-    <section class="panel"><div class="row between"><h2>Questions</h2><span class="muted">For quizzes and tests</span></div>
-      <div class="chips">${QTYPES.map(([k, l]) => `<label class="chip"><input type="checkbox" name="qt" value="${k}" ${c.types.includes(k) ? 'checked' : ''}> ${l}</label>`).join('')}</div>
-      <div class="grid2">
-        <label class="field">Questions<input type="number" id="m-count" min="1" max="100" value="${num(c.count)}"></label>
-        <label class="field">Difficulty<select id="m-diff">${['Easy', 'Mixed', 'Hard', 'Like the real exam'].map((d) => `<option ${c.difficulty === d ? 'selected' : ''}>${d}</option>`).join('')}</select></label>
-        <label class="field">Minutes<input type="number" id="m-time" min="0" max="300" value="${num(c.time)}"></label>
-        <label class="field">Points<input type="number" id="m-points" min="0" max="1000" value="${num(c.points)}"></label>
-      </div>
-    </section>
-    <section class="panel">
-      <label class="chip" style="justify-self:start"><input type="checkbox" id="m-review" ${c.review ? 'checked' : ''}> Check with a second reviewer before I see it</label>
-      <label class="field">Anything else for Claude<textarea id="m-note" placeholder="Optional, for example: answer each exam question in full, with the definitions from the script"></textarea></label>
-      <div class="row"><button class="btn primary" type="submit">Make it</button><button class="btn quiet" type="button" data-act="goto" data-v="${esc(S.back)}">Cancel</button></div>
-    </section>
-  </form>`;
-}
-
-// ---------- sorting proposal ----------
-function viewSort() {
-  const p = S.proposal, ix = cur();
-  if (!p) return `<div class="head"><h1>Sorting</h1><p class="sub">No proposal yet</p></div><div class="row"><button class="btn primary" data-act="sort">Sort the inbox</button></div>`;
-  const dests = [...(ix?.parts ?? []).map((x) => [x.name, x.name]), ['_shared', 'Whole subject'], ['skip', 'Leave in inbox']];
-  const on = p.items.filter((x) => x.include && x.to !== 'skip').length;
-  return `<div class="head"><h1>Where your documents go</h1><p class="sub">${esc(p.summary ?? '')}</p></div>
-    <section class="card sheet" style="padding:8px 8px 8px 44px">
-      ${p.items.map((x, i) => `<div class="srow ${x.include && x.to !== 'skip' ? '' : 'skip'}">
-        <input type="checkbox" data-act="prop-inc" data-i="${i}" ${x.include ? 'checked' : ''} aria-label="Include ${esc(x.name)}">
-        <div class="stack" style="gap:2px;min-width:0"><span class="meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.name)}</span>
-          <input type="text" data-act="prop-name" data-i="${i}" value="${esc(x.newName ?? x.name)}" aria-label="New name"></div>
-        <span class="tag">${esc(x.kind ?? '')}</span>
-        <select data-act="prop-to" data-i="${i}" aria-label="Destination">${dests.map(([v, l]) => `<option value="${esc(v)}" ${x.to === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
-        ${x.reason ? `<span class="why">${esc(x.reason)}</span>` : ''}
-      </div>`).join('')}
-    </section>
-    ${arr(p.learned).length ? `<section class="panel"><h2>Learned about the exam</h2><ul class="sub" style="margin:0;padding-left:20px">${arr(p.learned).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
-      <p class="muted">Saved to the subject notes when you apply</p></section>` : ''}
-    <div class="row"><button class="btn primary" data-act="apply-sort" ${on ? '' : 'disabled'}>Move ${plural(on, 'file', 'files')}</button><button class="btn quiet" data-act="goto" data-v="materials">Not now</button></div>`;
-}
-
-// ---------- plain folder view (fallback) ----------
-function viewFiles() {
-  const items = S.files?.items;
-  return `<div class="head"><h1>${esc(S.path.split('/').pop())}</h1><p class="meta">${esc(S.path)}</p></div>
-    ${!items ? '<div class="empty"><p>Waiting for Claude</p></div>' : !items.length ? '<div class="empty"><p>This folder is empty</p></div>'
-      : `<div class="panel tight list">${items.map((f) => `<div class="item"><span class="ic">${icon(f.type === 'folder' ? 'folder' : 'file')}</span>
-        <button class="name" data-act="${f.type === 'folder' ? 'list' : 'open-file'}" data-p="${esc(S.path + '/' + f.name)}" data-id="${esc(f.id ?? '')}" data-n="${esc(f.name)}"><b>${esc(f.name)}</b></button>
-        <span class="meta">${esc(fmtSize(f.size))} ${esc(fmtDate(f.modified))}</span></div>`).join('')}</div>`}`;
-}
-
-// ---------- viewers ----------
 function openDeck(d) {
   S.deck = d && Array.isArray(d.cards) ? { ...d, cards: d.cards.filter((c) => c && typeof c === 'object') } : null;
   S.order = (S.deck?.cards ?? []).map((_, i) => i); S.idx = 0; S.flipped = false;
   S.srs = store.get('srs:' + (d?.title ?? ''), {});
-  go('deck');
+  openModal('deck');
 }
-function viewDeck() {
+function mDeck() {
   if (!S.deck) return `<div class="empty"><p>No deck open</p></div>`;
   const cards = S.deck.cards, c = cards[S.order[S.idx]];
-  if (!c) return `<div class="head"><h1>${esc(S.deck.title)}</h1><p class="sub">Deck finished</p></div><div class="row"><button class="btn primary" data-act="save-srs">Save my progress</button><button class="btn" data-act="restart-deck">Start again</button></div>`;
+  if (!c) return `<div class="head"><h1>Deck finished</h1><p class="sub">Save your progress so Claude knows when each card should come back</p></div>
+    <div class="row"><button class="btn primary" data-act="save-srs">Save my progress</button><button class="btn" data-act="restart-deck">Start again</button></div>`;
   const s = S.srs[c.id];
-  return `<div class="row between"><h1>${esc(S.deck.title)}</h1><span class="meta">${S.idx + 1} / ${S.order.length}</span></div>
-    <div class="card flash ${S.flipped ? 'back' : ''}" data-act="flip" role="button" tabindex="0" aria-label="${S.flipped ? 'Answer' : 'Question'}, press Space to flip">
+  return `<div class="card flash ${S.flipped ? 'back' : ''}" data-act="flip" role="button" tabindex="0" aria-label="${S.flipped ? 'Answer' : 'Question'}, press Space to flip">
+      ${c.topic ? `<span class="meta">${esc(c.topic)}</span>` : ''}
       <div class="q">${esc(c.front)}</div>
       ${S.flipped ? `<div class="a">${md(c.back)}</div>${c.source ? `<div class="src">${esc(c.source)}</div>` : ''}` : `<div class="muted">Space or click to see the answer</div>`}
     </div>
     ${S.flipped ? `<div class="rate">${[['again', 'Again', '<1 min'], ['hard', 'Hard', next(s, 'hard')], ['good', 'Good', next(s, 'good')], ['easy', 'Easy', next(s, 'easy')]].map(([k, l, t]) => `<button class="btn" data-act="rate" data-r="${k}">${l}<small>${t}</small></button>`).join('')}</div>` : ''}
     <div class="row between"><div class="row"><button class="btn quiet" data-act="prev-card" ${S.idx ? '' : 'disabled'}>Previous</button><button class="btn quiet" data-act="next-card">Skip</button></div>
-      <div class="row">${reportButton(S.deck.title, c.id)}<button class="btn quiet" data-act="save-srs">Save progress</button><button class="btn quiet" data-act="export-csv">Export CSV</button></div></div>${reportBox()}`;
+      <div class="row">${reportButton(S.deck.title, c.id)}<button class="btn quiet" data-act="save-srs">Save progress</button><button class="btn quiet" data-act="export-csv">CSV</button></div></div>${reportBox()}`;
 }
 // simple spaced repetition (SM-2 style): days until the card comes back
 function sched(s, r) {
@@ -977,7 +871,7 @@ function sched(s, r) {
 }
 const next = (s, r) => { const d = sched(s, r).interval; return d === 0 ? '<1 min' : d === 1 ? '1 day' : `${d} days`; };
 
-function viewMindmap() {
+function mMindmap() {
   if (!S.mindmap) return `<div class="empty"><p>No mind map open</p></div>`;
   const node = (n, depth) => {
     const kids = arr(n?.children);
@@ -985,19 +879,15 @@ function viewMindmap() {
     return `<li><details ${depth < 1 ? 'open' : ''}><summary>${esc(n.text)}</summary><ul class="tree">${kids.map((k) => node(k, depth + 1)).join('')}</ul></details></li>`;
   };
   const root = S.mindmap.root ?? { text: S.mindmap.title, children: [] };
-  return `<div class="row between"><h1>${esc(S.mindmap.title ?? root.text)}</h1><div class="row"><button class="btn quiet" data-act="tree-all" data-open="1">Expand all</button><button class="btn quiet" data-act="tree-all" data-open="0">Collapse</button></div></div>
-    <div class="panel"><ul class="tree root">${arr(root.children).map((k) => node(k, 0)).join('')}</ul></div>
+  return `<div class="row"><button class="btn sm quiet" data-act="tree-all" data-open="1">Expand all</button><button class="btn sm quiet" data-act="tree-all" data-open="0">Collapse</button></div>
+    <section class="panel"><ul class="tree root">${arr(root.children).map((k) => node(k, 0)).join('')}</ul></section>
     <p class="muted">Ask Claude about any branch in the chat</p>`;
-}
-function viewDoc() {
-  if (!S.doc) return `<div class="empty"><p>Nothing open</p></div>`;
-  return `<div class="row between"><h1>${esc(S.doc.title)}</h1>${reportButton(S.doc.title, '')}</div><section class="panel">${md(S.doc.markdown)}</section>${reportBox()}`;
 }
 function openTest(t) {
   S.test = t && Array.isArray(t.questions) && t.questions.length ? { ...t, questions: t.questions.filter((q) => q && typeof q === 'object').map(fixQuestion) } : null;
   S.answers = {}; S.touched = new Set(); S.q = 0; S.started = Date.now(); S.submitted = false;
   for (const q of S.test?.questions ?? []) if (q.type === 'ordering') S.answers[q.id] = shuffle(q.items.map((_, i) => i));
-  go('test');
+  openModal('test');
 }
 function fixQuestion(q, n) {
   const x = { ...q, id: String(q.id ?? `q${n + 1}`), prompt: String(q.prompt ?? '') };
@@ -1011,7 +901,7 @@ function viewTest() {
   if (!t) return `<h1>Test</h1><div class="empty"><p>No test open. Ask Claude for a practice test in Create, or open one from Files.</p><div class="row"><button class="btn primary" data-act="goto" data-v="practice">Go to practice</button></div></div>`;
   const q = t.questions[S.q], left = timeLeft();
   const answered = (x) => { const a = S.answers[x.id]; if (x.type === 'ordering') return S.touched.has(x.id); return a !== undefined && a !== '' && !(Array.isArray(a) && !a.length && x.type !== 'ordering') && !(typeof a === 'object' && !Array.isArray(a) && !Object.values(a).some((v) => v !== '' && v !== undefined)); };
-  return `<div class="row between"><h1>${esc(t.title)}</h1>
+  return `<div class="row between"><span class="meta">${t.part ? esc(t.part) : ''}</span>
       <div class="row">${left !== null ? `<span class="timer ${left < 300 ? 'low' : ''}" id="timer">${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}</span>` : ''}
       <button class="btn primary" data-act="submit-test" ${S.submitted ? 'disabled' : ''}>${S.submitted ? 'Sent for grading' : 'Submit for grading'}</button></div></div>
     <div class="qnav">${t.questions.map((x, i) => `<button data-act="goto-q" data-i="${i}" class="${answered(x) ? 'ans' : ''}" ${i === S.q ? 'aria-current="true"' : ''}>${i + 1}</button>`).join('')}</div>
@@ -1065,33 +955,131 @@ function autoScore(q, a) {
 
 function submitTest() {
   const t = S.test; if (!t || S.submitted) return;
-  const items = t.questions.map((q) => ({ id: q.id, type: q.type, answer: S.answers[q.id] ?? null, auto: autoScore(q, S.answers[q.id]), max: Number(q.points ?? 1) }));
+  const items = t.questions.map((q) => ({ id: q.id, type: q.type, topic: q.topic, answer: S.answers[q.id] ?? null, auto: autoScore(q, S.answers[q.id]), max: Number(q.points ?? 1) }));
   const auto = items.filter((i) => i.auto !== null), manual = items.filter((i) => i.auto === null);
   S.submitted = true;
   S.results = { pending: true, test: t.title, autoScore: auto.reduce((s, i) => s + i.auto, 0), autoMax: auto.reduce((s, i) => s + i.max, 0), manualCount: manual.length,
-    items: t.questions.map((q, n) => ({ id: q.id, n: n + 1, prompt: String(q.prompt ?? '').replace(/\[\[\w+\]\]/g, '___'), points: items[n].auto, max: items[n].max, pending: items[n].auto === null })) };
+    items: t.questions.map((q, n) => ({ id: q.id, n: n + 1, topic: q.topic, prompt: String(q.prompt ?? '').replace(/\[\[\w+\]\]/g, '___'), points: items[n].auto, max: items[n].max, pending: items[n].auto === null })) };
   const mins = Math.round((Date.now() - S.started) / 60000);
-  ask(`grade my test "${t.title}"${S.subject ? ` in "${S.subject}"` : ''} (${mins} min). Objective questions are auto-scored in the window: ${S.results.autoScore}/${S.results.autoMax}. ` +
-    `Grade the ${manual.length} open/practical/code answers with the grading guide, check the auto-scores, save the result, update memory, push results and then the refreshed subject. ` +
+  ask(`grade my test "${t.title}"${S.subject ? ` in "${S.subject}"` : ''}${t.part ? `, part "${t.part}"` : ''} (${mins} min). Objective questions are auto-scored in the window: ${S.results.autoScore}/${S.results.autoMax}. ` +
+    `Grade the ${manual.length} open/practical/code answers with the grading guide, check the auto-scores, score per topic, save the result, update topics and memory, push results and then the refreshed subject. ` +
     `Answers JSON: ${JSON.stringify(items)}`);
-  go('result');
+  openModal('result');
 }
-function viewResult() {
+function mResult() {
   const r = S.results;
   if (!r) return `<div class="empty"><p>No result open</p></div>`;
   const score = r.score ?? r.autoScore, total = r.total ?? r.autoMax;
   const items = arr(r.items).map((i, n) => {
     const cls = i.pending ? '' : num(i.points) >= num(i.max) ? 'full' : num(i.points) === 0 ? 'zero' : '';
-    return `<div class="item" style="grid-template-columns:minmax(0,1fr) auto"><div class="name"><b style="white-space:normal">${esc(i.n ?? n + 1)}. ${esc(i.prompt ?? i.id)}</b>${i.feedback ? `<small style="white-space:normal">${esc(i.feedback)}</small>` : ''}</div>
+    return `<div class="item" style="grid-template-columns:minmax(0,1fr) auto"><div class="name"><b style="white-space:normal">${esc(i.n ?? n + 1)}. ${esc(i.prompt ?? i.id)}</b><small style="white-space:normal">${esc([i.topic, i.feedback].filter(Boolean).join(' · '))}</small></div>
       <span class="pts ${cls}">${i.pending ? 'grading' : `${num(i.points)} / ${num(i.max)}`}</span></div>`;
   }).join('');
-  return `<div class="head"><h1>${esc(r.test ?? 'Result')}</h1></div>
-    <section class="panel"><div class="score"><b>${esc(num(score))}</b><span class="muted">of ${esc(num(total))} points${r.pending ? ' so far' : ''}${r.grade ? ` · ${esc(r.grade)}` : ''}</span></div>
+  return `<section class="panel"><div class="score"><b>${esc(num(score))}</b><span class="muted">of ${esc(num(total))} points${r.pending ? ' so far' : ''}${r.grade ? ` · ${esc(r.grade)}` : ''}</span></div>
     ${r.pending ? `<p class="muted">Claude is grading ${plural(num(r.manualCount), 'answer', 'answers')}. If you solved anything on paper, attach a photo in the chat now</p>` : ''}
     ${arr(r.weakTopics).length ? `<p>Work on: ${arr(r.weakTopics).map(esc).join(', ')}</p><div class="row"><button class="btn primary" data-act="weak">Practise these</button></div>` : ''}</section>
-    ${arr(r.topics).length ? `<section class="panel"><h2>By topic</h2><div class="topics">${arr(r.topics).map((t) => { const pc = num(t.total) ? Math.round((num(t.score) / num(t.total)) * 100) : 0, st = pc >= 70 ? 'good' : pc < 50 ? 'weak' : 'learning';
+    ${arr(r.topics).length ? `<section class="panel tight"><div style="padding:16px 16px 8px"><h2>By topic</h2></div><div class="topics">${arr(r.topics).map((t) => { const pc = num(t.total) ? Math.round((num(t.score) / num(t.total)) * 100) : 0, st = pc >= 70 ? 'good' : pc < 50 ? 'weak' : 'learning';
       return `<div class="topic" style="grid-template-columns:12px minmax(0,1fr) 160px 72px">${dot(st)}<div class="nm"><span>${esc(t.name)}</span></div><div class="mastery ${st}"><b style="width:${pc}%"></b></div><span class="pts" style="text-align:right">${num(t.score)} / ${num(t.total)}</span></div>`; }).join('')}</div></section>` : ''}
     <section class="panel tight list">${items}</section>`;
+}
+const OUTPUTS = ['Summary', 'Mind map', 'Flashcards', 'Quiz', 'Practice test', 'Practice tasks', 'Study plan', 'Cheat sheet', 'Glossary', 'Past-exam analysis'];
+const QTYPES = [['single', 'Single choice'], ['multiple', 'Multiple choice'], ['truefalse', 'True or false'], ['fill', 'Fill in the blank'], ['matching', 'Matching'], ['ordering', 'Ordering'], ['open', 'Open answer'], ['practical', 'Practical task'], ['code', 'Code']];
+function mMake() {
+  const ix = cur();
+  const c = store.get('create', { outputs: ['Summary', 'Flashcards'], types: ['single', 'multiple', 'fill', 'open'], count: 15, difficulty: 'Like the real exam', time: 45, points: 15, review: true });
+  const outs = S.makePreset === 'test' ? ['Practice test'] : c.outputs;
+  const sel = [...S.selected.entries()], part = partOf(S.makePart);
+  return `<p class="sub">Claude reads the materials, makes what you pick, checks it with a second reviewer and files it under the part. Every card and question is tagged with its topic</p>
+  <form class="stack" id="make-form" style="gap:16px">
+    <section class="panel"><h2>From</h2>
+      <label class="field">Part<select id="m-part"><option value="">Whole subject</option>${ix.parts.map((p) => `<option ${p.name === S.makePart ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>
+      ${sel.length ? `<label class="chip" style="justify-self:start"><input type="checkbox" id="m-only" checked> Only the ${plural(sel.length, 'selected file', 'selected files')}</label>` : ''}
+      ${part?.topics.length ? `<div class="stack" style="gap:8px"><span class="muted" style="font-size:13px">Topics (none checked means all)</span><div class="chips">${part.topics.map((t) => `<label class="chip"><input type="checkbox" name="topic" value="${esc(t.name)}">${dot(t.status)} ${esc(t.name)}</label>`).join('')}</div></div>` : ''}
+      <label class="field">Only these chapters or pages<input type="text" id="m-focus" placeholder="Optional, for example pages 6 to 74"></label>
+    </section>
+    <section class="panel"><h2>Make</h2>
+      <div class="chips">${OUTPUTS.map((o) => `<label class="chip"><input type="checkbox" name="out" value="${esc(o)}" ${outs.includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('')}</div>
+    </section>
+    <section class="panel"><div class="row between"><h2>Questions</h2><span class="muted">For quizzes and tests</span></div>
+      <div class="chips">${QTYPES.map(([k, l]) => `<label class="chip"><input type="checkbox" name="qt" value="${k}" ${c.types.includes(k) ? 'checked' : ''}> ${l}</label>`).join('')}</div>
+      <div class="grid2">
+        <label class="field">Questions<input type="number" id="m-count" min="1" max="100" value="${num(c.count)}"></label>
+        <label class="field">Difficulty<select id="m-diff">${['Easy', 'Mixed', 'Hard', 'Like the real exam'].map((d) => `<option ${c.difficulty === d ? 'selected' : ''}>${d}</option>`).join('')}</select></label>
+        <label class="field">Minutes<input type="number" id="m-time" min="0" max="300" value="${num(c.time)}"></label>
+        <label class="field">Points<input type="number" id="m-points" min="0" max="1000" value="${part && S.makePreset === 'test' ? num(part.points) : num(c.points)}"></label>
+      </div>
+    </section>
+    <section class="panel">
+      <label class="chip" style="justify-self:start"><input type="checkbox" id="m-review" ${c.review ? 'checked' : ''}> Check with a second reviewer before I see it</label>
+      <label class="field">Anything else for Claude<textarea id="m-note" placeholder="Optional, for example: answer each exam question in full, with the definitions from the script"></textarea></label>
+      <div class="row"><button class="btn primary" type="submit">Make it</button><button class="btn quiet" type="button" data-act="close">Cancel</button></div>
+    </section>
+  </form>`;
+}
+function mInbox() {
+  const ix = cur(), n = ix.inbox.length;
+  return `<section class="inbox ${n ? 'full' : ''}">
+      <div class="stack" style="gap:6px">${n ? `<span class="count">${n}</span><p>${plural(n, 'document is', 'documents are')} waiting. Claude reads each one, proposes a name and the part it belongs to, and moves them once you approve</p>`
+        : `<h2>Drop everything here</h2><p class="sub">Scripts, slides, old exams, photos of notes. Put them in the subject's inbox folder in your storage, or attach them in the chat and say "put these in the inbox". You do not have to sort anything</p>`}</div>
+      <div class="row">${n ? `<button class="btn primary" data-act="sort">Sort with Claude</button>` : ''}
+        ${ix.inboxUrl ? `<button class="btn" data-act="open-inbox">${icon('ext')}Open inbox folder</button>` : ''}
+        <button class="btn quiet" data-act="refresh">Check again</button></div>
+    </section>
+    ${n ? `<section class="panel tight list">${ix.inbox.map((f) => fileRow(f, false)).join('')}</section>` : ''}`;
+}
+function mSort() {
+  const p = S.proposal, ix = cur();
+  if (!p) return `<p class="sub">No proposal yet</p><div class="row"><button class="btn primary" data-act="sort">Sort the inbox</button></div>`;
+  const dests = [...(ix?.parts ?? []).map((x) => [x.name, x.name]), ['_shared', 'Whole subject'], ['skip', 'Leave in inbox']];
+  const on = p.items.filter((x) => x.include && x.to !== 'skip').length;
+  return `${p.summary ? `<p class="sub">${esc(p.summary)}</p>` : ''}
+    <section class="card sheet">
+      ${p.items.map((x, i) => `<div class="srow ${x.include && x.to !== 'skip' ? '' : 'skip'}">
+        <input type="checkbox" data-act="prop-inc" data-i="${i}" ${x.include ? 'checked' : ''} aria-label="Include ${esc(x.name)}">
+        <div class="stack" style="gap:2px;min-width:0"><span class="meta" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(x.name)}</span>
+          <input type="text" data-act="prop-name" data-i="${i}" value="${esc(x.newName ?? x.name)}" aria-label="New name"></div>
+        <span class="tag">${esc(x.kind ?? '')}</span>
+        <select data-act="prop-to" data-i="${i}" aria-label="Destination">${dests.map(([v, l]) => `<option value="${esc(v)}" ${x.to === v ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+        ${x.reason ? `<span class="why">${esc(x.reason)}</span>` : ''}
+      </div>`).join('')}
+    </section>
+    ${arr(p.learned).length ? `<section class="panel"><h2>Learned about the exam</h2><ul class="sub" style="margin:0;padding-left:20px">${arr(p.learned).map((x) => `<li>${esc(x)}</li>`).join('')}</ul>
+      <p class="muted">Saved to the subject notes when you apply</p></section>` : ''}
+    <div class="row"><button class="btn primary" data-act="apply-sort" ${on ? '' : 'disabled'}>Move ${plural(on, 'file', 'files')}</button><button class="btn quiet" data-act="close">Not now</button></div>`;
+}
+function mNotes() {
+  const ix = cur(), m = ix.memory;
+  return `<section class="panel"><h2>Summary</h2><p class="sub">${esc(m.summary || 'Nothing yet. This fills in as you study and take tests')}</p></section>
+    <div class="cols">
+      <section class="panel"><h2>Strong</h2>${m.strengths.length ? `<ul class="sub" style="margin:0;padding-left:20px">${m.strengths.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="muted">Not known yet</p>'}</section>
+      <section class="panel"><h2>Weak</h2>${m.weakTopics.length ? `<ul class="sub" style="margin:0;padding-left:20px">${m.weakTopics.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>` : '<p class="muted">Not known yet</p>'}</section>
+    </div>
+    <form class="panel" id="tell-form"><label class="field">Tell Claude something about this subject<textarea id="tell-t" placeholder="The professor said the second test is code on paper, about 4 tasks"></textarea></label>
+      <div class="row"><button class="btn primary" type="submit">Save to notes</button></div></form>`;
+}
+function mEditPart() {
+  const p = partOf(S.part); if (!p) return '';
+  return `<form class="stack" id="part-form" style="gap:16px"><div class="grid2">
+      <label class="field">Exam date<input type="date" id="p-date" value="${esc(p.date ?? '')}"></label>
+      <label class="field">Status<select id="p-status">${STATUS.map((x) => `<option ${p.status === x ? 'selected' : ''}>${x}</option>`).join('')}</select></label>
+      <label class="field">Points earned<input type="number" id="p-score" min="0" max="${num(p.points)}" step="0.5" value="${p.score ?? ''}" placeholder="once it is done"></label>
+      <label class="field">Out of<input type="number" id="p-points" min="0" step="0.5" value="${num(p.points)}"></label></div>
+      <label class="field">Format<input type="text" id="p-format" value="${esc(p.format ?? '')}" placeholder="theory test, code on paper, project defence"></label>
+      <div class="row"><button class="btn primary" type="submit">Save</button><button class="btn quiet" type="button" data-act="close">Cancel</button></div></form>`;
+}
+function mFiles() {
+  const items = S.files?.items;
+  return !items ? '<div class="empty"><p>Waiting for Claude</p></div>' : !items.length ? '<div class="empty"><p>This folder is empty</p></div>'
+    : `<section class="panel tight list">${items.map((f) => `<div class="item"><span class="ic">${icon(f.type === 'folder' ? 'folder' : 'file')}</span>
+      <button class="name" data-act="${f.type === 'folder' ? 'list' : 'open-file'}" data-p="${esc(S.path + '/' + f.name)}" data-id="${esc(f.id ?? '')}" data-n="${esc(f.name)}"><b>${esc(f.name)}</b></button>
+      <span class="meta">${esc(fmtSize(f.size))} ${esc(fmtDate(f.modified))}</span></div>`).join('')}</section>`;
+}
+function mAllFiles() {
+  const ix = cur();
+  return `${groupsOf(ix).map((g) => `<section class="panel tight"><div class="row between" style="padding:16px 16px 8px"><h2>${esc(g.title)}</h2><span class="meta">${plural(g.materials.length, 'file', 'files')}</span></div>
+      ${g.materials.length ? `<div class="list">${g.materials.map((f) => fileRow(f)).join('')}</div>` : '<p class="muted" style="padding:0 16px 16px">Nothing here yet</p>'}</section>`).join('')}
+    ${selBar()}
+    ${ix.folderUrl ? `<div class="row"><button class="btn quiet" data-act="open-folder">${icon('ext')}Open the subject folder in your storage</button></div>` : ''}`;
 }
 
 // ---------- mistakes ----------
@@ -1106,47 +1094,54 @@ function reportBox() {
 const where = () => (S.subject ? ` in "${S.subject}"` : '');
 document.addEventListener('click', (e) => {
   const el = e.target.closest('[data-act]');
+  if (S.menu && !e.target.closest('.menu, [data-act="menu"]')) { S.menu = false; if (!el) return render(); }
   if (!el || el.matches('input[type=checkbox][data-act^="prop"], select, input[type=text]')) return;
   const d = el.dataset;
   switch (d.act) {
-    case 'goto': return go(d.v || 'overview');
+    case 'scrim': if (e.target === el) closeModal(); return;
+    case 'close': return closeModal();
+    case 'menu': S.menu = !S.menu; return render();
+    case 'home': S.modal = null; return go('subjects');
     case 'full': return toggleFull();
-    case 'go-setup': S.setup.step = 0; return go('setup');
+    case 'go-setup': S.setup.step = 0; S.modal = null; return go('setup');
     case 'setup-next': S.setup.step++; return render();
     case 'setup-back': S.setup.step = Math.max(0, S.setup.step - 1); return render();
-    case 'pick-storage': S.setup.storage = d.s; store.set('storage', d.s); return render();
     case 'open-connectors': return link('https://claude.ai/customize/connectors');
     case 'check-storage': toast('Asked Claude to check ' + S.setup.storage);
       return ask(`setup. storage=${S.setup.storage}. Read the setup guide, check that this storage connector works, create the Studying workspace if it is missing, then push setup_status and subjects.`);
-    case 'load-subjects': return ask('list my subjects from the Studying workspace and push them (kind subjects) with parts, exam date, readiness and cards due today. If there is no workspace, push setup_status with ok false.');
-    case 'new-subject': { if (S.view !== 'subjects') go('subjects'); const b = $('new-subject'); if (b) { b.hidden = !b.hidden; $('f-name')?.focus(); } return; }
-    case 'pick-subject': S.selected.clear(); if (S.data[d.s]) { S.subject = d.s; store.set('subject', d.s); return go('overview'); } return loadSubject(d.s);
+    case 'load-subjects': return ask('list my subjects from the Studying workspace and push them (kind subjects), then push the subject.json of the one I used last as kind subject. If there is no workspace, push setup_status with ok false.');
+    case 'new-subject': return openModal('newsubject');
+    case 'pick-subject': S.selected.clear(); S.menu = false; if (S.data[d.s]) { S.subject = d.s; store.set('subject', d.s); S.modal = null; return go('subject'); } return loadSubject(d.s);
     case 'refresh': return loadSubject(S.subject, 'refresh');
-    case 'open-part': S.part = d.p; S.editPart = false; return go('part');
-    case 'edit-part': S.editPart = !S.editPart; return render();
-    case 'build-topics': toast('Claude is reading the materials');
-      return ask(`build the topic map for the part "${S.part}" of "${S.subject}" (guide: generation, "Topics first"). Use this part's materials and _shared, save it in subject.json and push the subject.`);
-    case 'topic-quiz': return ask(`make a short practice quiz on the topic "${d.t}" of the part "${S.part}" in "${S.subject}". Every question gets topic "${d.t}". Review it, then push it (kind test).`);
-    case 'open-inbox': { const u = cur()?.inboxUrl; if (u) return link(u); return go('materials'); }
-    case 'sort': toast('Claude is reading the inbox');
+    case 'open-part': S.part = d.p; S.selected.clear(); return go('part');
+    case 'edit-part': return openModal('editpart');
+    case 'inbox': return openModal('inbox');
+    case 'notes': return openModal('notes');
+    case 'all-files': return openModal('allfiles');
+    case 'open-inbox': return link(cur()?.inboxUrl);
+    case 'open-folder': return link(cur()?.folderUrl);
+    case 'sort': toast('Claude is reading the inbox'); closeModal();
       return ask(`sort the inbox of "${S.subject}" (guide: intake). Read every file in _inbox, then push a proposal (kind proposal). Do not move anything yet.`);
     case 'apply-sort': {
       const p = S.proposal, plan = p.items.filter((x) => x.include && x.to !== 'skip').map((x) => ({ id: x.id, name: x.name, newName: x.newName ?? x.name, to: x.to }));
       toast('Claude is moving the files');
       ask(`apply sorting in "${S.subject}" (guide: intake, step 5). Approved plan JSON: ${JSON.stringify(plan)}. Learned facts to save: ${JSON.stringify(arr(p.learned))}. Then push the refreshed subject.`);
-      S.proposal = null; return go('materials');
+      S.proposal = null; return closeModal();
     }
-    case 'make': S.back = SECTIONS.some((s) => s[0] === S.view) ? S.view : 'overview'; S.makePart = d.p && d.p !== '_shared' ? d.p : ''; S.makePreset = ''; return go('make');
-    case 'make-test': S.back = 'practice'; S.makePart = d.p ?? ''; S.makePreset = 'test'; return go('make');
+    case 'build-topics': toast('Claude is reading the materials');
+      return ask(`build the topic map for the part "${S.part}" of "${S.subject}" (guide: generation, "Topics first"). Use this part's materials and _shared, save it in subject.json and push the subject.`);
+    case 'topic-quiz': return ask(`make a short practice quiz on the topic "${d.t}" of the part "${S.part}" in "${S.subject}". Every question gets topic "${d.t}". Review it, then push it (kind test).`);
+    case 'make': S.makePart = d.p ?? ''; S.makePreset = ''; return openModal('make');
+    case 'make-test': S.makePart = d.p ?? ''; S.makePreset = 'test'; return openModal('make');
     case 'clear-sel': S.selected.clear(); return render();
     case 'select': if (el.checked) S.selected.set(d.id, d.n); else S.selected.delete(d.id); return render();
-    case 'open-file': S.back = SECTIONS.some((s) => s[0] === S.view) ? S.view : S.back;
-      return ask(`open "${d.n}"${d.id ? ` (id ${d.id})` : ''}${where()} and push it: decks, tests and mind maps as their kind, results as results, anything else as a document with a readable version of its content.`);
-    case 'list': S.path = d.p; S.files = null; go('files'); return ask(`list files in "${d.p}" and push them (kind files).`);
-    case 'next-step': S.back = 'overview'; return ask(`what should I study next${where()}? Use memory.md, results and what is due, then push it as a document (kind plan).`);
-    case 'due-cards': return ask(`collect the flashcards that are due today${where()} (from *.progress.json) into one deck and push it.`);
-    case 'mock-exam': return ask(`make a mock exam${where()}${d.p ? ` for the part "${d.p}"` : ''} in the real exam format from subject.md and part.md (question types, points, time). Review it first, then push it (kind test).`);
-    case 'weak': return ask(`make a practice quiz on my weak topics${where()}: ${arr(S.results?.weakTopics ?? cur()?.memory.weakTopics).join(', ')}. Review it, then push it (kind test).`);
+    case 'open-file': return ask(`open "${d.n}"${d.id ? ` (id ${d.id})` : ''}${where()} and push it: decks, tests and mind maps as their kind, results as results, anything else as a document with a readable version of its content.`);
+    case 'list': S.path = d.p; S.files = null; openModal('files'); return ask(`list files in "${d.p}" and push them (kind files).`);
+    case 'next-step': return ask(`what should I study next${where()}? Use the part dates, topics, results and what is due, then push it as a document (kind plan).`);
+    case 'due-cards': return ask(`collect the flashcards that are due today${where()}${d.p ? `, part "${d.p}"` : ''} (from *.progress.json) into one deck and push it.`);
+    case 'mock-exam': return ask(`make a mock exam${where()}${d.p ? ` for the part "${d.p}"` : ''} in the real exam format from subject.md and part.md (question types, points, time), every question tagged with its topic. Review it first, then push it (kind test).`);
+    case 'weak': return ask(`make a practice quiz on my weak topics${where()}: ${arr(S.results?.weakTopics?.length ? S.results.weakTopics : cur()?.memory.weakTopics).join(', ')}. Review it, then push it (kind test).`);
+    case 'resume-test': return openModal('test');
     case 'flip': S.flipped = !S.flipped; return render();
     case 'rate': { const i = S.order[S.idx], c = S.deck.cards[i]; S.srs[c.id] = sched(S.srs[c.id], d.r); store.set('srs:' + S.deck.title, S.srs);
       if (d.r === 'again') S.order.push(i); S.idx++; S.flipped = false; return render(); }
@@ -1154,7 +1149,7 @@ document.addEventListener('click', (e) => {
     case 'next-card': S.idx++; S.flipped = false; return render();
     case 'restart-deck': S.order = S.deck.cards.map((_, i) => i); S.idx = 0; S.flipped = false; return render();
     case 'save-srs': toast('Sent to Claude to save');
-      return ask(`save my flashcard progress for deck "${S.deck?.title}"${where()} to its .progress.json and update memory.md. Progress JSON: ${JSON.stringify(S.srs)}`);
+      return ask(`save my flashcard progress for deck "${S.deck?.title}"${where()} to its .progress.json, update topic mastery and memory.md, then push the subject. Progress JSON: ${JSON.stringify(S.srs)}`);
     case 'export-csv': return exportCsv();
     case 'tree-all': document.querySelectorAll('.tree details').forEach((x) => (x.open = d.open === '1')); return;
     case 'goto-q': S.q = Number(d.i); return render();
@@ -1162,6 +1157,7 @@ document.addEventListener('click', (e) => {
     case 'next-q': S.q = Math.min(S.test.questions.length - 1, S.q + 1); return render();
     case 'move': { const q = S.test.questions[S.q], a = S.answers[q.id], i = Number(d.pos), j = i + Number(d.d); [a[i], a[j]] = [a[j], a[i]]; S.touched.add(q.id); return render(); }
     case 'submit-test': return submitTest();
+    case 'goto': return closeModal();
     case 'report': S.report = { title: d.t, id: d.id }; render(); $('r-note')?.focus(); return;
     case 'report-cancel': S.report = null; return render();
   }
@@ -1172,7 +1168,7 @@ document.addEventListener('change', (e) => {
   if (d.act === 'pick-storage') { S.setup.storage = d.s; store.set('storage', d.s); return render(); }
   if (d.act === 'prop-inc') { S.proposal.items[d.i].include = el.checked; return render(); }
   if (d.act === 'prop-to') { const x = S.proposal.items[d.i]; x.to = el.value; x.include = el.value !== 'skip'; return render(); }
-  if (!S.test || S.view !== 'test') return;
+  if (!S.test || S.modal?.type !== 'test') return;
   const q = S.test.questions[S.q];
   if (d.act === 'ans-single') S.answers[q.id] = q.type === 'truefalse' ? Number(d.i) === 0 : Number(d.i);
   else if (d.act === 'ans-multi') { const s = new Set(S.answers[q.id] ?? []); el.checked ? s.add(Number(d.i)) : s.delete(Number(d.i)); S.answers[q.id] = [...s]; }
@@ -1193,17 +1189,11 @@ document.addEventListener('submit', (e) => {
   const id = e.target.id, val = (x) => ($(x)?.value ?? '').trim();
   if (id === 'subject-form') {
     const name = val('f-name'); if (!name) return;
-    S.subject = name; store.set('subject', name); S.loading = name;
+    S.subject = name; store.set('subject', name); S.loading = name; S.modal = null;
     toast('Claude is creating ' + name);
-    S.view = 'overview'; render();
-    return ask(`create a new subject "${name}". Parts: ${val('f-parts') || 'none given'}. Exam date: ${val('f-date') || 'unknown'}. Grading: ${val('f-notes') || 'not given'}. ` +
-      'Create the folders (parts, _inbox, _shared), subject.md, memory.md and subject.json (guides: storage-layout, subject), then push subjects and the subject.');
-  }
-  if (id === 'part-form') {
-    const p = partOf(S.part); if (!p) return;
-    const upd = { date: val('p-date') || null, status: $('p-status').value, score: val('p-score') === '' ? null : num(val('p-score')), format: val('p-format') || p.format || null };
-    Object.assign(p, upd); S.editPart = false; render(); toast('Saved. Claude is updating your storage');
-    return ask(`update the part "${p.name}" of "${S.subject}": ${JSON.stringify(upd)}. Write it to subject.json and subject.md (keep every other field), then push the subject.`);
+    go('subject');
+    return ask(`create a new subject "${name}". Parts: ${val('f-parts') || 'none given'}. Grading and dates: ${val('f-notes') || 'not given'}. ` +
+      'Create the folders (parts, _inbox, _shared), subject.md, memory.md and subject.json with points, dates and status per part (guides: storage-layout, subject), then push subjects and the subject.');
   }
   if (id === 'ask-form') {
     const q = val('ask-q'); if (!q) return; $('ask-q').value = '';
@@ -1214,10 +1204,18 @@ document.addEventListener('submit', (e) => {
     toast('Saved to notes');
     return ask(`note for "${S.subject}": "${t}". Add it to subject.md or memory.md (whichever fits), then push the refreshed subject.`);
   }
+  if (id === 'part-form') {
+    const p = partOf(S.part); if (!p) return;
+    const upd = { date: val('p-date') || null, status: $('p-status').value, score: val('p-score') === '' ? null : num(val('p-score')), points: num(val('p-points')) || p.points, format: val('p-format') || p.format || null };
+    if (upd.score != null && upd.status !== 'done') upd.status = 'done';
+    Object.assign(p, upd); S.modal = null; render(); toast('Saved. Claude is updating your storage');
+    return ask(`update the part "${p.name}" of "${S.subject}": ${JSON.stringify(upd)}. Write it to subject.json and subject.md (keep every other field), then push the subject.`);
+  }
   if (id === 'make-form') {
     const f = e.target;
     const outputs = [...f.querySelectorAll('input[name=out]:checked')].map((x) => x.value);
     const types = [...f.querySelectorAll('input[name=qt]:checked')].map((x) => x.value);
+    const topics = [...f.querySelectorAll('input[name=topic]:checked')].map((x) => x.value);
     if (!outputs.length) return toast('Choose at least one thing to make');
     const c = { outputs, types, count: num(val('m-count')) || 15, difficulty: $('m-diff').value, time: num(val('m-time')), points: num(val('m-points')), review: $('m-review').checked };
     if (S.makePreset !== 'test') store.set('create', c);
@@ -1225,16 +1223,15 @@ document.addEventListener('submit', (e) => {
     const only = $('m-only')?.checked && S.selected.size;
     const testy = outputs.some((o) => /Quiz|test/.test(o));
     const job = {
-      subject: S.subject, part: part || 'whole subject',
+      subject: S.subject, part: part || 'whole subject', topics: topics.length ? topics : 'all',
       from: only ? [...S.selected.entries()].map(([fid, n]) => ({ id: fid, name: n })) : (part ? `all materials of "${part}", plus _shared; look in the other parts when something is missing` : 'all materials of the subject'),
       focus: val('m-focus') || null, make: outputs,
       questions: testy ? { types, count: c.count, difficulty: c.difficulty, timeLimitMin: c.time, totalPoints: c.points } : undefined,
       review: c.review, note: val('m-note') || null,
     };
-    S.selected.clear(); toast('Claude is on it');
-    go(S.back || 'overview');
+    S.selected.clear(); S.modal = null; render(); toast('Claude is on it');
     return ask(`make study material (guides: generation${testy ? ', question-types' : ''}, review, formats). ` +
-      'Report each step with study_progress, save to the part\'s generated/ folder (or _shared/generated), push each result and then the refreshed subject. Job: ' + JSON.stringify(job));
+      'Build the part\'s topic map first if it has none. Report each step with study_progress, save to the part\'s generated/ folder (or _shared/generated), push each result and then the refreshed subject. Job: ' + JSON.stringify(job));
   }
   if (id === 'report-form') {
     const note = val('r-note'); if (!note) return;
@@ -1243,7 +1240,8 @@ document.addEventListener('submit', (e) => {
   }
 });
 document.addEventListener('keydown', (e) => {
-  if (S.view !== 'deck' || !S.deck || e.target.closest('input, textarea, select')) return;
+  if (e.key === 'Escape') { if (S.menu) { S.menu = false; return render(); } if (S.modal) return closeModal(); }
+  if (S.modal?.type !== 'deck' || !S.deck || e.target.closest('input, textarea, select')) return;
   if (e.code === 'Space') { e.preventDefault(); S.flipped = !S.flipped; render(); }
   else if (e.key === 'ArrowRight') { S.idx++; S.flipped = false; render(); }
   else if (e.key === 'ArrowLeft') { S.idx = Math.max(0, S.idx - 1); S.flipped = false; render(); }
@@ -1258,7 +1256,7 @@ setInterval(() => {
 
 function exportCsv() {
   const q = (s) => `"${String(s ?? '').replace(/"/g, '""')}"`;
-  const csv = 'front,back,source\n' + S.deck.cards.map((c) => [c.front, c.back, c.source].map(q).join(',')).join('\n');
+  const csv = 'front,back,source,topic\n' + S.deck.cards.map((c) => [c.front, c.back, c.source, c.topic].map(q).join(',')).join('\n');
   const name = (S.deck.title || 'deck').replace(/[^\w-]+/g, '-') + '.csv';
   app.downloadFile({ contents: [{ type: 'resource', resource: { uri: `file:///${name}`, mimeType: 'text/csv', text: csv } }] })
     .then((r) => { if (r?.isError) throw 0; }).catch(() => toast('Downloads are not allowed here. Ask Claude to save the CSV to your storage'));
@@ -1282,16 +1280,17 @@ function hostContext(ctx) {
   if (S.display === 'fullscreen' && h) document.documentElement.style.setProperty('--h', `${h}px`);
   else document.documentElement.style.removeProperty('--h');
 }
+
 app.onhostcontextchanged = (ctx) => { hostContext({ ...app.getHostContext(), ...ctx }); render(); };
 app.ontoolinput = ({ arguments: a }) => {
   if (a?.session && /^[A-Za-z0-9_-]{12,64}$/.test(a.session)) S.session = a.session;
-  if (a?.view) S.view = { document: 'doc', home: 'subjects', subject: 'overview' }[a.view] ?? a.view;
+  if (a?.view) S.view = { setup: 'setup', home: 'subjects' }[a.view] ?? (S.subject ? 'subject' : 'subjects');
   for (const m of [].concat(a?.data ?? [])) if (m?.kind) receive({ kind: m.kind, title: m.title, payload: m.payload });
   render();
 };
 // test hook: lets a page without a host feed messages in (used by tests and local previews)
-window.__studying = { receive: (m) => receive(m), go, S };
-if (S.subject) S.view = 'overview';
+window.__studying = { receive: (m) => receive(m), go, S, openModal, render };
+if (S.subject) S.view = 'subject';
 render();
 await app.connect();
 connected = true;
