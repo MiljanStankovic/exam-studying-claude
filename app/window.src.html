@@ -616,6 +616,16 @@ function receive(m) {
   }
 }
 
+// brings a part's made material from the server library into this browser, once, in the background
+let prefetching = false;
+const tried = new Set();
+async function prefetchPart(p) {
+  if (prefetching || !p || !S.library) return;
+  const miss = p.generated.filter((x) => !lib.get(x) && !tried.has(x.id || x.name)); if (!miss.length) return;
+  prefetching = true;
+  try { for (const x of miss) { tried.add(x.id || x.name); await lib.fetch(x); } } finally { prefetching = false; }
+  render();
+}
 // opens made material from the server library; asks Claude only when the library does not have it
 async function openFile(d) {
   const slow = setTimeout(() => toast('Opening'), 500);
@@ -999,11 +1009,12 @@ const shortName = (n) => String(n ?? '').replace(/^.*?\s[-–]\s/, '');
 const isPlan = (x) => x.kind === 'plan' || (x.kind === 'document' && /plan/i.test(x.name));
 const isTasks = (x) => x.kind === 'document' && /zadac|task|vežb|vezb|exercise|practice/i.test(x.name);
 const isSummary = (x) => x.kind === 'document' && /rezime|summary|sažetak|sazetak/i.test(x.name);
+const isTheory = (x) => x.kind === 'document' && /teorij|theory/i.test(x.name);
 function sortMade(gen) {
   const learn = [], practise = [], plan = [];
   for (const x of gen) (isPlan(x) ? plan : x.kind === 'test' || isTasks(x) ? practise : learn).push(x);
   const o = { document: 0, mindmap: 1, deck: 2, test: 0 };
-  learn.sort((a, b) => (isSummary(b) - isSummary(a)) || ((o[a.kind] ?? 9) - (o[b.kind] ?? 9)));
+  learn.sort((a, b) => (isTheory(b) - isTheory(a)) || (isSummary(b) - isSummary(a)) || ((o[a.kind] ?? 9) - (o[b.kind] ?? 9)));
   practise.sort((a, b) => (/mock|probni/i.test(b.name) - /mock|probni/i.test(a.name)) || ((o[a.kind] ?? 9) - (o[b.kind] ?? 9)));
   return { learn, practise, plan };
 }
@@ -1049,27 +1060,30 @@ function topicData(p, name) {
   const own = p?.generated ?? [];
   const cards = own.filter((x) => x.kind === 'deck').flatMap((x) => lib.get(x)?.payload?.cards ?? []).filter((c) => c.topic === name);
   const qs = own.filter((x) => x.kind === 'test').flatMap((x) => lib.get(x)?.payload?.questions ?? []).filter((q) => q.topic === name);
-  let section = '';
-  const sum = own.find(isSummary), txt = sum && lib.get(sum)?.payload?.markdown;
-  if (txt) {
-    const norm = (t) => t.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
-    for (const part of String(txt).split(/\n(?=## )/)) { const h = part.split('\n')[0]; if (h.startsWith('## ') && norm(h).includes(norm(name))) { section = part; break; } }
-  }
-  return { cards, qs, section };
+  const norm = (t) => t.toLowerCase().replace(/[^\p{L}\p{N} ]/gu, ' ').replace(/\s+/g, ' ').trim();
+  const pick = (doc) => {
+    const txt = doc && lib.get(doc)?.payload?.markdown; if (!txt) return '';
+    for (const part of String(txt).split(/\n(?=## )/)) { const h = part.split('\n')[0]; if (h.startsWith('## ') && norm(h).includes(norm(name))) return part.replace(/^## .*\n/, ''); }
+    return '';
+  };
+  return { cards, qs, section: pick(own.find(isSummary)), theory: pick(own.find(isTheory)) };
 }
 function mTopic() {
   const p = partOf(S.part), t = p?.topics.find((x) => x.name === S.topicSheet); if (!t) return '<p class="muted">Topic not found</p>';
-  const { cards, qs, section } = topicData(p, t.name);
+  const { cards, qs, section, theory } = topicData(p, t.name);
   return `<div class="row">${dot(t.status)}<span class="meta">${esc(t.status)} · mastery ${num(t.mastery)}%${t.source ? ` · ${esc(t.source)}` : ''}</span></div>
     <div class="row"><button class="btn primary" data-act="deck-topic" data-t="${esc(t.name)}" ${cards.length ? '' : 'disabled'}>${icon('cards')}Cards (${cards.length})</button>
       <button class="btn" data-act="topic-quiz" data-t="${esc(t.name)}">${icon('test')}Quiz${qs.length ? ` (${qs.length})` : ''}</button></div>
-    ${section ? `<section class="panel">${md(section)}</section>` : '<p class="muted">The summary of this topic shows here once the summary is in the app</p>'}`;
+    ${section ? `<section class="panel"><h3 class="meta" style="margin:0 0 8px">In short</h3>${md(section)}</section>` : ''}
+    ${theory ? `<section class="panel"><h3 class="meta" style="margin:0 0 8px">Theory</h3>${md(theory)}</section>` : ''}
+    ${section || theory ? '' : '<p class="muted">Loading this topic from your library…</p>'}`;
 }
 // ---------- the subject: an overview; the material lives in its parts ----------
 function viewSubject() {
   const ix = cur();
   const upcoming = ix.parts.filter((p) => p.status !== 'done' && p.date && daysTo(p.date) >= 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
   const next = upcoming[0], today = next && planToday(planOf(next));
+  if (next) setTimeout(() => prefetchPart(next), 0);
   const nx = nextStep(ix);
   return `${resumeBanner()}
     <div class="head"><h1>${esc(ix.name)}</h1>
@@ -1096,13 +1110,14 @@ function viewSubject() {
 function viewPart() {
   const ix = cur(), p = partOf(S.part);
   if (!p) return viewSubject();
+  setTimeout(() => prefetchPart(p), 0);
   const done = p.status === 'done' && p.score != null;
   const { learn, practise } = sortMade(p.generated);
   const counts = { good: 0, learning: 0, weak: 0, 'not started': 0 };
   for (const t of p.topics) counts[t.status in counts ? t.status : 'not started']++;
   const ready = p.topics.length ? Math.round(p.topics.reduce((a, t) => a + num(t.mastery), 0) / p.topics.length) : null;
   const due = p.generated.reduce((a, x) => a + num(x.due), 0);
-  const today = planToday(planOf(p)), miss = p.generated.filter((x) => !lib.has(x)).length;
+  const today = planToday(planOf(p)), miss = p.generated.filter((x) => !lib.has(x)).length, loading = p.generated.some((x) => !lib.get(x) && lib.has(x));
   const cont = S.test && !S.submitted ? `<span>Test in progress: ${esc(S.test.title)}</span><button class="btn sm primary" data-act="resume-test">Resume</button>`
     : today ? `<span><b>${esc(today.label)}:</b> ${esc(today.text)}</span><label class="row" style="gap:6px;flex:none"><input type="checkbox" data-act="plan-tick" data-k="${esc(today.key)}">Done</label>`
     : due ? `<span>${due} cards to review</span><button class="btn sm primary" data-act="due-cards" data-p="${esc(p.name)}">Review</button>` : '';
@@ -1110,6 +1125,7 @@ function viewPart() {
       <p class="meta">${p.format ? esc(p.format) + ' · ' : ''}${num(p.points)} points · ${p.date ? `${esc(fmtLong(p.date))} · ${when(p.date)}` : 'date not set'}${done ? ` · earned ${num(p.score)}` : ready !== null ? ` · ready ${ready}%` : ''}</p></div>
       <div class="row"><button class="btn quiet" data-act="edit-part">Date and score</button><button class="btn" data-act="make" data-p="${esc(p.name)}">${icon('plus')}Make</button></div></div>
     ${cont ? `<div class="notice">${cont}</div>` : ''}
+    ${loading ? '<p class="meta">Bringing your material into the app…</p>' : ''}
     ${miss ? `<div class="notice"><span>${plural(miss, 'item is', 'items are')} not in the app yet</span><button class="btn sm" data-act="load-all" data-p="${esc(p.name)}">Load once</button></div>` : ''}
     ${learn.length ? `<section class="appgroup"><h2>Learn</h2><div class="appgrid">${learn.map((x) => appTile(x)).join('')}</div></section>` : ''}
     <section class="appgroup"><div class="row between"><h2>Practise</h2><div class="row"><button class="btn sm quiet" data-act="make-test" data-p="${esc(p.name)}">Custom test</button><button class="btn sm quiet" data-act="mock-exam" data-p="${esc(p.name)}">New mock exam</button></div></div>
