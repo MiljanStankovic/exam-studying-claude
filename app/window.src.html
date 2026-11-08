@@ -290,10 +290,28 @@
   .sheet .srow input[type=checkbox] { accent-color: var(--accent); margin: 0; }
 
   /* markdown */
-  .md { display: grid; gap: 8px; }
-  .md h2, .md h3 { font-family: var(--serif); font-weight: 400; color: var(--t1); }
-  .md h2 { font-size: 20px; line-height: 28px; margin-top: 8px; } .md h3 { font-size: 17px; line-height: 24px; margin-top: 4px; }
-  .md ul, .md ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+  .md { max-width: 76ch; line-height: 1.65; color: var(--t1); overflow-wrap: anywhere; }
+  .md > * + * { margin-top: 12px; }
+  .md p { margin: 0; }
+  .md h1, .md h2, .md h3, .md h4 { font-family: var(--serif); font-weight: 400; color: var(--t1); line-height: 1.3; margin: 0; }
+  .md h1 { font-size: 26px; margin-bottom: 4px; }
+  .md h2 { font-size: 21px; margin-top: 28px; padding-bottom: 6px; border-bottom: 1px solid var(--line); }
+  .md h3 { font-size: 17px; margin-top: 20px; }
+  .md h4 { font-family: inherit; font-size: 14px; font-weight: 600; margin-top: 16px; }
+  .md h1 + *, .md h2 + *, .md h3 + *, .md h4 + * { margin-top: 8px; }
+  .md ul, .md ol { margin: 0; padding-left: 22px; display: grid; gap: 4px; }
+  .md li > ul, .md li > ol { margin-top: 4px; }
+  .md li::marker { color: var(--t3); }
+  .md strong { font-weight: 600; color: var(--t1); }
+  .md em { font-style: italic; }
+  .md a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+  .md hr { border: 0; border-top: 1px solid var(--line); margin: 24px 0; }
+  .md blockquote { margin: 0; padding: 8px 14px; border-left: 3px solid var(--accent); background: var(--accent-soft); border-radius: 0 8px 8px 0; color: var(--t2); }
+  .md table { width: 100%; border-collapse: collapse; font-size: 14px; display: block; overflow-x: auto; }
+  .md th, .md td { text-align: left; vertical-align: top; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .md th { font-weight: 600; color: var(--t2); background: var(--raised); position: sticky; top: 0; }
+  .md tr:hover td { background: var(--raised); }
+  .md pre.plain { white-space: pre-wrap; font: 14px/1.6 inherit; background: none; border: 0; padding: 0; }
   .md pre { margin: 0; background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 12px; overflow-x: auto; font: 13px/20px var(--mono); }
   .md code { font: 13px/20px var(--mono); background: var(--raised); padding: 1px 4px; border-radius: 4px; }
   .md pre code { background: none; padding: 0; }
@@ -703,23 +721,22 @@ let hostTheme = '';
 // ---------- helpers ----------
 let toastT = null;
 function toast(t) { const el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => (el.hidden = true), 4000); }
+// markdown: full CommonMark + tables (marked); raw HTML in the text is shown as text, links open outside
+const MDR = (() => {
+  const mk = window.__marked;
+  if (!mk?.Marked) return null;
+  const m = new mk.Marked({ gfm: true, breaks: true });
+  m.use({ renderer: {
+    html(t) { return esc(typeof t === 'string' ? t : t?.text ?? ''); },
+    link(href, title, text) { const h = typeof href === 'object' ? href.href : href; return /^https?:/i.test(h ?? '') ? `<a href="#" data-act="open-link" data-u="${esc(h)}">${text}</a>` : text; },
+    image() { return ''; },
+  } });
+  return m;
+})();
 function md(src) {
-  const lines = String(src ?? '').replace(/\r/g, '').split('\n'); let out = '', list = null, code = null;
-  const inline = (s) => esc(s).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  const close = () => { if (list) { out += `</${list}>`; list = null; } };
-  for (const l of lines) {
-    if (code !== null) { if (/^```/.test(l)) { out += `<pre><code>${esc(code)}</code></pre>`; code = null; } else code += (code ? '\n' : '') + l; continue; }
-    if (/^```/.test(l)) { close(); code = ''; continue; }
-    let m;
-    if ((m = l.match(/^(#{1,3})\s+(.*)/))) { close(); const n = Math.min(3, m[1].length + 1); out += `<h${n}>${inline(m[2])}</h${n}>`; continue; }
-    if ((m = l.match(/^\s*[-*•]\s+(.*)/))) { if (list !== 'ul') { close(); out += '<ul>'; list = 'ul'; } out += `<li>${inline(m[1])}</li>`; continue; }
-    if ((m = l.match(/^\s*\d+[.)]\s+(.*)/))) { if (list !== 'ol') { close(); out += '<ol>'; list = 'ol'; } out += `<li>${inline(m[1])}</li>`; continue; }
-    close();
-    if (l.trim()) out += `<p>${inline(l)}</p>`;
-  }
-  if (code !== null) out += `<pre><code>${esc(code)}</code></pre>`;
-  close();
-  return `<div class="md">${out}</div>`;
+  const text = String(src ?? '').replace(/\r/g, '');
+  if (MDR) { try { return `<div class="md">${MDR.parse(text)}</div>`; } catch {} }
+  return `<div class="md"><pre class="plain">${esc(text)}</pre></div>`;
 }
 
 const fmtSize = (n) => { n = num(n); return !n ? '' : n < 1024 ? `${n} B` : n < 1048576 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`; };
@@ -1494,6 +1511,7 @@ document.addEventListener('click', (e) => {
   switch (d.act) {
     case 'scrim': return;
     case 'close': return closeModal(d.w);
+    case 'open-link': e.preventDefault?.(); return link(d.u);
     case 'win-max': { const w = S.wins.find((x) => x.type === d.w); if (!w) return; w.snap = w.snap === 'max' ? '' : 'max'; saveWin(w); return render(); }
     case 'win-snap': { const w = S.wins.find((x) => x.type === d.w); if (!w) return; w.snap = w.snap === 'left' ? 'right' : w.snap === 'right' ? '' : 'left'; saveWin(w); return render(); }
     case 'menu': S.menu = !S.menu; return render();
