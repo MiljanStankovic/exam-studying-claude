@@ -76,6 +76,23 @@ An app window can only call tools of its own server, so it cannot reach your Dri
 
 Tools: `study_open` (opens the window), `study_push` (send a result to the window), `study_progress` (progress bar), `study_guide` (the playbooks Claude follows: setup, storage layout, generation, question types, grading, review, fixer, memory, file formats, study flow), and `study_pull` (window only).
 
+## Make it yours
+
+Everyone uses the same connector, but each person owns how it looks and how Claude works for them. Nothing of this touches anyone else, and none of it needs GitHub:
+
+- **Look**: open **Settings** in the window (accent colour, theme, density, headings, corners, or your own CSS), or just tell Claude "make it green and more compact". It is saved in `Studying/_system/settings.json` in your storage.
+- **How Claude works**: tell Claude "from now on, always ...". It writes the rule to `Studying/_rules/` in your storage. To change a whole playbook, Claude keeps your own version in `Studying/_rules/guides/<topic>.md` (`Mode: extend` adds to the built-in guide, `Mode: replace` swaps it). Every playbook Claude reads from the connector reminds it to check for your version first.
+- **One subject**: dates, points, how it is passed (`passRules`), scope and notes live in that subject's folder.
+
+Want to change the app itself? It is MIT licensed: copy it and run your own (below), then connect your own address instead.
+
+### Run your own copy
+
+1. On GitHub, press **Use this template** (or fork) to get your own copy of this repository.
+2. Create a free Cloudflare account, then in your copy add two repository secrets: `CLOUDFLARE_API_TOKEN` (token from the **Edit Cloudflare Workers** template, with your account selected) and `CLOUDFLARE_ACCOUNT_ID`.
+3. Run **Actions → Deploy to Cloudflare**. Your address is `https://studying.<your-subdomain>.workers.dev/mcp`; add it in Claude as a custom connector.
+4. Change anything: `app/window.src.html` is the window, `server/src/guides.js` holds the playbooks. Every push to `main` redeploys.
+
 ## Run your own server
 
 The server is a Cloudflare Worker with one Durable Object. It fits in the free Workers plan and needs no database, KV or card.

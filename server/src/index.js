@@ -21,7 +21,7 @@ const hash = (str) => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++)
 const WINDOW_URI = `ui://studying/window-${VERSION}-${hash(WINDOW_HTML)}.html`;
 const WINDOW_MIME = 'text/html;profile=mcp-app';
 const SESSION_RE = /^[A-Za-z0-9_-]{12,64}$/;
-const KINDS = ['subject', 'proposal', 'files', 'subjects', 'deck', 'test', 'mindmap', 'document', 'results', 'setup_status', 'notice', 'plan'];
+const KINDS = ['subject', 'proposal', 'settings', 'files', 'subjects', 'deck', 'test', 'mindmap', 'document', 'results', 'setup_status', 'notice', 'plan'];
 const MAX_PAYLOAD = 900_000; // UTF-8 bytes of JSON per push (Durable Object values max out at 2 MB)
 const LIMIT_PER_HOUR = 600; // pushes and progress updates per window session per hour
 const PULL_LIMIT_PER_HOUR = 3000; // window reads per session per hour (two windows polling every 2.5 s fit)
@@ -242,7 +242,8 @@ async function handle(env, origin, msg) {
       try { res = await callTool(env, params.name, params.arguments ?? {}); }
       catch (e) { return ok({ content: [{ type: 'text', text: String(e.message ?? e) }], isError: true }); }
       // the window reads structuredContent; keep the text copy short for pulls
-      const text = params.name === 'study_guide' ? res.guide
+      const text = params.name === 'study_guide'
+          ? `${res.guide}\n\n---\nIf Studying/_rules/guides/${res.topic}.md exists in the user's storage, read it now: it is their own version of this guide and wins where it differs (guide: customize).`
         : params.name === 'study_pull' ? `${res.messages.length} message(s), seq ${res.seq}` : JSON.stringify(res);
       return ok({ content: [{ type: 'text', text }], structuredContent: res });
     }

@@ -20,7 +20,9 @@ Loop for every job:
    review, memory, fixer as the job needs). Read them once per conversation.
 2. Read the rules in the user's storage before you produce anything:
    Studying/_rules/*.md (general, all subjects) and the subject's subject.md, part.md, memory.md.
-   Rules in _rules/lessons-learned.md override your defaults.
+   Rules in _rules/lessons-learned.md override your defaults. If Studying/_rules/guides/<topic>.md
+   exists for a guide you use, it is the user's own version of that guide: follow it where it
+   differs from the built-in one (guide: customize).
 3. Report progress with study_progress: announce the planned steps first (step 0 of N, with
    all step labels), then call again as each step starts with step = its 0-based index (= the
    number of steps already finished), then done:true. Always finish with done or error.
@@ -207,6 +209,39 @@ Checklist:
 - Points and time match the requested or real exam format.
 - Code compiles in principle and solutions actually solve the task.
 Fix every finding before saving. If a finding reveals a systematic mistake, follow the fixer guide.`,
+
+  customize: `# Customizing Studying for one user
+
+Every user runs the same app but owns how it looks and how you work for them. All of it lives in
+their storage, so it follows them to every device and never touches anyone else.
+
+Look: Studying/_system/settings.json, key "ui":
+  { "accent":"#2f5597", "theme":"auto"|"light"|"dark", "density":"comfortable"|"compact",
+    "headings":"serif"|"sans", "radius":"soft"|"square", "css":"optional extra CSS" }
+When the user asks for a different look ("make it green", "less rounded", "bigger cards"),
+change "ui", write settings.json, and push {kind:"settings", payload:{ui}}. Use "css" only for
+what the other keys cannot express; plain CSS rules, no @import, no url(). The window applies it
+at once and keeps it. Also push the settings when you open the window (study_open data may be an
+array: the subject and the settings).
+
+How you work: two levels, both plain Markdown the user can read and edit.
+- Studying/_rules/*.md: general rules for all their subjects (generation-rules, question-types,
+  grading-rubrics, lessons-learned).
+- Studying/_rules/guides/<topic>.md: the user's own version of one of your guides (overview,
+  generation, question-types, grading, review, intake, subject, memory, formats, study-flow...).
+  Start the file with "Mode: extend" (adds to the built-in guide) or "Mode: replace" (use only
+  this). When the user says "from now on always do X" about a whole kind of job, write it there.
+Subject facts never go here: they belong in the subject's files.
+
+Where a request goes:
+- about one subject (dates, points, pass rules, scope)   -> subject.md / subject.json
+- a preference for all their studying                     -> _rules/*.md or _rules/guides/
+- a mistake in one item                                   -> fix it, then guide: fixer
+- the look of the window                                  -> settings.json "ui"
+- something only a code change can do                     -> say so; the app is open source and
+  anyone can run their own copy (README, "Run your own copy").
+
+Show the user what you changed in one line and offer to undo it.`,
 
   fixer: `# Fixer: learning from mistakes
 

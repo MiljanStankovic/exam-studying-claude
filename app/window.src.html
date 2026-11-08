@@ -287,7 +287,34 @@
   .pts { font: 13px/20px var(--mono); font-variant-numeric: tabular-nums; color: var(--t2); }
   .pts.full { color: var(--ok); } .pts.zero { color: var(--bad); }
 
-  /* mind map */
+  /* user's own look (guide: customize) */
+  :root[data-density="compact"] .page { gap: 16px; padding-top: 20px; }
+  :root[data-density="compact"] .panel, :root[data-density="compact"] .partcard, :root[data-density="compact"] .subject { padding: 14px; gap: 12px; }
+  :root[data-density="compact"] .item { min-height: 36px; padding: 4px 10px; }
+  :root[data-density="compact"] .topic { min-height: 40px; padding: 4px 12px; }
+  :root[data-density="compact"] h1 { font-size: 28px; }
+  :root[data-radius="square"] .panel, :root[data-radius="square"] .partcard, :root[data-radius="square"] .subject, :root[data-radius="square"] .stat,
+  :root[data-radius="square"] .modal, :root[data-radius="square"] .card, :root[data-radius="square"] .inbox, :root[data-radius="square"] .app { border-radius: 4px; }
+  :root[data-radius="square"] .btn, :root[data-radius="square"] .chip, :root[data-radius="square"] input, :root[data-radius="square"] select, :root[data-radius="square"] textarea { border-radius: 4px; }
+  .swatches { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .swatch { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--card); box-shadow: 0 0 0 1px var(--line2); }
+  .swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px var(--t1); }
+  input[type=color] { width: 40px; height: 32px; padding: 0 2px; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); }
+
+  /* mind map: drawn as a tree of branches */
+  .mm { overflow: auto; background: var(--card); border: 1px solid var(--line); border-radius: 14px; max-height: 70vh; }
+  .mm svg { display: block; }
+  .mm .edge { fill: none; stroke: var(--line2); stroke-width: 1.5; }
+  .mm .node rect { fill: var(--card); stroke: var(--line2); }
+  .mm .node.root rect { fill: var(--accent); stroke: none; }
+  .mm .node.root text { fill: var(--on-accent); }
+  .mm .node.has { cursor: pointer; }
+  .mm .node.has:hover rect { stroke: var(--accent); }
+  .mm .node.shut rect { stroke: var(--accent); stroke-dasharray: 3 3; }
+  .mm text { fill: var(--t1); font: 14px var(--serif); dominant-baseline: middle; }
+  .mm .node text.k { fill: var(--t3); font: 11px var(--mono); }
+
+  /* mind map outline */
   .tree { list-style: none; margin: 0; padding-left: 20px; border-left: 1px solid var(--line2); display: grid; gap: 2px; }
   .tree.root { border-left: 0; padding-left: 0; }
   .tree summary { cursor: pointer; padding: 4px 0; font: 16px/1.45 var(--serif); list-style: none; }
@@ -385,7 +412,7 @@ const S = {
   selected: new Map(), makePart: '', makePreset: '', proposal: null, files: null, path: 'Studying',
   deck: null, idx: 0, flipped: false, srs: {}, order: [],
   test: null, answers: {}, touched: new Set(), q: 0, started: 0, submitted: false,
-  results: null, mindmap: null, doc: null,
+  results: null, mindmap: null, doc: null, mmView: 'map', mmShut: new Set(),
   progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null,
 };
 const STATUS = ['not started', 'studying', 'ready', 'done'];
@@ -475,10 +502,11 @@ function receive(m) {
     case 'files': S.files = { ...p, items: arr(p?.items) }; S.path = p?.path ?? S.path; openModal('files'); break;
     case 'deck': openDeck(p); break;
     case 'test': openTest(p); break;
-    case 'mindmap': S.mindmap = p; openModal('mindmap'); break;
+    case 'mindmap': S.mindmap = p; S.mmShut = initialShut(p?.root); S.mmView = window.innerWidth < 760 ? 'outline' : 'map'; openModal('mindmap'); break;
     case 'document': case 'plan': S.doc = { title: m.title ?? p?.title ?? 'Notes', markdown: p?.markdown ?? String(p ?? '') }; openModal('doc'); break;
     case 'results': S.results = { ...p, items: arr(p?.items), weakTopics: arr(p?.weakTopics), topics: arr(p?.topics) }; openModal('result'); break;
     case 'notice': toast(p?.text ?? String(p ?? '')); break;
+    case 'settings': LOOK = { ...(p?.ui ?? p ?? {}) }; store.set('ui', LOOK); applyUi(); render(); break;
   }
 }
 
@@ -533,6 +561,30 @@ function tellClaude() {
   if (t === lastCtx || !connected) return;
   try { app.updateModelContext({ content: [{ type: 'text', text: t }] }).then((r) => { if (!r?.isError) lastCtx = t; }, () => {}); } catch {}
 }
+
+// ---------- the user's own look (guide: customize) ----------
+const SWATCHES = [['#2f5597', 'Ink'], ['#1f7a6d', 'Teal'], ['#4f7a28', 'Moss'], ['#b4532a', 'Ember'], ['#7a3f8f', 'Plum'], ['#3d3d3d', 'Graphite']];
+const cleanCss = (c) => String(c ?? '').replace(/@import[^;]*;?/gi, '').replace(/url\s*\(/gi, 'none(').replace(/expression\s*\(/gi, '').replace(/<\/?style/gi, '').slice(0, 20000);
+function lum(hex) { const m = /^#?([\da-f]{6})$/i.exec(hex ?? ''); if (!m) return null; const n = parseInt(m[1], 16);
+  const c = [n >> 16, (n >> 8) & 255, n & 255].map((v) => { v /= 255; return v <= .03928 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; });
+  return .2126 * c[0] + .7152 * c[1] + .0722 * c[2]; }
+let LOOK = store.get('ui', {});
+function applyUi(ui = LOOK) {
+  const r = document.documentElement.style, ds = document.documentElement.dataset;
+  if (ui.accent && lum(ui.accent) !== null) {
+    const L = lum(ui.accent), hex = ui.accent.replace('#', ''), n = parseInt(hex, 16);
+    r.setProperty('--accent', '#' + hex); r.setProperty('--on-accent', L > .45 ? '#111111' : '#ffffff');
+    r.setProperty('--accent-soft', `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, .12)`);
+  } else ['--accent', '--on-accent', '--accent-soft'].forEach((k) => r.removeProperty(k));
+  if (ui.theme === 'light' || ui.theme === 'dark') ds.theme = ui.theme; else if (hostTheme) ds.theme = hostTheme; else delete ds.theme;
+  ds.density = ui.density === 'compact' ? 'compact' : 'comfortable';
+  ds.radius = ui.radius === 'square' ? 'square' : 'soft';
+  if (ui.headings === 'sans') r.setProperty('--serif', 'var(--font)'); else r.removeProperty('--serif');
+  let st = document.getElementById('user-css');
+  if (!st) { st = document.createElement('style'); st.id = 'user-css'; document.head.appendChild(st); }
+  st.textContent = cleanCss(ui.css);
+}
+let hostTheme = '';
 
 // ---------- helpers ----------
 let toastT = null;
@@ -616,12 +668,13 @@ function drawTop() {
     ${inSubject && ix ? `<button class="btn quiet" data-act="inbox" title="Documents waiting to be sorted">${icon('inbox')}<span class="hide-sm">Inbox</span>${inbox ? `<span class="n">${inbox}</span>` : ''}</button>
       <button class="icon-btn" data-act="refresh" title="Read this subject again from your storage" aria-label="Refresh">${icon('refresh')}</button>
       <button class="btn primary" data-act="make" data-p="${S.view === 'part' ? esc(S.part) : ''}">${icon('plus')}<span class="hide-sm">Make</span></button>` : ''}
+    ${!inSubject ? `<button class="icon-btn" data-act="settings" aria-label="Settings" title="Settings">${icon('gear')}</button>` : ''}
     ${S.modes.includes('fullscreen') ? `<button class="icon-btn" data-act="full" aria-label="${S.display === 'fullscreen' ? 'Exit full screen' : 'Full screen'}" title="${S.display === 'fullscreen' ? 'Exit full screen' : 'Full screen'}">${icon(S.display === 'fullscreen' ? 'min' : 'max')}</button>` : ''}
     ${S.menu ? `<div class="menu" role="menu">
       ${(S.subjects ?? []).map((s) => `<button role="menuitem" data-act="pick-subject" data-s="${esc(s.name)}" ${s.name === S.subject ? 'aria-current="true"' : ''}>${icon('book')}<span>${esc(s.name)}</span></button>`).join('')}
       <hr><button role="menuitem" data-act="home">${icon('home')}<span>All subjects</span></button>
       <button role="menuitem" data-act="new-subject">${icon('plus')}<span>Add subject</span></button>
-      <button role="menuitem" data-act="go-setup">${icon('gear')}<span>Setup</span></button></div>` : ''}`;
+      <button role="menuitem" data-act="settings">${icon('gear')}<span>Settings</span></button></div>` : ''}`;
 }
 
 // ---------- setup ----------
@@ -878,6 +931,7 @@ function modalHtml() {
     files: () => [S.path.split('/').pop(), S.path, mFiles()],
     allfiles: () => ['All materials', S.subject, mAllFiles()],
     newsubject: () => ['Add a subject', '', subjectForm(), true],
+    settings: () => ['Settings', 'Saved to your own storage, only for you', mSettings()],
   };
   const [title, sub, body, narrow] = (defs[m.type] ?? (() => ['', '', '']))();
   return `<div class="overlay" data-act="scrim"><div class="modal ${narrow ? 'narrow' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}">
@@ -921,16 +975,50 @@ function sched(s, r) {
 }
 const next = (s, r) => { const d = sched(s, r).interval; return d === 0 ? '<1 min' : d === 1 ? '1 day' : `${d} days`; };
 
+// open the first two levels; deeper branches start folded so a big map stays readable
+function initialShut(root) {
+  const shut = new Set();
+  const walk = (n, depth, key) => { const kids = arr(n?.children); if (kids.length && depth >= 2) shut.add(key); kids.forEach((k, i) => walk(k, depth + 1, `${key}.${i}`)); };
+  if (root) walk(root, 0, 'r');
+  return shut;
+}
+function mindmapSvg(root) {
+  // horizontal tree: each column is a depth, rows come from the visible leaves
+  const W = 232, GAP = 40, ROW = 40, H = 30, PAD = 16;
+  const label = (t) => { t = String(t ?? ''); return t.length > 30 ? t.slice(0, 29) + '…' : t; };
+  let leaf = 0; const nodes = [], edges = [];
+  const place = (n, depth, key) => {
+    const kids = arr(n.children).filter((k) => k && k.text != null);
+    const shut = S.mmShut.has(key);
+    let y;
+    if (!kids.length || shut) { y = leaf++ * ROW; }
+    else { const ys = kids.map((k, i) => place(k, depth + 1, `${key}.${i}`)); y = (ys[0] + ys[ys.length - 1]) / 2;
+      ys.forEach((cy) => edges.push([depth, y, cy])); }
+    nodes.push({ depth, y, text: n.text, key, kids: kids.length, shut });
+    return y;
+  };
+  place(root, 0, 'r');
+  const maxD = Math.max(...nodes.map((n) => n.depth));
+  const width = PAD * 2 + (maxD + 1) * W + maxD * GAP, height = PAD * 2 + Math.max(1, leaf) * ROW;
+  const x = (d) => PAD + d * (W + GAP), cy = (y) => PAD + y + ROW / 2;
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" role="img" aria-label="Mind map">
+    ${edges.map(([d, y1, y2]) => { const x1 = x(d) + W, x2 = x(d + 1), m = (x1 + x2) / 2; return `<path class="edge" d="M${x1} ${cy(y1)} C ${m} ${cy(y1)}, ${m} ${cy(y2)}, ${x2} ${cy(y2)}"/>`; }).join('')}
+    ${nodes.map((n) => `<g class="node ${n.depth === 0 ? 'root' : ''} ${n.kids ? 'has' : ''} ${n.shut ? 'shut' : ''}" ${n.kids ? `data-act="mm-toggle" data-k="${n.key}" role="button" tabindex="0"` : ''} transform="translate(${x(n.depth)} ${cy(n.y) - H / 2})">
+      <title>${esc(n.text)}</title><rect width="${W}" height="${H}" rx="8"/><text x="12" y="${H / 2}">${esc(label(n.text))}</text>
+      ${n.kids ? `<text class="k" x="${W - 10}" y="${H / 2}" text-anchor="end">${n.shut ? `+${n.kids}` : ''}</text>` : ''}</g>`).join('')}
+  </svg>`;
+}
 function mMindmap() {
   if (!S.mindmap) return `<div class="empty"><p>No mind map open</p></div>`;
+  const root = S.mindmap.root ?? { text: S.mindmap.title, children: [] };
   const node = (n, depth) => {
     const kids = arr(n?.children);
     if (!kids.length) return `<li class="leaf">${esc(n?.text)}</li>`;
     return `<li><details ${depth < 1 ? 'open' : ''}><summary>${esc(n.text)}</summary><ul class="tree">${kids.map((k) => node(k, depth + 1)).join('')}</ul></details></li>`;
   };
-  const root = S.mindmap.root ?? { text: S.mindmap.title, children: [] };
-  return `<div class="row"><button class="btn sm quiet" data-act="tree-all" data-open="1">Expand all</button><button class="btn sm quiet" data-act="tree-all" data-open="0">Collapse</button></div>
-    <section class="panel"><ul class="tree root">${arr(root.children).map((k) => node(k, 0)).join('')}</ul></section>
+  return `<div class="row between"><div class="row"><button class="btn sm ${S.mmView === 'map' ? 'primary' : ''}" data-act="mm-view" data-v="map">Map</button><button class="btn sm ${S.mmView === 'outline' ? 'primary' : ''}" data-act="mm-view" data-v="outline">Outline</button></div>
+      <span class="muted">${S.mmView === 'map' ? 'Click a branch to fold or unfold it' : ''}</span></div>
+    ${S.mmView === 'map' ? `<div class="mm">${mindmapSvg(root)}</div>` : `<section class="panel"><ul class="tree root">${arr(root.children).map((k) => node(k, 0)).join('')}</ul></section>`}
     <p class="muted">Ask Claude about any branch in the chat</p>`;
 }
 function openTest(t) {
@@ -1132,6 +1220,32 @@ function mAllFiles() {
     ${ix.folderUrl ? `<div class="row"><button class="btn quiet" data-act="open-folder">${icon('ext')}Open the subject folder in your storage</button></div>` : ''}`;
 }
 
+function mSettings() {
+  const u = { theme: 'auto', density: 'comfortable', headings: 'serif', radius: 'soft', ...LOOK };
+  const opt = (id, cur, list) => `<select id="${id}">${list.map(([v, l]) => `<option value="${v}" ${cur === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`;
+  return `<form class="stack" id="settings-form" style="gap:16px">
+    <section class="panel"><h2>Look</h2>
+      <div class="field" style="display:grid;gap:8px"><span style="color:var(--t2);font-size:13px">Accent</span>
+        <div class="swatches">${SWATCHES.map(([c, n]) => `<button type="button" class="swatch" data-act="swatch" data-c="${c}" title="${n}" aria-label="${n}" aria-pressed="${(u.accent ?? '#2f5597').toLowerCase() === c}" style="background:${c}"></button>`).join('')}
+          <input type="color" id="s-accent" value="${esc(u.accent ?? '#2f5597')}" aria-label="Custom accent"></div></div>
+      <div class="grid2">
+        <label class="field">Theme${opt('s-theme', u.theme, [['auto', 'Same as Claude'], ['light', 'Light'], ['dark', 'Dark']])}</label>
+        <label class="field">Density${opt('s-density', u.density, [['comfortable', 'Comfortable'], ['compact', 'Compact']])}</label>
+        <label class="field">Headings${opt('s-headings', u.headings, [['serif', 'Book serif'], ['sans', 'Same as text']])}</label>
+        <label class="field">Corners${opt('s-radius', u.radius, [['soft', 'Rounded'], ['square', 'Square']])}</label>
+      </div>
+      <details><summary class="muted" style="cursor:pointer">Your own CSS</summary>
+        <textarea id="s-css" spellcheck="false" style="font-family:var(--mono);margin-top:8px" placeholder=".partcard .name { font-size: 26px }">${esc(u.css ?? '')}</textarea></details>
+    </section>
+    <section class="panel"><h2>How Claude works for you</h2>
+      <p class="sub">Your rules live in Studying/_rules in your storage. Say what Claude should always do, and it writes the rule there. It applies only to you</p>
+      <label class="field">From now on<textarea id="s-rule" placeholder="Flashcards always quote the definition from the script word for word, then explain it in one sentence"></textarea></label>
+    </section>
+    <div class="row"><button class="btn primary" type="submit">Save</button><button class="btn quiet" type="button" data-act="reset-ui">Reset look</button>
+      <span class="spacer"></span><button class="btn quiet" type="button" data-act="go-setup">Run setup again</button></div>
+  </form>`;
+}
+
 // ---------- mistakes ----------
 function reportButton(title, id) { return `<button class="btn quiet" data-act="report" data-t="${esc(title)}" data-id="${esc(id)}">Report a mistake</button>`; }
 function reportBox() {
@@ -1154,6 +1268,11 @@ document.addEventListener('click', (e) => {
     case 'home': S.modal = null; return go('subjects');
     case 'full': return toggleFull();
     case 'go-setup': S.setup.step = 0; S.modal = null; return go('setup');
+    case 'settings': return openModal('settings');
+    case 'swatch': { const inp = $('s-accent'); if (inp) inp.value = d.c; LOOK = { ...LOOK, accent: d.c }; applyUi(); document.querySelectorAll('.swatch').forEach((x) => x.setAttribute('aria-pressed', x.dataset.c === d.c)); return; }
+    case 'reset-ui': LOOK = {}; store.set('ui', LOOK); applyUi(); toast('Look reset. Claude is saving it'); ask('reset my Studying look: remove "ui" from Studying/_system/settings.json (guide: customize), then push {kind:"settings", payload:{ui:{}}}.'); return render();
+    case 'mm-toggle': { const k = d.k; S.mmShut.has(k) ? S.mmShut.delete(k) : S.mmShut.add(k); return render(); }
+    case 'mm-view': S.mmView = d.v; return render();
     case 'setup-next': S.setup.step++; return render();
     case 'setup-back': S.setup.step = Math.max(0, S.setup.step - 1); return render();
     case 'open-connectors': return link('https://claude.ai/customize/connectors');
@@ -1213,6 +1332,10 @@ document.addEventListener('click', (e) => {
   }
 });
 document.addEventListener('change', (e) => {
+  if (e.target.closest('#settings-form') && e.target.id !== 's-rule') {
+    const f = (x) => $(x)?.value;
+    LOOK = { ...LOOK, accent: f('s-accent'), theme: f('s-theme'), density: f('s-density'), headings: f('s-headings'), radius: f('s-radius') }; applyUi(); return;
+  }
   const el = e.target.closest('[data-act]'); if (!el) return;
   const d = el.dataset;
   if (d.act === 'pick-storage') { S.setup.storage = d.s; store.set('storage', d.s); return render(); }
@@ -1244,6 +1367,13 @@ document.addEventListener('submit', (e) => {
     go('subject');
     return ask(`create a new subject "${name}". Parts: ${val('f-parts') || 'none given'}. Grading and dates: ${val('f-notes') || 'not given'}. ` +
       'Create the folders (parts, _inbox, _shared), subject.md, memory.md and subject.json with points, dates and status per part (guides: storage-layout, subject), then push subjects and the subject.');
+  }
+  if (id === 'settings-form') {
+    LOOK = { ...LOOK, accent: $('s-accent').value, theme: $('s-theme').value, density: $('s-density').value, headings: $('s-headings').value, radius: $('s-radius').value, css: $('s-css').value.trim() || undefined };
+    store.set('ui', LOOK); applyUi(); const rule = val('s-rule'); S.modal = null; render();
+    toast('Saved. Claude is writing it to your storage');
+    return ask(`save my Studying settings (guide: customize): set "ui" in Studying/_system/settings.json to ${JSON.stringify(LOOK)}` +
+      (rule ? `. Also add this rule for all my studying, in the right file under Studying/_rules (or _rules/guides/<topic>.md if it is about one kind of job): "${rule}"` : '') + '. Then push {kind:"settings"} and tell me in one line what changed.');
   }
   if (id === 'ask-form') {
     const q = val('ask-q'); if (!q) return; $('ask-q').value = '';
@@ -1320,7 +1450,7 @@ async function toggleFull() {
 }
 function hostContext(ctx) {
   if (!ctx) return;
-  if (ctx.theme) document.documentElement.dataset.theme = ctx.theme;
+  if (ctx.theme) { hostTheme = ctx.theme; if (LOOK.theme !== 'light' && LOOK.theme !== 'dark') document.documentElement.dataset.theme = ctx.theme; }
   if (ctx.styles?.variables) for (const [k, v] of Object.entries(ctx.styles.variables)) if (v) document.documentElement.style.setProperty(k, v);
   if (ctx.displayMode) S.display = ctx.displayMode;
   if (ctx.availableDisplayModes) S.modes = ctx.availableDisplayModes;
@@ -1341,6 +1471,7 @@ app.ontoolinput = ({ arguments: a }) => {
 // test hook: lets a page without a host feed messages in (used by tests and local previews)
 window.__studying = { receive: (m) => receive(m), go, S, openModal, render };
 if (S.subject) S.view = 'subject';
+applyUi();
 render();
 await app.connect();
 connected = true;
