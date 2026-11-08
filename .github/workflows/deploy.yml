@@ -30,7 +30,12 @@ jobs:
       - name: Deploy
         if: env.CLOUDFLARE_API_TOKEN != '' && env.CLOUDFLARE_ACCOUNT_ID != ''
         working-directory: server
-        run: npx --yes wrangler@4 deploy
+        # pasted secrets often carry a trailing newline or quotes; strip them
+        run: |
+          export CLOUDFLARE_ACCOUNT_ID="$(printf '%s' "$CLOUDFLARE_ACCOUNT_ID" | tr -d '[:space:]"')"
+          export CLOUDFLARE_API_TOKEN="$(printf '%s' "$CLOUDFLARE_API_TOKEN" | tr -d '[:space:]"')"
+          echo "Account id length: ${#CLOUDFLARE_ACCOUNT_ID} (should be 32)"
+          npx --yes wrangler@4 deploy
       - name: Secrets missing
         if: env.CLOUDFLARE_API_TOKEN == '' || env.CLOUDFLARE_ACCOUNT_ID == ''
         run: echo "::warning::Add CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as repository secrets to deploy."
