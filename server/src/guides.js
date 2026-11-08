@@ -245,7 +245,11 @@ Index (subject.json and the push payload):
   "inbox":[file],
   "memory":{ "summary":"2-3 sentences", "weakTopics":["..."], "strengths":["..."] },
   "nextStep":{ "text":"one concrete action", "action":"sort"|"make"|"review"|"test"|"read" },
-  "updated":"ISO time" }
+  "updated":"ISO time",
+  "ids":{ "folder", "inbox", "shared", "sharedMaterials", "sharedGenerated",
+          "<Part>":{ "folder", "materials", "generated", "results" } } }
+Keep the storage folder ids in "ids" so later jobs write straight to the right folder without
+searching. The window ignores "ids".
 file   = { "name", "id", "kind":"script"|"slides"|"past-exam"|"notes"|"assignment"|"image"|"other",
            "size", "modified", "note":"one line on what it is" }
 item   = { "name", "id", "kind":"deck"|"test"|"mindmap"|"document", "count":cards or questions,
