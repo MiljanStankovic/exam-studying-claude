@@ -413,7 +413,7 @@ const S = {
   deck: null, idx: 0, flipped: false, srs: {}, order: [],
   test: null, answers: {}, touched: new Set(), q: 0, started: 0, submitted: false,
   results: null, mindmap: null, doc: null, mmView: 'map', mmShut: new Set(),
-  progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null,
+  ready: [], wantOpen: 0, progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null,
 };
 const STATUS = ['not started', 'studying', 'ready', 'done'];
 const cur = () => S.data[S.subject] ?? null;
@@ -424,6 +424,8 @@ const dot = (st) => `<span class="dot ${esc(String(st ?? '').replace(/\s/g, '-')
 const app = new App({ name: 'Studying', version: '0.2.0' }, { availableDisplayModes: ['inline', 'fullscreen'] });
 function ask(text) {
   const msg = `Studying: ${text} (session: ${S.session})`;
+  // a job that makes material delivers in the background; anything else the user asked to see opens
+  S.wantOpen = /^make study material/.test(text) ? 0 : Date.now();
   keepPolling(10 * 60_000);
   const fail = () => { S.pollUntil = 0; toast('Could not send to Claude. Type your request in the chat instead.'); };
   app.sendMessage({ role: 'user', content: [{ type: 'text', text: msg }] }).then((r) => { if (r?.isError) fail(); }, fail);
@@ -500,14 +502,32 @@ function receive(m) {
     }
     case 'proposal': S.proposal = { ...p, items: arr(p?.items).map((x) => ({ ...x, include: x.to !== 'skip' })) }; if (p?.subject) S.subject = p.subject; openModal('sort'); break;
     case 'files': S.files = { ...p, items: arr(p?.items) }; S.path = p?.path ?? S.path; openModal('files'); break;
+    case 'deck': case 'test': case 'mindmap': case 'document': case 'plan': case 'results':
+      if (S.wantOpen && Date.now() - S.wantOpen < 10 * 60_000) { S.wantOpen = 0; show(m); }
+      else { S.ready = [m, ...S.ready.filter((x) => (x.title ?? x.payload?.title) !== (m.title ?? p?.title))].slice(0, 30); toast(`Ready: ${m.title ?? p?.title ?? m.kind}`); drawTop(); if (S.modal?.type === 'ready') render(); }
+      break;
+    case 'notice': toast(p?.text ?? String(p ?? '')); break;
+    case 'settings': LOOK = { ...(p?.ui ?? p ?? {}) }; store.set('ui', LOOK); applyUi(); render(); break;
+  }
+}
+
+// opens a delivered result; used directly when the user asked for it, or from the Ready list
+function show(m) {
+  const p = m.payload;
+  switch (m.kind) {
     case 'deck': openDeck(p); break;
     case 'test': openTest(p); break;
     case 'mindmap': S.mindmap = p; S.mmShut = initialShut(p?.root); S.mmView = window.innerWidth < 760 ? 'outline' : 'map'; openModal('mindmap'); break;
     case 'document': case 'plan': S.doc = { title: m.title ?? p?.title ?? 'Notes', markdown: p?.markdown ?? String(p ?? '') }; openModal('doc'); break;
     case 'results': S.results = { ...p, items: arr(p?.items), weakTopics: arr(p?.weakTopics), topics: arr(p?.topics) }; openModal('result'); break;
-    case 'notice': toast(p?.text ?? String(p ?? '')); break;
-    case 'settings': LOOK = { ...(p?.ui ?? p ?? {}) }; store.set('ui', LOOK); applyUi(); render(); break;
   }
+}
+function mReady() {
+  if (!S.ready.length) return '<p class="sub">Nothing new. What Claude makes in the background shows up here, and stays saved in the part.</p>';
+  const what = { deck: 'Flashcards', test: 'Test', mindmap: 'Mind map', document: 'Document', plan: 'Plan', results: 'Result' };
+  return `<section class="panel tight list">${S.ready.map((x, i) => `<div class="item"><span class="ic">${icon(KIND_ICON[x.kind] ?? 'note')}</span>
+    <button class="name" data-act="open-ready" data-i="${i}"><b>${esc(x.title ?? x.payload?.title ?? x.kind)}</b><small>${esc(what[x.kind] ?? x.kind)}</small></button>
+    <span class="side"><button class="btn" data-act="open-ready" data-i="${i}">Open</button></span></div>`).join('')}</section>`;
 }
 
 // progress bar + estimate from the pace of the steps so far
@@ -665,6 +685,7 @@ function drawTop() {
       <button class="switch" data-act="menu" aria-haspopup="menu" aria-expanded="${S.menu}"><span>${esc(S.subject)}</span>${icon('chev')}</button>
       ${S.view === 'part' ? `<span class="sep" aria-hidden="true">/</span><button class="part" data-act="open-part" data-p="${esc(S.part)}">${esc(S.part)}</button>` : ''}</div>` : ''}
     <span class="spacer"></span>
+    ${S.ready.length ? `<button class="btn quiet" data-act="ready" title="New material from Claude, not opened yet">${icon('cards')}<span class="hide-sm">New</span><span class="n">${S.ready.length}</span></button>` : ''}
     ${inSubject && ix ? `<button class="btn quiet" data-act="inbox" title="Documents waiting to be sorted">${icon('inbox')}<span class="hide-sm">Inbox</span>${inbox ? `<span class="n">${inbox}</span>` : ''}</button>
       <button class="icon-btn" data-act="refresh" title="Read this subject again from your storage" aria-label="Refresh">${icon('refresh')}</button>
       <button class="btn primary" data-act="make" data-p="${S.view === 'part' ? esc(S.part) : ''}">${icon('plus')}<span class="hide-sm">Make</span></button>` : ''}
@@ -926,6 +947,7 @@ function modalHtml() {
     make: () => ['Make study material', S.subject, mMake()],
     sort: () => ['Where your documents go', S.subject, mSort()],
     inbox: () => ['Inbox', S.subject, mInbox()],
+    ready: () => ['New from Claude', 'Open what you want, when you want', mReady()],
     notes: () => ['What Claude knows', S.subject, mNotes()],
     editpart: () => [`${S.part}: date and score`, S.subject, mEditPart(), true],
     files: () => [S.path.split('/').pop(), S.path, mFiles()],
@@ -1285,6 +1307,8 @@ document.addEventListener('click', (e) => {
     case 'open-part': S.part = d.p; S.selected.clear(); return go('part');
     case 'edit-part': return openModal('editpart');
     case 'inbox': return openModal('inbox');
+    case 'ready': return openModal('ready');
+    case 'open-ready': { const m = S.ready[+d.i]; if (!m) return; S.ready.splice(+d.i, 1); drawTop(); return show(m); }
     case 'notes': return openModal('notes');
     case 'all-files': return openModal('allfiles');
     case 'open-inbox': return link(cur()?.inboxUrl);

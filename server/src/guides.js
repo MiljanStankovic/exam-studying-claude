@@ -406,6 +406,15 @@ Files list: {kind:"files", payload:{ path:"Studying/...", items:[{ name, type:"f
 
 A single push must be under about 900 KB; split big decks or tests into several pushes.
 
+Pushed decks, tests, mind maps and documents do not pop open: the window puts them in its "New"
+tray and the user opens them when ready. Only what the user just asked to see (opening a file,
+grading a test) opens directly. So push each result as soon as it is saved.
+
+Keep jobs cheap: read each source once and work from your notes; write each file once. Save with
+the storage connector's own tools; use browser automation only when the connector cannot do the
+step at all. When the Agent tool exists, give file reading and first drafts to a smaller, cheaper
+model and keep the review on a strong one.
+
 Payloads pushed to the window use the same objects: {kind:"deck", payload:<deck>},
 {kind:"test", payload:<test>}, {kind:"mindmap", payload:<mindmap>}.`,
 
