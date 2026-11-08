@@ -300,11 +300,15 @@ async function pull() {
 document.addEventListener('visibilitychange', () => { if (!document.hidden && pollTimer) pull(); });
 
 const arr = (x) => (Array.isArray(x) ? x : []);
+let pendingSubject = '';
 function receive(m) {
   const p = m.payload;
   switch (m.kind) {
     case 'setup_status': S.setup.status = p; if (p?.ok) { S.setup.step = 3; if (p.storage) store.set('storage', p.storage); if (p.subjects) S.subjects = arr(p.subjects); } go('setup'); break;
-    case 'subjects': S.subjects = arr(Array.isArray(p) ? p : p?.subjects); if (S.view === 'setup' && S.setup.step >= 3) S.setup.step = 4; render(); break;
+    case 'subjects': S.subjects = arr(Array.isArray(p) ? p : p?.subjects);
+      if (S.view === 'setup' && S.setup.step === 4 && S.subjects.length) { go(S.subjects.some((x) => x.name === S.subject) ? 'subject' : 'home'); break; }
+      if (S.view === 'home' && S.subjects.some((x) => x.name === S.subject) && pendingSubject === S.subject) { pendingSubject = ''; go('subject'); break; }
+      render(); break;
     case 'files': S.files = { ...p, items: arr(p?.items) }; S.path = p?.path ?? S.path; go('files'); break;
     case 'deck': openDeck(p); break;
     case 'test': openTest(p); break;
@@ -394,12 +398,12 @@ const fmtDate = (d) => { const x = new Date(d); return isNaN(x) ? '' : x.toLocal
 let lastView = '';
 function go(view) { S.view = view; render(); }
 function render() {
-  $('nav').innerHTML = VIEWS.map(([v, l]) => `<button data-v="${v}" ${S.view === v ? 'aria-current="page"' : ''}>${l}</button>`).join('');
+  $('nav').innerHTML = VIEWS.map(([v, l]) => `<button data-v="${v}" ${S.view === v || (v === 'home' && S.view === 'subject') ? 'aria-current="page"' : ''}>${l}</button>`).join('');
   const full = S.display === 'fullscreen';
   $('full').innerHTML = icon(full ? 'min' : 'max'); $('full').title = full ? 'Exit full screen' : 'Full screen';
   $('full').hidden = !S.modes.includes('fullscreen');
   document.body.classList.toggle('full', full);
-  const v = { setup: viewSetup, home: viewHome, files: viewFiles, create: viewCreate, study: viewStudy, test: viewTest, results: viewResults }[S.view] ?? viewHome;
+  const v = { setup: viewSetup, home: viewHome, subject: viewSubject, files: viewFiles, create: viewCreate, study: viewStudy, test: viewTest, results: viewResults }[S.view] ?? viewHome;
   // keep what the user typed in forms when the same view is drawn again (host resize, a push...)
   const keep = S.view === lastView ? [...$('view').querySelectorAll('form input, form textarea, form select')].filter((el) => el.id || el.name)
     .map((el) => ({ id: el.id, name: el.name, value: el.value, checked: el.checked, box: el.type === 'checkbox' || el.type === 'radio' })) : [];
@@ -475,12 +479,28 @@ function viewHome() {
       ${Number(s.due) > 0 ? `<span class="meta">${Number(s.due)} cards due today</span>` : ''}</button>`;
   }).join('')}</div>` : `<div class="empty"><p>No subjects yet.</p></div>`;
   return `<div class="row between"><h1>Your subjects</h1><button class="btn" data-act="new-subject">Add subject</button></div>${list}
-    ${S.subject ? `<div class="panel"><h2>${esc(S.subject)}</h2><div class="row">
-      <button class="btn primary" data-act="next-step">What should I do next</button>
+    <div id="new-subject" hidden>${subjectForm()}</div>`;
+}
+
+// ---------- one subject ----------
+function viewSubject() {
+  const s = (S.subjects ?? []).find((x) => x.name === S.subject);
+  if (!s) return viewHome();
+  const days = s.examDate ? Math.ceil((new Date(s.examDate) - new Date()) / 86400000) : null;
+  const parts = arr(s.parts);
+  return `<div class="crumbs"><button data-act="goto" data-v="home">Your subjects</button><span aria-hidden="true">/</span><span>${esc(s.name)}</span></div>
+    <div class="row between"><h1>${esc(s.name)}</h1>
+      <span class="muted">${days !== null ? (days >= 0 ? `${days} days to exam` : 'Exam passed') : 'Exam date not set'}</span></div>
+    <div class="row"><button class="btn primary" data-act="next-step">What should I do next</button>
       <button class="btn" data-act="due-cards">Review due cards</button>
       <button class="btn" data-act="mock-exam">Mock exam</button>
-      <button class="btn quiet" data-act="browse-subject">Open folder</button></div></div>` : ''}
-    <div id="new-subject" hidden>${subjectForm()}</div>`;
+      <button class="btn quiet" data-act="browse-subject">Open folder</button></div>
+    <div class="subjects">${parts.map((p) => `<div class="subject"><span class="name">${esc(p)}</span>
+      <div class="row"><button class="btn" data-act="part-files" data-p="${esc(p)}">Materials</button>
+      <button class="btn" data-act="part-generated" data-p="${esc(p)}">Generated</button>
+      <button class="btn primary" data-act="part-create" data-p="${esc(p)}">Create</button></div></div>`).join('')}</div>
+    ${parts.length ? '' : '<p class="muted">This subject has no parts yet.</p>'}
+    <p class="muted">Put your materials (scripts, slides, past exam questions) in each part's materials folder in your storage, or attach them in the chat and tell Claude which part they belong to.</p>`;
 }
 
 // ---------- files ----------
@@ -713,7 +733,12 @@ document.addEventListener('click', (e) => {
       return ask(`setup. storage=${S.setup.storage}. Read the setup guide, check that this storage connector works, create the Studying workspace if it is missing, then push setup_status and subjects.`);
     case 'load-subjects': return ask('list my subjects from the Studying workspace (Studying/Subjects) and push them (kind subjects) with parts, exam date, readiness and cards due today. If there is no workspace, push setup_status with ok false.');
     case 'new-subject': { const b = $('new-subject'); if (b) b.hidden = !b.hidden; return; }
-    case 'pick-subject': S.subject = d.s; S.part = ''; store.set('subject', d.s); return render();
+    case 'pick-subject': S.subject = d.s; S.part = ''; store.set('subject', d.s); return go('subject');
+    case 'part-files': case 'part-generated': {
+      S.part = d.p; S.path = `Studying/Subjects/${S.subject}/${d.p}/${d.act === 'part-files' ? 'materials' : 'generated'}`; S.files = null; go('files');
+      return ask(`list files in "${S.path}" and push them (kind files).`);
+    }
+    case 'part-create': S.part = d.p; return go('create');
     case 'next-step': return ask(`what should I study next in "${S.subject}"? Use memory.md, the study plan and what is due, then push it as a document (kind plan).`);
     case 'due-cards': return ask(`collect the flashcards that are due today${S.subject ? ` in "${S.subject}"` : ''} (from *.progress.json) into one deck and push it.`);
     case 'mock-exam': return ask(`make a mock exam${S.subject ? ` for "${S.subject}"` : ''} in the real exam format from subject.md and part.md (question types, points, time). Review it first, then push it (kind test).`);
@@ -765,7 +790,7 @@ document.addEventListener('submit', (e) => {
   if (e.target.id === 'subject-form') {
     const v = (id) => $(id).value.trim();
     const name = v('f-name'); if (!name) return;
-    S.subject = name; store.set('subject', name);
+    S.subject = name; store.set('subject', name); pendingSubject = name;
     toast('Asked Claude to create ' + name);
     return ask(`create a new subject "${name}". Parts: ${v('f-parts') || 'none given'}. Exam date: ${v('f-date') || 'unknown'}. Notes: ${v('f-notes') || 'none'}. ` +
       'Create the folders and subject.md (storage-layout guide), then push subjects.');
