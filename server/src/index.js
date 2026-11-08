@@ -4,7 +4,9 @@
 // It keeps no user files: the user's materials, decks, tests and memory live in their own
 // storage (Google Drive, MEGA, ...), which Claude reaches through the user's own connectors.
 // A per-window mailbox (Durable Object) holds pushed results until the window picks them up
-// and empties itself after two hours of silence.
+// and empties itself after two hours of silence. A per-user library (Durable Object, keyed by a
+// random key kept in the user's own settings.json) keeps a copy of what was pushed, so the
+// window can show subjects and open made material again without asking Claude.
 //
 // Protocol: MCP over HTTP (JSON-RPC in the POST body, JSON response), stateless between calls.
 
@@ -21,6 +23,8 @@ const hash = (str) => { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++)
 const WINDOW_URI = `ui://studying/window-${VERSION}-${hash(WINDOW_HTML)}.html`;
 const WINDOW_MIME = 'text/html;profile=mcp-app';
 const SESSION_RE = /^[A-Za-z0-9_-]{12,64}$/;
+const LIBRARY_RE = /^[A-Za-z0-9_-]{24,64}$/;
+const LIB_KINDS = ['deck', 'test', 'mindmap', 'document', 'plan', 'results'];
 const KINDS = ['subject', 'proposal', 'settings', 'files', 'subjects', 'deck', 'test', 'mindmap', 'document', 'results', 'setup_status', 'notice', 'plan'];
 const MAX_PAYLOAD = 900_000; // UTF-8 bytes of JSON per push (Durable Object values max out at 2 MB)
 const LIMIT_PER_HOUR = 600; // pushes and progress updates per window session per hour
@@ -30,7 +34,7 @@ const PULL_BUDGET = 1_200_000; // bytes of messages returned by one pull
 const INSTRUCTIONS =
   'Studying is a study app with a window in the chat. You are its brain: you make study materials, tests and ' +
   'plans from the user\'s own materials, grade answers and keep a memory per subject. The server stores nothing: ' +
-  'all files live in the user\'s own storage (Google Drive, MEGA or another connector), which you reach with that ' +
+  'all files live in the user\'s own storage (the window keeps a copy of what you push in the user\'s library so it reopens without you) (Google Drive, MEGA or another connector), which you reach with that ' +
   'storage connector\'s tools. Before any job, call study_guide with topic "overview" once per conversation and ' +
   'follow it. Requests from the window arrive as chat messages starting with "Studying:" and ending with ' +
   '"(session: <id>)": pass that id to study_push and study_progress. To open the app, call study_open. ' +
@@ -47,13 +51,15 @@ const TOOLS = [
       'in their storage yet. Otherwise open it on a subject: read that subject\'s subject.json first (guide: ' +
       'subject) and pass data = {kind:"subject", payload:<index>} so the window shows everything at once; add ' +
       'payload.subjects with the list of all subjects. Pass session to reopen the same window session (keeps its ' +
-      'mailbox). data may also be any study_push message {kind, title, payload}, or an array of them.',
+      'mailbox). data may also be any study_push message {kind, title, payload}, or an array of them. Always pass library: ' +
+      'with it the window shows the last known subjects at once and opens made material without you.',
     inputSchema: {
       type: 'object',
       properties: {
         view: { type: 'string', enum: ['setup', 'home', 'subject', 'files', 'create', 'study', 'test', 'results', 'document'], default: 'home' },
         session: { type: 'string', description: 'existing window session id, if any' },
         data: { type: ['object', 'array'], description: '{kind, title, payload} to show on open' },
+        library: { type: 'string', description: 'the user\'s library key from Studying/settings.json "library" (24-64 letters, digits, - or _). If missing, make one at random and save it there first.' },
       },
     },
     annotations: ann('Open Studying', true),
@@ -117,8 +123,16 @@ const TOOLS = [
     name: 'study_pull',
     title: 'Window mailbox',
     description: 'Used by the Studying window to pick up results. Not for the model.',
-    inputSchema: { type: 'object', properties: { session: { type: 'string' }, after: { type: 'integer' } }, required: ['session'] },
+    inputSchema: { type: 'object', properties: { session: { type: 'string' }, after: { type: 'integer' }, library: { type: 'string' } }, required: ['session'] },
     annotations: ann('Window mailbox', true),
+    _meta: { ui: { visibility: ['app'] } },
+  },
+  {
+    name: 'study_library',
+    title: 'Library',
+    description: 'Used by the Studying window to read what was pushed before. Not for the model.',
+    inputSchema: { type: 'object', properties: { library: { type: 'string' }, op: { type: 'string', enum: ['index', 'get'] }, id: { type: 'string' }, name: { type: 'string' } }, required: ['library', 'op'] },
+    annotations: ann('Library', true),
     _meta: { ui: { visibility: ['app'] } },
   },
 ];
@@ -151,8 +165,10 @@ export class Mailbox extends DurableObject {
     await this.#touch();
     await this.ctx.storage.put('progress', { ...p, ts: Date.now() });
   }
-  async pull(after) {
+  async library() { return (await this.ctx.storage.get('library')) ?? null; }
+  async pull(after, library) {
     await this.#touch('pullrate', PULL_LIMIT_PER_HOUR);
+    if (library && (await this.ctx.storage.get('library')) !== library) await this.ctx.storage.put('library', library);
     const all = await this.ctx.storage.list({ prefix: 'm:' });
     // oldest first, within a size budget; the window asks again for the rest
     const messages = [];
@@ -176,6 +192,54 @@ export class Mailbox extends DurableObject {
   }
 }
 
+// ---------- library (one Durable Object per user library key) ----------
+
+const nameKey = (n) => String(n ?? '').toLowerCase().trim().slice(0, 200);
+
+export class Library extends DurableObject {
+  async save(m) {
+    const now = Date.now(), st = this.ctx.storage, p = m.payload;
+    if (m.kind === 'subject' && p?.name) {
+      await st.put('subj:' + nameKey(p.name), { payload: p, ts: now });
+      const list = (await st.get('subjects')) ?? [];
+      if (!list.some((x) => nameKey(x.name) === nameKey(p.name))) list.push({ name: p.name, parts: (p.parts ?? []).map((x) => x?.name), examDate: p.examDate ?? null });
+      await st.put('subjects', list); await st.put('last', p.name);
+      if (Array.isArray(p.subjects)) await st.put('subjects', p.subjects);
+    } else if (m.kind === 'subjects') {
+      const list = Array.isArray(p) ? p : p?.subjects;
+      if (Array.isArray(list)) await st.put('subjects', list);
+    } else if (LIB_KINDS.includes(m.kind)) {
+      const title = m.title ?? p?.title ?? p?.name;
+      const item = { kind: m.kind, title, payload: p, ts: now };
+      const key = p?.id ? 'id:' + String(p.id).slice(0, 100) : 'n:' + nameKey(title);
+      if (key === 'n:') return;
+      await st.put('item:' + key, item);
+      if (title) await st.put('name:' + nameKey(title), key);
+    }
+  }
+  async index() {
+    const st = this.ctx.storage;
+    const subjects = (await st.get('subjects')) ?? [];
+    const data = [...(await st.list({ prefix: 'subj:' })).values()].map((x) => x.payload);
+    const names = await st.list({ prefix: 'name:' });
+    const items = [];
+    for (const [k, v] of names) items.push({ name: k.slice(5), key: v });
+    return { subjects, data, last: (await st.get('last')) ?? null, items };
+  }
+  async get(id, name) {
+    const st = this.ctx.storage;
+    let key = id ? 'id:' + id : null;
+    let item = key ? await st.get('item:' + key) : null;
+    if (!item && name) { key = await st.get('name:' + nameKey(name)); item = key ? await st.get('item:' + key) : null; }
+    return { item: item ?? null };
+  }
+}
+
+function library(env, key) {
+  if (!LIBRARY_RE.test(String(key ?? ''))) throw Object.assign(new Error('Missing or invalid library key.'), { code: -32602 });
+  return env.LIBRARY.get(env.LIBRARY.idFromName(key));
+}
+
 function box(env, session) {
   if (!SESSION_RE.test(String(session ?? ''))) throw Object.assign(new Error('Missing or invalid session id. Use the id from the window message "(session: <id>)", or open the window with study_open.'), { code: -32602 });
   return env.MAILBOX.get(env.MAILBOX.idFromName(session));
@@ -190,6 +254,7 @@ async function callTool(env, name, a) {
       const out = { view, version: VERSION };
       if (a.session && SESSION_RE.test(a.session)) out.session = a.session;
       if (a.data && typeof a.data === 'object') out.data = a.data;
+      if (LIBRARY_RE.test(String(a.library ?? ''))) out.library = a.library;
       out.message = 'The Studying window is open. It will tell you its session id in its first message or in the model context.';
       return out;
     }
@@ -197,7 +262,13 @@ async function callTool(env, name, a) {
       if (!KINDS.includes(a.kind)) throw Object.assign(new Error(`kind must be one of ${KINDS.join(', ')}`), { code: -32602 });
       const size = new TextEncoder().encode(JSON.stringify(a.payload ?? null)).length;
       if (size > MAX_PAYLOAD) throw Object.assign(new Error(`Payload is ${size} bytes; the limit is ${MAX_PAYLOAD}. Split it (e.g. one deck per chapter).`), { code: -32602 });
-      const seq = await box(env, a.session).push({ kind: a.kind, title: clip(a.title, 200), payload: a.payload ?? null, size });
+      const mb = box(env, a.session);
+      const seq = await mb.push({ kind: a.kind, title: clip(a.title, 200), payload: a.payload ?? null, size });
+      // keep a copy in the user's library, so the window can open it again without Claude
+      if (env.LIBRARY && ['subject', 'subjects', ...LIB_KINDS].includes(a.kind)) {
+        const key = await mb.library();
+        if (key && LIBRARY_RE.test(key)) await library(env, key).save({ kind: a.kind, title: clip(a.title, 200), payload: a.payload ?? null });
+      }
       return { delivered: true, seq, note: 'The window shows it within a few seconds if it is open. If the user closed it, call study_open with data.' };
     }
     case 'study_progress': {
@@ -214,7 +285,12 @@ async function callTool(env, name, a) {
       return { topic: a.topic, guide: g };
     }
     case 'study_pull':
-      return await box(env, a.session).pull(Number(a.after) || 0);
+      return await box(env, a.session).pull(Number(a.after) || 0, LIBRARY_RE.test(String(a.library ?? '')) ? a.library : null);
+    case 'study_library': {
+      if (!env.LIBRARY) return { subjects: [], data: [], items: [], item: null };
+      const lb = library(env, a.library);
+      return a.op === 'get' ? await lb.get(clip(a.id, 100), clip(a.name, 200)) : await lb.index();
+    }
     default:
       throw Object.assign(new Error(`Unknown tool: ${name}`), { code: -32602 });
   }
@@ -244,7 +320,8 @@ async function handle(env, origin, msg) {
       // the window reads structuredContent; keep the text copy short for pulls
       const text = params.name === 'study_guide'
           ? `${res.guide}\n\n---\nIf Studying/_rules/guides/${res.topic}.md exists in the user's storage, read it now: it is their own version of this guide and wins where it differs (guide: customize).`
-        : params.name === 'study_pull' ? `${res.messages.length} message(s), seq ${res.seq}` : JSON.stringify(res);
+        : params.name === 'study_pull' ? `${res.messages.length} message(s), seq ${res.seq}`
+        : params.name === 'study_library' ? 'library' : JSON.stringify(res);
       return ok({ content: [{ type: 'text', text }], structuredContent: res });
     }
     case 'resources/list':

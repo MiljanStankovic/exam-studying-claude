@@ -176,6 +176,18 @@
   .next p { font: 400 19px/1.4 var(--serif); }
 
   /* exam part cards on the subject page */
+  .apps { display: grid; gap: 20px; }
+  .appgroup { display: grid; gap: 12px; }
+  .appgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
+  .app-tile { display: grid; justify-items: start; align-content: start; gap: 8px; min-height: 128px; padding: 16px; border-radius: 16px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font: inherit; color: inherit; text-align: left; transition: transform .12s, border-color .12s; }
+  .app-tile:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .app-tile b { font-weight: 600; line-height: 1.25; }
+  .app-tile .meta { font-size: 12px; }
+  .app-ic { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--accent-soft); color: var(--accent); }
+  .app-ic svg { width: 20px; height: 20px; }
+  .k-test .app-ic { background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+  .k-deck .app-ic { background: color-mix(in srgb, var(--ok) 16%, transparent); color: var(--ok); }
+  @media (prefers-reduced-motion: reduce) { .app-tile { transition: none; } .app-tile:hover { transform: none; } }
   .mats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
   .mat { display: grid; gap: 6px; text-align: left; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font: inherit; color: inherit; }
   .mat:hover { border-color: var(--accent); }
@@ -418,8 +430,16 @@ const lib = {
     if (id) store.set('lib:' + lib.key({ id }), v);
     if (name) store.set('lib:' + lib.key({ name }), v);
   },
-  has(x) { return !!lib.get(x); },
+  // what the server library holds (ids and names), filled from study_library index
+  remote: new Set(),
+  has(x) { return !!lib.get(x) || (x?.id && lib.remote.has('id:' + x.id)) || lib.remote.has('n:' + String(x?.name ?? '').toLowerCase().trim()); },
+  async fetch(x) {
+    if (!S.library) return null;
+    try { const r = await callTool('study_library', { library: S.library, op: 'get', id: x?.id || undefined, name: x?.name || undefined }); if (r?.item) { lib.put({ kind: r.item.kind, title: r.item.title, payload: r.item.payload }); return r.item; } } catch {}
+    return null;
+  },
 };
+const libKey = () => { let k = store.get('library', ''); if (!/^[A-Za-z0-9_-]{24,64}$/.test(k)) { k = Array.from(crypto.getRandomValues(new Uint8Array(18)), (b) => b.toString(36).padStart(2, '0')).join('').slice(0, 32); store.set('library', k); } return k; };
 
 // ---------- state ----------
 // Places: subjects (home), subject (hub), part (one exam part), setup.
@@ -434,7 +454,7 @@ const S = {
   deck: null, idx: 0, flipped: false, srs: {}, order: [],
   test: null, answers: {}, touched: new Set(), q: 0, started: 0, submitted: false,
   results: null, mindmap: null, doc: null, mmView: 'map', mmShut: new Set(),
-  ready: [], wantOpen: 0, bulk: 0, bulkN: 0, progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null,
+  ready: [], wantOpen: 0, bulk: 0, bulkN: 0, library: '', progress: null, progressTs: 0, stepTimes: [], pollUntil: 0, lastSeq: 0, report: null,
 };
 const STATUS = ['not started', 'studying', 'ready', 'done'];
 const cur = () => S.data[S.subject] ?? null;
@@ -470,7 +490,7 @@ async function pull() {
   try {
     for (let round = 0; round < 5; round++) {
       let d;
-      try { d = await callTool('study_pull', { session: S.session, after: S.lastSeq }); } catch { return; }
+      try { d = await callTool('study_pull', { session: S.session, after: S.lastSeq, library: S.library || undefined }); } catch { return; }
       if (typeof d?.seq === 'number' && d.seq < S.lastSeq) { S.lastSeq = 0; continue; } // mailbox was reset
       if (d?.progress) onProgress(d.progress);
       for (const m of d?.messages ?? []) {
@@ -532,6 +552,26 @@ function receive(m) {
     case 'notice': toast(p?.text ?? String(p ?? '')); break;
     case 'settings': LOOK = { ...(p?.ui ?? p ?? {}) }; store.set('ui', LOOK); applyUi(); render(); break;
   }
+}
+
+// opens made material from the server library; asks Claude only when the library does not have it
+async function openFile(d) {
+  toast('Opening');
+  const it = await lib.fetch({ id: d.id, name: d.n });
+  if (it) return show({ kind: it.kind, title: it.title, payload: it.payload });
+  ask(`open "${d.n}"${d.id ? ` (id ${d.id})` : ''}${where()} and push it with "id" set to its file id: decks, tests and mind maps as their kind, results as results, anything else as a document with a readable version of its content.`);
+}
+// shows the last known subjects at once, from the server library
+async function loadLibrary() {
+  if (!S.library) return;
+  let r; try { r = await callTool('study_library', { library: S.library, op: 'index' }); } catch { return; }
+  for (const x of r?.items ?? []) lib.remote.add(x.key);
+  for (const ix of r?.data ?? []) if (ix?.name) S.data[ix.name] = normIndex(ix);
+  if (r?.subjects?.length) setSubjects(r.subjects);
+  else if (r?.data?.length && !S.subjects) setSubjects(r.data.map((x) => ({ name: x.name, parts: (x.parts ?? []).map((p) => p.name), examDate: x.examDate })));
+  if (!S.subject && r?.last) { S.subject = r.last; store.set('subject', r.last); }
+  if (S.subject && S.data[S.subject] && (S.view === 'subjects' || S.view === 'subject')) S.view = 'subject';
+  render();
 }
 
 // opens a delivered result; used directly when the user asked for it, or from the Ready list
@@ -879,6 +919,22 @@ function itemRow(x) {
     <span class="name"><b>${esc(x.name)}</b><small>${esc([x.part, KIND_LABEL[x.kind] ?? x.kind].filter(Boolean).join(' · '))}</small></span>
     <span class="side">${num(x.due) ? `<span class="tag" style="color:var(--accent)">${num(x.due)} due</span>` : ''}${x.score != null && x.total ? `<span class="pts">${num(x.score)} / ${num(x.total)}</span>` : x.count ? `<span class="meta">${num(x.count)}</span>` : ''}</span></button>`;
 }
+// the subject's home screen: everything Claude made, as apps you tap to open
+function appsPanel(ix) {
+  const groups = groupsOf(ix).filter((g) => g.generated.length);
+  if (!groups.length) return '';
+  const order = { test: 0, deck: 1, mindmap: 2, document: 3 };
+  return `<section class="apps">${groups.map((g) => `<div class="appgroup"><div class="row between"><h2>${esc(g.title)}</h2>
+      ${g.key !== '_shared' ? `<button class="btn sm quiet" data-act="open-part" data-p="${esc(g.key)}">Part dashboard</button>` : ''}</div>
+    <div class="appgrid">${[...g.generated].sort((a, b) => (order[a.kind] ?? 9) - (order[b.kind] ?? 9)).map((x) => appTile(x, g.key)).join('')}</div></div>`).join('')}</section>`;
+}
+function appTile(x) {
+  const c = lib.get(x), n = c?.payload?.questions?.length ?? c?.payload?.cards?.length ?? x.count;
+  const label = String(x.name).replace(/^.*?\s-\s/, '');
+  return `<button class="app-tile k-${esc(x.kind)}" data-act="open-file" data-id="${esc(x.id)}" data-n="${esc(x.name)}" title="${esc(x.name)}">
+    <span class="app-ic">${icon(KIND_ICON[x.kind] ?? 'note')}</span><b>${esc(label)}</b>
+    <span class="meta">${n ? `${num(n)} ${x.kind === 'test' ? 'questions' : 'cards'}` : esc(KIND_LABEL[x.kind] ?? x.kind)}</span></button>`;
+}
 function matsPanel(p) {
   if (!p.generated.length) return '';
   const miss = p.generated.filter((x) => !lib.has(x)).length;
@@ -904,6 +960,7 @@ function viewSubject() {
   return `${resumeBanner()}
     <div class="head"><h1>${esc(ix.name)}</h1>
       <p class="meta">${dates.length ? dates.map((p) => `${esc(p.name)} ${esc(fmtDate(p.date))}`).join(' · ') : 'No exam dates set'} · ${plural(ix.parts.length, 'part', 'parts')}</p></div>
+    ${appsPanel(ix)}
     <div class="cols wide">${pointsTrack(ix)}
       <section class="panel next"><div class="stack" style="gap:8px"><span class="meta">Next step</span><p>${esc(nx.text)}</p></div>
         <div><button class="btn primary" data-act="${nx.act}">${esc(nx.label)}</button></div></section></div>
@@ -1339,7 +1396,8 @@ document.addEventListener('click', (e) => {
     case 'open-connectors': return link('https://claude.ai/customize/connectors');
     case 'check-storage': toast('Asked Claude to check ' + S.setup.storage);
       return ask(`setup. storage=${S.setup.storage}. Read the setup guide, check that this storage connector works, create the Studying workspace if it is missing, then push setup_status and subjects.`);
-    case 'load-subjects': return ask('list my subjects from the Studying workspace and push them (kind subjects), then push the subject.json of the one I used last as kind subject. If there is no workspace, push setup_status with ok false.');
+    case 'load-subjects': if (S.subjects?.length) { S.view = 'subjects'; return render(); }
+      return ask('list my subjects from the Studying workspace and push them (kind subjects), then push the subject.json of the one I used last as kind subject. If there is no workspace, push setup_status with ok false.');
     case 'new-subject': return openModal('newsubject');
     case 'pick-subject': S.selected.clear(); S.menu = false; if (S.data[d.s]) { S.subject = d.s; store.set('subject', d.s); S.modal = null; return go('subject'); } return loadSubject(d.s);
     case 'refresh': return loadSubject(S.subject, 'refresh');
@@ -1348,6 +1406,7 @@ document.addEventListener('click', (e) => {
     case 'inbox': return openModal('inbox');
     case 'ready': return openModal('ready');
     case 'load-all': { const p = partOf(d.p); const miss = (p?.generated ?? []).filter((x) => !lib.has(x));
+      if (!miss.length && S.library) return toast('Everything is in your library: tap any tile to open it');
       if (!miss.length) return toast('Everything is already in the app');
       S.bulk = Date.now(); S.bulkN = 0; toast(`Loading ${miss.length} files in the background`);
       return ask(`load all generated material of part "${d.p}"${where()} into the app: read each of these files once and push it as its kind with "id" set to its file id. Do nothing else: no review, no summaries, no subject push, one short line at the end. Files: ${JSON.stringify(miss.map((x) => ({ id: x.id, name: x.name, kind: x.kind })))}`); }
@@ -1380,7 +1439,8 @@ document.addEventListener('click', (e) => {
     case 'make-test': S.makePart = d.p ?? ''; S.makePreset = 'test'; return openModal('make');
     case 'clear-sel': S.selected.clear(); return render();
     case 'select': if (el.checked) S.selected.set(d.id, d.n); else S.selected.delete(d.id); return render();
-    case 'open-file': { const c = lib.get({ id: d.id, name: d.n }); if (c) return show({ kind: c.kind, title: c.title, payload: c.payload }); }
+    case 'open-file': { const c = lib.get({ id: d.id, name: d.n }); if (c) return show({ kind: c.kind, title: c.title, payload: c.payload });
+      if (lib.has({ id: d.id, name: d.n }) || S.library) { openFile(d); return; } }
       return ask(`open "${d.n}"${d.id ? ` (id ${d.id})` : ''}${where()} and push it: decks, tests and mind maps as their kind, results as results, anything else as a document with a readable version of its content.`);
     case 'list': S.path = d.p; S.files = null; openModal('files'); return ask(`list files in "${d.p}" and push them (kind files).`);
     case 'next-step': return ask(`what should I study next${where()}? Use the part dates, topics, results and what is due, then push it as a document (kind plan).`);
@@ -1541,6 +1601,7 @@ function hostContext(ctx) {
 app.onhostcontextchanged = (ctx) => { hostContext({ ...app.getHostContext(), ...ctx }); render(); };
 app.ontoolinput = ({ arguments: a }) => {
   if (a?.session && /^[A-Za-z0-9_-]{12,64}$/.test(a.session)) S.session = a.session;
+  if (a?.library && /^[A-Za-z0-9_-]{24,64}$/.test(a.library) && a.library !== S.library) { S.library = a.library; store.set('library', a.library); loadLibrary(); }
   if (a?.view) S.view = { setup: 'setup', home: 'subjects' }[a.view] ?? (S.subject ? 'subject' : 'subjects');
   for (const m of [].concat(a?.data ?? [])) if (m?.kind) receive({ kind: m.kind, title: m.title, payload: m.payload });
   render();
@@ -1555,6 +1616,8 @@ connected = true;
 hostContext(app.getHostContext());
 render();
 if (S.modes.includes('fullscreen') && S.display !== 'fullscreen') toggleFull();
+S.library = S.library || libKey();
+loadLibrary();
 startPolling();
 </script>
 </body>

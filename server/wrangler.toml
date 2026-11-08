@@ -14,6 +14,15 @@ fallthrough = true
 name = "MAILBOX"
 class_name = "Mailbox"
 
+# one library per user (key kept in the user's own settings.json): copies of pushed material
+[[durable_objects.bindings]]
+name = "LIBRARY"
+class_name = "Library"
+
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Mailbox"]
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Library"]
