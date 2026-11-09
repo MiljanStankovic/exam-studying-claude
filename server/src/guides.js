@@ -11,6 +11,13 @@ they chose), which you reach with that storage's connector tools in this convers
 server shows the window, carries messages, and keeps a copy of what you push in the user's
 library (keyed by "library" in settings.json), so the window can show and open it without you.
 
+Progress (card schedule, answered questions, mastery per topic) is kept by the window in the
+library; it does not need you. The window also tells the user which model a request needs
+(light jobs: Haiku; reading, grading and writing: Sonnet; big material jobs: Sonnet or Opus)
+before they send it. Keep light jobs short: do the step, push, one line in chat.
+A user can turn the library off (settings.json "library":"off"): then pass "off" to
+study_open and the window works only from what you push.
+
 What costs the user tokens is you. The window does everything it can alone: showing subjects,
 opening made material, flashcards, objective questions, topic quizzes, the plan checklist. You
 are needed to read sources, make material, sort files, grade open answers and change files.
@@ -209,7 +216,9 @@ concepts, solve a task, or spot an error.`,
   grading: `# Grading
 
 Objective types (single, multiple, truefalse, fill, matching, ordering) are graded in the
-window and arrive already scored; check that the scoring matched the key and correct it if not.
+window. A test with only objective questions never reaches you: the window shows the result and
+keeps the score in the user's progress. You get a test only when it has open, practical or code
+answers; grade those, and check the objective scores it sends along.
 
 Open, practical and code answers are graded by you:
 1. Grade against the question's rubric and model answer, in the course's terms. Give points per

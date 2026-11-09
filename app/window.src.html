@@ -202,6 +202,11 @@
   details.sources > summary::before { content: '▸'; color: var(--t3); }
   details.sources[open] > summary::before { content: '▾'; }
   .linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--accent); cursor: pointer; text-decoration: underline; }
+  .hint { display: inline-flex; align-items: center; gap: 8px; max-width: 520px; padding: 6px 12px; border-radius: 999px; font-size: 12px; line-height: 1.3; background: var(--accent-soft); color: var(--t1); }
+  .hint svg { width: 14px; height: 14px; flex: none; color: var(--accent); }
+  .hint.light { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+  .hint.deep { background: color-mix(in srgb, var(--bad) 12%, transparent); }
+  @media (max-width: 759px) { .hint { display: none; } }
   .mats { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
   .mat { display: grid; gap: 6px; text-align: left; padding: 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--card); cursor: pointer; font: inherit; color: inherit; }
   .mat:hover { border-color: var(--accent); }
@@ -499,7 +504,92 @@ const lib = {
     return null;
   },
 };
-const libKey = () => { let k = store.get('library', ''); if (!/^[A-Za-z0-9_-]{24,64}$/.test(k)) { k = Array.from(crypto.getRandomValues(new Uint8Array(18)), (b) => b.toString(36).padStart(2, '0')).join('').slice(0, 32); store.set('library', k); } return k; };
+const libKey = () => { let k = store.get('library', ''); if (k === 'off') return ''; if (!/^[A-Za-z0-9_-]{24,64}$/.test(k)) { k = Array.from(crypto.getRandomValues(new Uint8Array(18)), (b) => b.toString(36).padStart(2, '0')).join('').slice(0, 32); store.set('library', k); } return k; };
+// ---------- progress: card schedule and answered questions, kept in the library ----------
+// The window keeps score by itself, so knowing how far the user got costs no tokens.
+const prog = {
+  data: { srs: {}, qa: {} }, dirty: { srs: {}, qa: {} }, subject: null, timer: 0,
+  load(subject) {
+    if (!subject || prog.subject === subject) return;
+    prog.subject = subject;
+    prog.data = store.get('prog:' + subject, { srs: {}, qa: {} });
+    if (!S.library) return;
+    callTool('study_pull', { session: S.session, library: S.library, lib_op: 'progress', name: subject }).then((r) => {
+      const remote = r?.progress; if (!remote || prog.subject !== subject) return;
+      // keep the newer entry of each card and question
+      for (const k of ['srs', 'qa']) for (const [id, v] of Object.entries(remote[k] ?? {})) {
+        const mine = prog.data[k][id];
+        if (!mine || (v.at ?? 0) > (mine.at ?? 0)) prog.data[k][id] = v; else if ((mine.at ?? 0) > (v.at ?? 0)) prog.dirty[k][id] = mine;
+      }
+      store.set('prog:' + subject, prog.data); prog.save(); render();
+    }).catch(() => {});
+  },
+  set(kind, id, v) {
+    v = { ...v, at: Date.now() };
+    prog.data[kind][id] = v; prog.dirty[kind][id] = v;
+    store.set('prog:' + prog.subject, prog.data); prog.save();
+  },
+  save() {
+    clearTimeout(prog.timer);
+    prog.timer = setTimeout(async () => {
+      if (!S.library || !prog.subject) return;
+      const put = prog.dirty; if (!Object.keys(put.srs).length && !Object.keys(put.qa).length) return;
+      prog.dirty = { srs: {}, qa: {} };
+      try { await callTool('study_pull', { session: S.session, library: S.library, lib_op: 'progress', name: prog.subject, progress: put }); }
+      catch { Object.assign(prog.dirty.srs, put.srs); Object.assign(prog.dirty.qa, put.qa); }
+    }, 2500);
+  },
+};
+// cards and questions of a part that are in this browser
+function partItems(p) {
+  const own = p?.generated ?? [];
+  const cards = own.filter((x) => x.kind === 'deck').flatMap((x) => lib.get(x)?.payload?.cards ?? []);
+  const qs = own.filter((x) => x.kind === 'test' && !isMock(x)).flatMap((x) => lib.get(x)?.payload?.questions ?? []);
+  return { cards, qs };
+}
+// mastery per topic from what the user did: answered questions (60%) and learned cards (40%)
+function topicLive(p) {
+  const { cards, qs } = partItems(p), out = {};
+  const today = isoToday();
+  for (const t of p?.topics ?? []) {
+    const tc = cards.filter((c) => c.topic === t.name), tq = qs.filter((q) => q.topic === t.name);
+    const seen = tc.map((c) => prog.data.srs[c.id]).filter(Boolean);
+    const done = tq.map((q) => prog.data.qa[q.id]).filter(Boolean);
+    if (!seen.length && !done.length) { out[t.name] = null; continue; }
+    const qScore = done.length ? done.reduce((a, x) => a + x.s, 0) / Math.max(1, done.reduce((a, x) => a + x.m, 0)) : 0;
+    const qPart = tq.length ? qScore * (done.length / tq.length) : 0;
+    const cPart = tc.length ? seen.reduce((a, x) => a + Math.min(1, (x.reps ?? 0) / 3), 0) / tc.length : 0;
+    const w = tq.length && tc.length ? [0.6, 0.4] : tq.length ? [1, 0] : [0, 1];
+    const mastery = Math.round(100 * (w[0] * qPart + w[1] * cPart));
+    const status = done.length >= 3 && qScore < 0.5 ? 'weak' : mastery >= 70 ? 'good' : 'learning';
+    const last = [...done.map((x) => x.at), ...seen.map((x) => x.at)].filter(Boolean).sort().pop();
+    out[t.name] = { mastery, status, lastTested: last ? new Date(last).toISOString().slice(0, 10) : null,
+      due: seen.filter((x) => x.due && x.due <= today).length };
+  }
+  return out;
+}
+// the part with live mastery merged in; the index stays the fallback
+function withLive(p) {
+  if (!p) return p;
+  const live = topicLive(p);
+  const topics = p.topics.map((t) => (live[t.name] ? { ...t, ...live[t.name] } : t));
+  const any = topics.some((t) => live[t.name]);
+  const readiness = topics.length ? Math.round(topics.reduce((a, t) => a + num(t.mastery), 0) / topics.length) : p.readiness;
+  const { cards } = partItems(p), today = isoToday();
+  const due = cards.filter((c) => { const s = prog.data.srs[c.id]; return s && s.due && s.due <= today; }).length;
+  return { ...p, topics, readiness: any ? readiness : p.readiness, dueLive: due, newCards: cards.filter((c) => !prog.data.srs[c.id]).length };
+}
+
+// ---------- which model a job needs (the user switches it in Claude's model menu) ----------
+const MODEL_HINTS = [
+  [/^(open|load all|list files|apply sorting|update the part|load the subject|list my subjects|save|setup)/, 'light', 'Haiku is enough: Claude only reads and passes files on'],
+  [/^(sort the inbox|grade|ask about|what should i study|build the topic map|make a practice quiz|make a mock exam|collect)/, 'standard', 'Sonnet: reading, judging and writing'],
+  [/^make study material/, 'deep', 'Sonnet for most of it; Opus when quality matters more than usage'],
+];
+function modelHint(text) {
+  for (const [re, tier, why] of MODEL_HINTS) if (re.test(text)) return { tier, why };
+  return { tier: 'standard', why: 'Sonnet' };
+}
 
 // ---------- state ----------
 // Places: subjects (home), subject (hub), part (one exam part), setup.
@@ -540,6 +630,7 @@ function ask(text) {
   const msg = `Studying: ${text} (session: ${S.session})`;
   // a job that makes material delivers in the background; anything else the user asked to see opens
   S.wantOpen = /^(make study material|load all)/.test(text) ? 0 : Date.now();
+  if (store.get('hints', true)) { S.hint = { ...modelHint(text), until: Date.now() + 30_000 }; drawTop(); setTimeout(drawTop, 30_500); }
   keepPolling(10 * 60_000);
   const fail = () => { S.pollUntil = 0; toast('Could not send to Claude. Type your request in the chat instead.'); };
   app.sendMessage({ role: 'user', content: [{ type: 'text', text: msg }] }).then((r) => { if (r?.isError) fail(); }, fail);
@@ -846,6 +937,7 @@ function drawTop() {
       <button class="switch" data-act="menu" aria-haspopup="menu" aria-expanded="${S.menu}"><span>${esc(S.subject)}</span>${icon('chev')}</button>
       ${S.view === 'part' ? `<span class="sep" aria-hidden="true">/</span><button class="part" data-act="open-part" data-p="${esc(S.part)}">${esc(S.part)}</button>` : ''}</div>` : ''}
     <span class="spacer"></span>
+    ${S.hint && Date.now() < S.hint.until ? `<span class="hint ${esc(S.hint.tier)}" title="Claude's model menu, next to the message box. Turn these tips off in Settings.">${icon('brain')}<span><b>${S.hint.tier === 'light' ? 'Light job' : S.hint.tier === 'deep' ? 'Big job' : 'Standard job'}:</b> ${esc(S.hint.why)}. Switch the model before you send.</span></span>` : ''}
     ${S.ready.length ? `<button class="btn quiet" data-act="ready" title="New material from Claude, not opened yet">${icon('cards')}<span class="hide-sm">New</span><span class="n">${S.ready.length}</span></button>` : ''}
     ${inSubject && ix ? `<button class="btn quiet" data-act="inbox" title="Documents waiting to be sorted">${icon('inbox')}<span class="hide-sm">Inbox</span>${inbox ? `<span class="n">${inbox}</span>` : ''}</button>
       <button class="icon-btn" data-act="refresh" title="Read this subject again from your storage" aria-label="Refresh">${icon('refresh')}</button>
@@ -1003,7 +1095,7 @@ const groupsOf = (ix) => [...ix.parts.map((p) => ({ key: p.name, title: p.name, 
 function partCard(p) {
   const done = p.status === 'done' && p.score != null;
   const tests = p.generated.filter((x) => x.kind === 'test').length, decks = p.generated.filter((x) => x.kind !== 'test').length;
-  const due = p.generated.reduce((a, x) => a + num(x.due), 0);
+  const due = p.dueLive ?? p.generated.reduce((a, x) => a + num(x.due), 0);
   return `<button class="partcard" data-act="open-part" data-p="${esc(p.name)}">
     <div class="stack" style="gap:4px"><span class="status">${dot(p.status)}${esc(p.status)}</span><span class="name">${esc(p.name)}</span>
       <span class="meta">${done ? 'finished' : p.date ? `${esc(fmtDate(p.date))} · ${when(p.date)}` : 'date not set'}</span></div>
@@ -1090,7 +1182,7 @@ function topicData(p, name) {
   return { cards, qs, section: pick(own.find(isSummary)), theory: pick(own.find(isTheory)) };
 }
 function mTopic() {
-  const p = partOf(S.part), t = p?.topics.find((x) => x.name === S.topicSheet); if (!t) return '<p class="muted">Topic not found</p>';
+  const p = withLive(partOf(S.part)), t = p?.topics.find((x) => x.name === S.topicSheet); if (!t) return '<p class="muted">Topic not found</p>';
   const { cards, qs, section, theory } = topicData(p, t.name);
   return `<div class="row">${dot(t.status)}<span class="meta">${esc(t.status)} · mastery ${num(t.mastery)}%${t.source ? ` · ${esc(t.source)}` : ''}</span></div>
     <div class="row"><button class="btn primary" data-act="deck-topic" data-t="${esc(t.name)}" ${cards.length ? '' : 'disabled'}>${icon('cards')}Cards (${cards.length})</button>
@@ -1101,7 +1193,7 @@ function mTopic() {
 }
 // ---------- the subject: an overview; the material lives in its parts ----------
 function viewSubject() {
-  const ix = cur();
+  const ix = cur(); prog.load(S.subject);
   const upcoming = ix.parts.filter((p) => p.status !== 'done' && p.date && daysTo(p.date) >= 0).sort((a, b) => String(a.date).localeCompare(String(b.date)));
   const next = upcoming[0], today = next && planToday(planOf(next));
   if (next) setTimeout(() => prefetchPart(next), 0);
@@ -1115,7 +1207,7 @@ function viewSubject() {
       : `<section class="panel next"><div class="stack" style="gap:8px"><span class="meta">Next step</span><p>${esc(nx.text)}</p></div>
         <div><button class="btn primary" data-act="${nx.act}">${esc(nx.label)}</button></div></section>`}</div>
     <section class="stack"><h2>Exam parts</h2>
-      <div class="parts">${ix.parts.map(partCard).join('')}</div></section>
+      <div class="parts">${ix.parts.map((x) => partCard(withLive(x))).join('')}</div></section>
     <div class="cols">
       <section class="panel"><div class="row between"><h2>For the whole subject</h2><button class="btn sm quiet" data-act="all-files">${icon('folder')}All files</button></div>
         ${ix.shared.materials.length ? `<div class="list">${ix.shared.materials.slice(0, 6).map((f) => fileRow(f, false)).join('')}</div>${ix.shared.materials.length > 6 ? `<p class="meta">and ${ix.shared.materials.length - 6} more</p>` : ''}` : '<p class="muted">Sources for every part (the main script, past papers) show here</p>'}
@@ -1129,7 +1221,8 @@ function viewSubject() {
 }
 // ---------- one exam part: everything made for it, as apps ----------
 function viewPart() {
-  const ix = cur(), p = partOf(S.part);
+  const ix = cur(); prog.load(S.subject);
+  const p = withLive(partOf(S.part));
   if (!p) return viewSubject();
   setTimeout(() => prefetchPart(p), 0);
   const done = p.status === 'done' && p.score != null;
@@ -1137,7 +1230,7 @@ function viewPart() {
   const counts = { good: 0, learning: 0, weak: 0, 'not started': 0 };
   for (const t of p.topics) counts[t.status in counts ? t.status : 'not started']++;
   const ready = p.topics.length ? Math.round(p.topics.reduce((a, t) => a + num(t.mastery), 0) / p.topics.length) : null;
-  const due = p.generated.reduce((a, x) => a + num(x.due), 0);
+  const due = p.dueLive ?? p.generated.reduce((a, x) => a + num(x.due), 0);
   const today = planToday(planOf(p)), miss = p.generated.filter((x) => !lib.has(x)).length, loading = p.generated.some((x) => !lib.get(x) && lib.has(x));
   const cont = S.test && !S.submitted ? `<span>Test in progress: ${esc(S.test.title)}</span><button class="btn sm primary" data-act="resume-test">Resume</button>`
     : today ? `<span><b>${esc(today.label)}:</b> ${esc(today.text)}</span><label class="row" style="gap:6px;flex:none"><input type="checkbox" data-act="plan-tick" data-k="${esc(today.key)}">Done</label>`
@@ -1437,6 +1530,16 @@ function submitTest() {
   S.results = { pending: true, test: t.title, autoScore: auto.reduce((s, i) => s + i.auto, 0), autoMax: auto.reduce((s, i) => s + i.max, 0), manualCount: manual.length,
     items: t.questions.map((q, n) => ({ id: q.id, n: n + 1, topic: q.topic, prompt: String(q.prompt ?? '').replace(/\[\[\w+\]\]/g, '___'), points: items[n].auto, max: items[n].max, pending: items[n].auto === null })) };
   const mins = Math.round((Date.now() - S.started) / 60000);
+  for (const i of auto) prog.set('qa', i.id, { s: i.auto, m: i.max, t: i.topic });
+  if (!manual.length) {
+    // every answer was scored here: no need for Claude
+    const by = {};
+    for (const i of auto) { const b = (by[i.topic || 'Other'] ??= { name: i.topic || 'Other', score: 0, total: 0 }); b.score += i.auto; b.total += i.max; }
+    const topics = Object.values(by).map((b) => ({ ...b, score: Math.round(b.score * 100) / 100 }));
+    Object.assign(S.results, { pending: false, score: S.results.autoScore, total: S.results.autoMax, topics,
+      weakTopics: topics.filter((b) => b.total && b.score / b.total < 0.6).map((b) => b.name) });
+    openModal('result'); return;
+  }
   ask(`grade my test "${t.title}"${S.subject ? ` in "${S.subject}"` : ''}${t.part ? `, part "${t.part}"` : ''} (${mins} min). Objective questions are auto-scored in the window: ${S.results.autoScore}/${S.results.autoMax}. ` +
     `Grade the ${manual.length} open/practical/code answers with the grading guide, check the auto-scores, score per topic, save the result, update topics and memory, push results and then the refreshed subject. ` +
     `Answers JSON: ${JSON.stringify(items)}`);
@@ -1579,6 +1682,10 @@ function mSettings() {
       <p class="sub">Your rules live in Studying/_rules in your storage. Say what Claude should always do, and it writes the rule there. It applies only to you</p>
       <label class="field">From now on<textarea id="s-rule" placeholder="Flashcards always quote the definition from the script word for word, then explain it in one sentence"></textarea></label>
     </section>
+    <section class="panel"><h2>In this browser</h2>
+      <label class="row" style="gap:8px"><input type="checkbox" data-act="toggle-hints" ${store.get('hints', true) ? 'checked' : ''}>Tell me which Claude model a request needs before I send it</label>
+      <label class="row" style="gap:8px"><input type="checkbox" data-act="toggle-library" ${store.get('library', '') === 'off' ? '' : 'checked'}>Keep a copy of my material and progress in my library, so it opens without Claude</label>
+    </section>
     <div class="row"><button class="btn primary" type="submit">Save</button><button class="btn quiet" type="button" data-act="reset-ui">Reset look</button>
       <span class="spacer"></span><button class="btn quiet" type="button" data-act="go-setup">Run setup again</button></div>
   </form>`;
@@ -1629,6 +1736,8 @@ document.addEventListener('click', (e) => {
     case 'inbox': return openModal('inbox');
     case 'ready': return openModal('ready');
     case 'topic-open': S.topicSheet = d.t; return openModal('topic');
+    case 'toggle-hints': store.set('hints', !!el.checked); return;
+    case 'toggle-library': if (el.checked) { store.set('library', ''); S.library = libKey(); loadLibrary(); } else { store.set('library', 'off'); S.library = ''; } return;
     case 'plan-tick': store.set(d.k, !!el.checked); return render();
     case 'load-all': { const p = partOf(d.p); const miss = (p?.generated ?? []).filter((x) => !lib.has(x));
       if (!miss.length && S.library) return toast('Everything is in your library: tap any tile to open it');
@@ -1669,17 +1778,26 @@ document.addEventListener('click', (e) => {
       return ask(`open "${d.n}"${d.id ? ` (id ${d.id})` : ''}${where()} and push it: decks, tests and mind maps as their kind, results as results, anything else as a document with a readable version of its content.`);
     case 'list': S.path = d.p; S.files = null; openModal('files'); return ask(`list files in "${d.p}" and push them (kind files).`);
     case 'next-step': return ask(`what should I study next${where()}? Use the part dates, topics, results and what is due, then push it as a document (kind plan).`);
-    case 'due-cards': return ask(`collect the flashcards that are due today${where()}${d.p ? `, part "${d.p}"` : ''} (from *.progress.json) into one deck and push it.`);
+    case 'due-cards': { const p = partOf(d.p || S.part), today = isoToday();
+      const { cards } = partItems(p);
+      if (cards.length) {
+        const due = cards.filter((c) => { const x = prog.data.srs[c.id]; return x?.due && x.due <= today; });
+        const fresh = cards.filter((c) => !prog.data.srs[c.id]).slice(0, Math.max(0, 20 - due.length));
+        if (!due.length && !fresh.length) return toast('Nothing due today');
+        return show({ kind: 'deck', payload: { title: `${p.name} – today (${due.length} due, ${fresh.length} new)`, cards: [...due, ...fresh] } });
+      } }
+      return ask(`collect the flashcards that are due today${where()}${d.p ? `, part "${d.p}"` : ''} (from *.progress.json) into one deck and push it.`);
     case 'mock-exam': return ask(`make a mock exam${where()}${d.p ? ` for the part "${d.p}"` : ''} in the real exam format from subject.md and part.md (question types, points, time), every question tagged with its topic. Review it first, then push it (kind test).`);
     case 'weak': return ask(`make a practice quiz on my weak topics${where()}: ${arr(S.results?.weakTopics?.length ? S.results.weakTopics : cur()?.memory.weakTopics).join(', ')}. Review it, then push it (kind test).`);
     case 'resume-test': return openModal('test');
     case 'flip': S.flipped = !S.flipped; return render();
-    case 'rate': { const i = S.order[S.idx], c = S.deck.cards[i]; S.srs[c.id] = sched(S.srs[c.id], d.r); store.set('srs:' + S.deck.title, S.srs);
+    case 'rate': { const i = S.order[S.idx], c = S.deck.cards[i]; S.srs[c.id] = sched(S.srs[c.id], d.r); store.set('srs:' + S.deck.title, S.srs); prog.set('srs', c.id, S.srs[c.id]);
       if (d.r === 'again') S.order.push(i); S.idx++; S.flipped = false; return render(); }
     case 'prev-card': S.idx = Math.max(0, S.idx - 1); S.flipped = false; return render();
     case 'next-card': S.idx++; S.flipped = false; return render();
     case 'restart-deck': S.order = S.deck.cards.map((_, i) => i); S.idx = 0; S.flipped = false; return render();
-    case 'save-srs': toast('Sent to Claude to save');
+    case 'save-srs': prog.save(); return toast('Saved: your progress is kept in your library');
+    case 'save-srs-claude': toast('Sent to Claude to save');
       return ask(`save my flashcard progress for deck "${S.deck?.title}"${where()} to its .progress.json, update topic mastery and memory.md, then push the subject. Progress JSON: ${JSON.stringify(S.srs)}`);
     case 'export-csv': return exportCsv();
     case 'tree-all': document.querySelectorAll('.tree details').forEach((x) => (x.open = d.open === '1')); return;
@@ -1826,6 +1944,7 @@ function hostContext(ctx) {
 app.onhostcontextchanged = (ctx) => { hostContext({ ...app.getHostContext(), ...ctx }); render(); };
 app.ontoolinput = ({ arguments: a }) => {
   if (a?.session && /^[A-Za-z0-9_-]{12,64}$/.test(a.session)) S.session = a.session;
+  if (a?.library === 'off') { S.library = ''; store.set('library', 'off'); }
   if (a?.library && /^[A-Za-z0-9_-]{24,64}$/.test(a.library) && a.library !== S.library) { S.library = a.library; store.set('library', a.library); loadLibrary(); }
   if (a?.view) S.view = { setup: 'setup', home: 'subjects' }[a.view] ?? (S.subject ? 'subject' : 'subjects');
   for (const m of [].concat(a?.data ?? [])) if (m?.kind) receive({ kind: m.kind, title: m.title, payload: m.payload });

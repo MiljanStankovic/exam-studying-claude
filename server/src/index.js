@@ -124,7 +124,7 @@ const TOOLS = [
     name: 'study_pull',
     title: 'Window mailbox',
     description: 'Used by the Studying window to pick up results. Not for the model.',
-    inputSchema: { type: 'object', properties: { session: { type: 'string' }, after: { type: 'integer' }, library: { type: 'string' }, lib_op: { type: 'string', enum: ['index', 'get'] }, id: { type: 'string' }, name: { type: 'string' } }, required: ['session'] },
+    inputSchema: { type: 'object', properties: { session: { type: 'string' }, after: { type: 'integer' }, library: { type: 'string' }, lib_op: { type: 'string', enum: ['index', 'get', 'progress'] }, id: { type: 'string' }, name: { type: 'string' }, progress: { type: 'object' } }, required: ['session'] },
     annotations: ann('Window mailbox', true),
     _meta: { ui: { visibility: ['app'] } },
   },
@@ -206,6 +206,7 @@ export class Library extends DurableObject {
       if (!list.some((x) => nameKey(x.name) === nameKey(p.name))) list.push({ name: p.name, parts: (p.parts ?? []).map((x) => x?.name), examDate: p.examDate ?? null });
       await st.put('subjects', list); await st.put('last', p.name);
       if (Array.isArray(p.subjects)) await st.put('subjects', p.subjects);
+      await this.prune();
     } else if (m.kind === 'subjects') {
       const list = Array.isArray(p) ? p : p?.subjects;
       if (Array.isArray(list)) await st.put('subjects', list);
@@ -218,6 +219,32 @@ export class Library extends DurableObject {
       if (title) await st.put('name:' + nameKey(title), key);
       await st.put('ts:' + key, now);
     }
+  }
+  // drop copies of files no subject lists any more (replaced or deleted in storage)
+  async prune() {
+    const st = this.ctx.storage, keep = new Set();
+    for (const v of (await st.list({ prefix: 'subj:' })).values()) {
+      const p = v.payload ?? {};
+      for (const g of [...(p.parts ?? []).flatMap((x) => x?.generated ?? []), ...(p.shared?.generated ?? [])]) if (g?.id) keep.add('id:' + g.id);
+    }
+    if (!keep.size) return;
+    const items = await st.list({ prefix: 'item:id:' }), drop = [];
+    for (const k of items.keys()) if (!keep.has(k.slice(5))) drop.push(k, 'ts:' + k.slice(5));
+    if (!drop.length) return;
+    for (const [k, v] of await st.list({ prefix: 'name:' })) if (drop.includes('item:' + v)) drop.push(k);
+    await st.delete(drop.slice(0, 128));
+  }
+  // what the user did in the window: card schedule and answered questions, per subject
+  async progress(subject, put) {
+    const key = 'prog:' + nameKey(subject), st = this.ctx.storage;
+    const cur = (await st.get(key)) ?? { srs: {}, qa: {} };
+    if (put && typeof put === 'object') {
+      Object.assign(cur.srs, put.srs ?? {}); Object.assign(cur.qa, put.qa ?? {});
+      const size = JSON.stringify(cur).length;
+      if (size > 1_500_000) throw Object.assign(new Error('Progress too large.'), { code: -32602 });
+      cur.ts = Date.now(); await st.put(key, cur);
+    }
+    return { progress: cur };
   }
   async index() {
     const st = this.ctx.storage;
@@ -290,6 +317,7 @@ async function callTool(env, name, a) {
     case 'study_pull':
       // library reads ride on the mailbox tool, which every client already knows
       if (a.lib_op === 'index' || a.lib_op === 'get') return await callTool(env, 'study_library', { library: a.library, op: a.lib_op, id: a.id, name: a.name });
+      if (a.lib_op === 'progress') return await library(env, a.library).progress(clip(a.name, 200), a.progress ?? null);
       return await box(env, a.session).pull(Number(a.after) || 0, LIBRARY_RE.test(String(a.library ?? '')) ? a.library : null);
     case 'study_library': {
       if (!env.LIBRARY) return { subjects: [], data: [], items: [], item: null };
