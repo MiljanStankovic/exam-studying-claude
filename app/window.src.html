@@ -59,8 +59,11 @@
 
   /* app frame */
   .app { position: relative; display: flex; flex-direction: column; min-height: 640px; height: var(--h, auto); background: var(--bg); border-radius: 12px; overflow: hidden;
-    padding-top: var(--top, 0px); padding-bottom: var(--bottom, 0px); }
+    --keep: max(var(--bottom, 0px), var(--dock, 0px));
+    padding-top: var(--top, 0px); padding-bottom: var(--keep); }
   body.full .app { height: 100vh; border-radius: 0; }
+  /* in full screen Claude's message box floats over the bottom of the app: keep that strip free */
+  body.full { --dock: var(--dock-full, 150px); }
   .top { display: flex; align-items: center; gap: 8px; height: 56px; padding: 0 24px; flex: none; border-bottom: 1px solid var(--line); background: var(--card); position: relative; z-index: 3; }
   .mark { width: 16px; height: 20px; border: 1.5px solid var(--t2); border-radius: 3px; position: relative; flex: none; }
   .mark::before { content: ""; position: absolute; left: 3px; top: -1.5px; bottom: -1.5px; width: 1.5px; background: var(--margin); }
@@ -269,7 +272,7 @@
   /* the open/close motion plays once; redraws inside an open window (flipping a card, folding the map) stay still */
   .overlay.still, .overlay.still .modal { animation: none; }
   /* windows: drag by the title bar, resize from the corner, snap to edges like a desktop */
-  #layer { position: absolute; inset: 56px 0 0 0; z-index: 10; pointer-events: none; }
+  #layer { position: absolute; top: calc(56px + var(--top, 0px)); left: 0; right: 0; bottom: var(--keep, 0px); z-index: 10; pointer-events: none; }
   #layer .win { position: absolute; pointer-events: auto; max-height: none; width: auto; resize: both; min-width: 320px; min-height: 220px; animation: rise .25s var(--ease) both; }
   #layer .win.still { animation: none; }
   #layer .win.snapped { resize: none; border-radius: 0; }
@@ -405,7 +408,7 @@
   .tree details[open] > summary::before { content: "−"; }
   .tree .leaf { padding: 4px 0 4px 16px; font: 15px/1.45 var(--serif); color: var(--t2); }
 
-  .toast { position: fixed; left: 50%; bottom: calc(16px + var(--bottom, 0px)); transform: translateX(-50%); background: var(--t1); color: var(--card); padding: 8px 14px; border-radius: 8px; font-size: 13px; z-index: 20; max-width: calc(100% - 32px); }
+  .toast { position: fixed; left: 50%; bottom: calc(16px + max(var(--bottom, 0px), var(--dock, 0px))); transform: translateX(-50%); background: var(--t1); color: var(--card); padding: 8px 14px; border-radius: 8px; font-size: 13px; z-index: 20; max-width: calc(100% - 32px); }
   .skeleton { display: grid; gap: 12px; }
   .skeleton i { display: block; height: 16px; border-radius: 4px; background: var(--raised); }
 
@@ -937,7 +940,7 @@ function drawTop() {
       <button class="switch" data-act="menu" aria-haspopup="menu" aria-expanded="${S.menu}"><span>${esc(S.subject)}</span>${icon('chev')}</button>
       ${S.view === 'part' ? `<span class="sep" aria-hidden="true">/</span><button class="part" data-act="open-part" data-p="${esc(S.part)}">${esc(S.part)}</button>` : ''}</div>` : ''}
     <span class="spacer"></span>
-    ${S.hint && Date.now() < S.hint.until ? `<span class="hint ${esc(S.hint.tier)}" title="Claude's model menu, next to the message box. Turn these tips off in Settings.">${icon('brain')}<span><b>${S.hint.tier === 'light' ? 'Light job' : S.hint.tier === 'deep' ? 'Big job' : 'Standard job'}:</b> ${esc(S.hint.why)}. Switch the model before you send.</span></span>` : ''}
+    ${S.hint && Date.now() < S.hint.until ? `<span class="hint ${esc(S.hint.tier)}" title="Claude's model menu, next to the message box. Turn these tips off in Settings.">${icon('brain')}<span><b>${S.hint.tier === 'light' ? 'Light job' : S.hint.tier === 'deep' ? 'Big job' : 'Standard job'}:</b> ${esc(S.hint.why)}. Switch the model before you send.</span>${S.display === 'fullscreen' ? '<button class="btn sm" data-act="full" title="The model menu is next to Claude\'s message box, outside full screen">Show model menu</button>' : ''}</span>` : ''}
     ${S.ready.length ? `<button class="btn quiet" data-act="ready" title="New material from Claude, not opened yet">${icon('cards')}<span class="hide-sm">New</span><span class="n">${S.ready.length}</span></button>` : ''}
     ${inSubject && ix ? `<button class="btn quiet" data-act="inbox" title="Documents waiting to be sorted">${icon('inbox')}<span class="hide-sm">Inbox</span>${inbox ? `<span class="n">${inbox}</span>` : ''}</button>
       <button class="icon-btn" data-act="refresh" title="Read this subject again from your storage" aria-label="Refresh">${icon('refresh')}</button>
@@ -1683,6 +1686,8 @@ function mSettings() {
       <label class="field">From now on<textarea id="s-rule" placeholder="Flashcards always quote the definition from the script word for word, then explain it in one sentence"></textarea></label>
     </section>
     <section class="panel"><h2>In this browser</h2>
+      <label class="field">Space kept free for Claude's message box in full screen: <b id="dock-v">${store.get('dock', 150)} px</b>
+        <input type="range" min="0" max="320" step="10" value="${store.get('dock', 150)}" data-act="dock" id="s-dock"></label>
       <label class="row" style="gap:8px"><input type="checkbox" data-act="toggle-hints" ${store.get('hints', true) ? 'checked' : ''}>Tell me which Claude model a request needs before I send it</label>
       <label class="row" style="gap:8px"><input type="checkbox" data-act="toggle-library" ${store.get('library', '') === 'off' ? '' : 'checked'}>Keep a copy of my material and progress in my library, so it opens without Claude</label>
     </section>
@@ -1737,6 +1742,7 @@ document.addEventListener('click', (e) => {
     case 'ready': return openModal('ready');
     case 'topic-open': S.topicSheet = d.t; return openModal('topic');
     case 'toggle-hints': store.set('hints', !!el.checked); return;
+    case 'dock': return;
     case 'toggle-library': if (el.checked) { store.set('library', ''); S.library = libKey(); loadLibrary(); } else { store.set('library', 'off'); S.library = ''; } return;
     case 'plan-tick': store.set(d.k, !!el.checked); return render();
     case 'load-all': { const p = partOf(d.p); const miss = (p?.generated ?? []).filter((x) => !lib.has(x));
@@ -1925,7 +1931,7 @@ function exportCsv() {
 // ---------- display ----------
 async function toggleFull() {
   const target = S.display === 'fullscreen' ? 'inline' : 'fullscreen';
-  try { const r = await app.requestDisplayMode({ mode: target }); S.display = r?.mode ?? target; } catch {}
+  try { const r = await app.requestDisplayMode({ mode: target }); S.display = r?.mode ?? target; store.set('full', S.display === 'fullscreen'); } catch {}
   render();
 }
 function hostContext(ctx) {
@@ -1954,12 +1960,15 @@ app.ontoolinput = ({ arguments: a }) => {
 window.__studying = { receive: (m) => receive(m), go, S, openModal, render };
 if (S.subject) S.view = 'subject';
 applyUi();
+const setDock = (v) => { document.documentElement.style.setProperty('--dock-full', `${v}px`); const l = document.getElementById('dock-v'); if (l) l.textContent = `${v} px`; };
+setDock(store.get('dock', 150));
+document.addEventListener('input', (e) => { if (e.target?.id === 's-dock') { const v = Number(e.target.value) || 0; store.set('dock', v); setDock(v); } });
 render();
 await app.connect();
 connected = true;
 hostContext(app.getHostContext());
 render();
-if (S.modes.includes('fullscreen') && S.display !== 'fullscreen') toggleFull();
+if (S.modes.includes('fullscreen') && S.display !== 'fullscreen' && store.get('full', true)) toggleFull();
 S.library = S.library || libKey();
 loadLibrary();
 startPolling();
